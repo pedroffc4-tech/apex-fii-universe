@@ -3707,8 +3707,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div id="api-key-banner" class="api-key-banner" style="display:none">
     <span style="font-size:18px">🔑</span>
     <div style="flex:1">
-      <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">Chave de API Anthropic necessária</div>
-      <div style="font-size:10px;color:#6b7a9a">Insira sua chave para habilitar a geração automática de análises com IA. Ela ficará salva no navegador.</div>
+      <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">Chave de API Google Gemini necessária</div>
+      <div style="font-size:10px;color:#6b7a9a">Gratuita e ilimitada. Acesse aistudio.google.com → "Get API Key" → copie a chave (AIza...) e cole abaixo.</div>
     </div>
     <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
     <button class="btn-save-key" onclick="saveApiKey()">Salvar chave</button>
@@ -3762,7 +3762,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div id="card-quali" style="display:none">
     <div class="score-section-hdr quali" onclick="toggleSection('quali-body')">
       <div><div class="score-section-title">Análise Qualitativa — 40%</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">7 critérios · 5,7% cada · Claude sugere, analista valida</div></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">7 critérios · 5,7% cada · Gemini sugere, analista valida</div></div>
       <div class="score-section-badge" id="badge-quali">—</div>
     </div>
     <div id="quali-body"><div id="quali-blocks"></div></div>
@@ -3936,7 +3936,7 @@ async function gerarAnalise(){
   try{
     const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===currentTicker)||{};
     const fd=fundDataMap[currentTicker]||{};
-    const prompt=`Você é analista sênior de FIIs da Apex Partners. Analise o fundo ${currentTicker} (${fund.nome}, segmento: ${fund.seg}).
+    const prompt=`Você é analista sênior de FIIs da Apex Partners. Responda SOMENTE com JSON puro, sem markdown, sem explicações fora do JSON. Analise o fundo ${currentTicker} (${fund.nome}, segmento: ${fund.seg}).
 
 DADOS DISPONÍVEIS DO BTG GUIDE (já calculados):
 - DY Anualizado: ${fd.yieldPct||'N/D'} | P/VP: ${fd.pvpTxt||'N/D'} | Vol ADTV 90d: ${fd.volFmt||'N/D'} | MktCap: ${fd.mktFmt||'N/D'}
@@ -3963,23 +3963,34 @@ n12=LTV % apenas tijolo (0-3:>40% | 4-6:20-40% | 7-10:<20%)
 
 Para o comparativo, inclua: DY mensal, vacância, cotistas, patrimônio, distribuição e outros indicadores relevantes.
 Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, omita o item do quantitativo_pdf.`;
-    const apiKey=localStorage.getItem('apex_anthropic_key')||'';
-    if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Anthropic no topo desta aba.');}
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const apiKey=localStorage.getItem('apex_gemini_key')||'';
+    if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Gemini (AIza...) no topo desta aba.');}
+    // Gemini 1.5 Flash — gratuito, lê PDFs nativamente
+    const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const resp=await fetch(geminiUrl,{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:[{role:'user',content:[
-        {type:'text',text:prompt},
-        {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfPenultimo.b64},title:'Penúltimo Relatório'},
-        {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfUltimo.b64},title:'Último Relatório'}
-      ]}]})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[
+          {text:prompt},
+          {inline_data:{mime_type:'application/pdf',data:pdfPenultimo.b64}},
+          {inline_data:{mime_type:'application/pdf',data:pdfUltimo.b64}}
+        ]}],
+        generationConfig:{
+          temperature:0.2,
+          maxOutputTokens:4096,
+          responseMimeType:'application/json'
+        }
+      })
     });
-    if(!resp.ok){const err=await resp.text();throw new Error('API retornou '+resp.status+': '+err.substring(0,200));}
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error('Gemini retornou '+resp.status+': '+(err?.error?.message||'erro desconhecido'));
+    }
     const data=await resp.json();
-    if(data.error){throw new Error('API error: '+data.error.message);}
-    const raw=(data.content?.find(c=>c.type==='text')?.text)||'';
-    if(!raw){throw new Error('Resposta vazia da IA. Tente novamente.');}
-    // Extrair bloco JSON mesmo que venha com texto ao redor
+    if(data.error){throw new Error('Gemini error: '+data.error.message);}
+    const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!raw){throw new Error('Resposta vazia do Gemini. Verifique sua chave e tente novamente.');}
     const jsonMatch=raw.match(/\{[\s\S]*\}/);
     if(!jsonMatch){throw new Error('JSON não encontrado na resposta. Raw: '+raw.substring(0,300));}
     const result=JSON.parse(jsonMatch[0]);
@@ -4032,7 +4043,7 @@ function renderQualiBlocksPlaceholder(){
       <div class="score-block-right">
         <div class="score-input-wrap"><div class="score-input-label">Nota</div>
           <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
-        <div id="quali-sug-${c.id}" class="score-suggested">Aguardando IA...</div>
+        <div id="quali-sug-${c.id}" class="score-suggested">Aguardando Gemini...</div>
       </div></div>
     <textarea class="form-textarea" id="quali-just-${c.id}" placeholder="Justificativa do analista..."></textarea>
   </div>`).join('');
@@ -4074,29 +4085,29 @@ function toggleAplic(id, type){
 }
 function saveApiKey(){
   const key=document.getElementById('api-key-input')?.value?.trim();
-  if(!key||!key.startsWith('sk-')){alert('Chave inválida. Deve começar com sk-');return;}
-  localStorage.setItem('apex_anthropic_key',key);
+  if(!key||!key.startsWith('AIza')){alert('Chave inválida. Deve começar com AIza');return;}
+  localStorage.setItem('apex_gemini_key',key);
   checkApiKeyBanner();
   alert('✅ Chave salva com sucesso!');
 }
 function clearApiKey(){
-  localStorage.removeItem('apex_anthropic_key');
+  localStorage.removeItem('apex_gemini_key');
   checkApiKeyBanner();
 }
 function checkApiKeyBanner(){
   const banner=document.getElementById('api-key-banner');
   if(!banner) return;
-  const key=localStorage.getItem('apex_anthropic_key');
+  const key=localStorage.getItem('apex_gemini_key');
   banner.style.display='flex';
   if(key){
     banner.classList.add('api-key-ok');
     banner.querySelector('.api-key-banner input').value='';
     banner.querySelector('.api-key-banner input').placeholder='Chave configurada ✓';
-    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API configurada ✓';
-    banner.querySelector('.api-key-banner > div > div:last-child').textContent='A IA está pronta para gerar análises.';
+    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave Gemini configurada ✓';
+    banner.querySelector('.api-key-banner > div > div:last-child').textContent='API Gemini gratuita pronta para gerar análises.';
   } else {
     banner.classList.remove('api-key-ok');
-    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API Anthropic necessária';
+    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API Google Gemini necessária';
     banner.querySelector('.api-key-banner > div > div:last-child').textContent='Insira sua chave para habilitar a geração automática de análises com IA.';
   }
 }
