@@ -173,6 +173,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div class="header-right">
     <div class="header-date">02/06/2026</div>
     <div>FII Universe · Uso Interno · Semana 16 de 21</div>
+    <div id="sync-status" style="font-size:9px;margin-top:2px;color:#a0c4f0">⟳ Sincronizando...</div>
   </div>
 </div>
 
@@ -636,9 +637,12 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 
 <!-- ══ RANKING ══ -->
 <div class="tab" id="tab-ranking">
-  <div class="section-hdr">
-    <h2>Ranking</h2>
-    <p>146 fundos elegíveis ao menos 1x · Período: 05/01/2026 a 02/06/2026 · 21 semanas</p>
+  <div class="section-hdr" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2>Ranking</h2>
+      <p>146 fundos elegíveis ao menos 1x · Período: 05/01/2026 a 02/06/2026 · 21 semanas</p>
+    </div>
+    <button onclick="supaLoad()" style="padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⟳ Sincronizar</button>
   </div>
   <div class="sub-tabs">
     <div class="sub-tab active" onclick="showSubTab('estabilidade',this)">📊 Estabilidade</div>
@@ -3797,6 +3801,66 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 </div>
 
 <script>
+// ── SUPABASE ─────────────────────────────────────────────────
+const SUPA_URL='https://ystjnkvodohjcruixiqv.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzdGpua3ZvZG9oamNydWl4aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMjUsImV4cCI6MjA5NTk4NDAyNX0.pqtJybMMp_i9p05oakWjYp1IHajhaZBd07QIfPzHdpU';
+
+// Carregar análises do Supabase
+async function supaLoad(){
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/analyses?select=*',{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    if(!r.ok) return;
+    const rows=await r.json();
+    rows.forEach(row=>{
+      analyses[row.ticker]={
+        ticker:row.ticker,nome:row.nome,seg:row.segmento,
+        analista:row.analista,data:row.data,tipo:row.tipo,
+        qualiScores:row.quali_scores||{},qualiJust:row.quali_just||{},
+        quantiScores:row.quanti_scores||{},quantiJust:row.quanti_just||{},
+        scoreTotal:row.score_total,scoreQuali:row.score_quali,
+        scoreQuanti:row.score_quanti,finalizado:row.finalizado
+      };
+    });
+    localStorage.setItem('apex_fii_analyses',JSON.stringify(analyses));
+    console.log('✅ Supabase: '+rows.length+' análises carregadas');
+    const ss=document.getElementById('sync-status');
+    if(ss)ss.innerHTML='✅ Sincronizado · '+rows.length+' análises';
+    injectAnalyseTags();
+    renderScoreRanking();
+  }catch(e){console.warn('Supabase load falhou (usando cache local):',e.message);
+    const ss=document.getElementById('sync-status');
+    if(ss)ss.innerHTML='⚠️ Offline (cache local)';}
+}
+
+// Salvar/atualizar análise no Supabase
+async function supaSave(a){
+  const payload={
+    ticker:a.ticker,nome:a.nome,segmento:a.seg,
+    analista:a.analista,data:a.data,tipo:a.tipo,
+    quali_scores:a.qualiScores,quali_just:a.qualiJust,
+    quanti_scores:a.quantiScores,quanti_just:a.quantiJust,
+    score_total:a.scoreTotal,score_quali:a.scoreQuali,
+    score_quanti:a.scoreQuanti,finalizado:a.finalizado,
+    updated_at:new Date().toISOString()
+  };
+  const r=await fetch(SUPA_URL+'/rest/v1/analyses',{
+    method:'POST',
+    headers:{
+      'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+      'Content-Type':'application/json',
+      'Prefer':'resolution=merge-duplicates'
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!r.ok){
+    const err=await r.text();
+    throw new Error('Erro ao salvar no banco: '+err.substring(0,200));
+  }
+  console.log('✅ Supabase: análise de '+a.ticker+' salva');
+}
+
 const ELIGIBLE_FUNDS=[{"ticker": "AFHI11", "nome": "AF Invest CRI Recebíveis FII", "seg": "Recebível"}, {"ticker": "ALZR11", "nome": "Alianza Trust Renda Imobiliária FII", "seg": "Híbrido"}, {"ticker": "BBFO11", "nome": "BB Fundo de Fundos Imobiliários FII", "seg": "Fundo de Fundos"}, {"ticker": "BBGO11", "nome": "BB Fundo de Investimento de Crédito Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "BBIG11", "nome": "BB Premium Malls FII", "seg": "Shopping Center"}, {"ticker": "BCIA11", "nome": "Bradesco Carteira Imobiliária Ativa FII", "seg": "Fundo de Fundos"}, {"ticker": "BCRI11", "nome": "Banestes Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "BDIF11", "nome": "BTG Pactual Dívida Infra FIC FI-Infra", "seg": "FI-Infra"}, {"ticker": "BINC11", "nome": "Bradesco FIC FI Renda Fixa Infra CDI", "seg": "FI-Infra"}, {"ticker": "BODB11", "nome": "Bocaina FIC FI-Infra", "seg": "FI-Infra"}, {"ticker": "BPML11", "nome": "BTG Pactual Shoppings FII", "seg": "Shopping Center"}, {"ticker": "BRCO11", "nome": "Bresco Logística FII", "seg": "Galpão Logístico"}, {"ticker": "BRCR11", "nome": "BTG Pactual Corporate Offices FII", "seg": "Laje Corporativa"}, {"ticker": "BROF11", "nome": "BRPR Corporate Offices FII", "seg": "Laje Corporativa"}, {"ticker": "BTAL11", "nome": "BTG Pactual Agro Logística FII", "seg": "Agronegócio"}, {"ticker": "BTCI11", "nome": "BTG Pactual Crédito Imobiliário FII", "seg": "Recebível"}, {"ticker": "BTHF11", "nome": "BTG Pactual Real Estate Hedge Fund FII", "seg": "Hedge Fund"}, {"ticker": "BTLG11", "nome": "BTG Pactual Logística FII", "seg": "Galpão Logístico"}, {"ticker": "CDII11", "nome": "Sparta Infra CDI FIC FI-Infra", "seg": "FI-Infra"}, {"ticker": "CLIN11", "nome": "Clave Índices de Preços FII", "seg": "Recebível"}, {"ticker": "CPLG11", "nome": "Capitânia Logística FII", "seg": "Galpão Logístico"}, {"ticker": "CPSH11", "nome": "Capitânia Shoppings FII", "seg": "Shopping Center"}, {"ticker": "CPTI11", "nome": "Capitânia Infra FIC FIRF", "seg": "FI-Infra"}, {"ticker": "CPTS11", "nome": "Capitânia Securities II FII", "seg": "Hedge Fund"}, {"ticker": "CRAA11", "nome": "Sparta Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "CYCR11", "nome": "Cyrela Crédito FII", "seg": "Recebível"}, {"ticker": "DEVA11", "nome": "Devant Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "EGAF11", "nome": "Ecoagro I Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "FATN11", "nome": "BRC Renda Corporativa FII", "seg": "Laje Corporativa"}, {"ticker": "FGAA11", "nome": "Fg/Agro Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "GARE11", "nome": "Guardian Real Estate FII", "seg": "Renda Urbana"}, {"ticker": "GGRC11", "nome": "GGR Covepi Renda FII", "seg": "Galpão Logístico"}, {"ticker": "GTWR11", "nome": "Green Towers FII", "seg": "Laje Corporativa"}, {"ticker": "GZIT11", "nome": "Gazit Malls FII", "seg": "Shopping Center"}, {"ticker": "HABT11", "nome": "Habitat II FII", "seg": "Recebível"}, {"ticker": "HCTR11", "nome": "Hectare CE FII", "seg": "Recebível"}, {"ticker": "HFOF11", "nome": "Hedge Top FOFII 3 FII", "seg": "Fundo de Fundos"}, {"ticker": "HGBS11", "nome": "Hedge Brasil Shopping FII", "seg": "Shopping Center"}, {"ticker": "HGCR11", "nome": "CSHG Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "HGLG11", "nome": "CSHG Logística FII", "seg": "Galpão Logístico"}, {"ticker": "HGRU11", "nome": "CSHG Renda Urbana FII", "seg": "Renda Urbana"}, {"ticker": "HPDP11", "nome": "Hedge Shopping Parque Dom Pedro FII", "seg": "Shopping Center"}, {"ticker": "HSAF11", "nome": "HSI Ativos Financeiros FII", "seg": "Recebível"}, {"ticker": "HSLG11", "nome": "HSI Logística FII", "seg": "Galpão Logístico"}, {"ticker": "HSML11", "nome": "HSI Malls FII", "seg": "Shopping Center"}, {"ticker": "HSRE11", "nome": "HSI Renda Imobiliária FII", "seg": "Híbrido"}, {"ticker": "HTMX11", "nome": "FII Hotel Maxinvest", "seg": "Hotel"}, {"ticker": "IBBP11", "nome": "Invista Brazilian Business Park FII", "seg": "Galpão Logístico"}, {"ticker": "ICRI11", "nome": "Itaú Crédito Imobiliário IPCA FII", "seg": "Recebível"}, {"ticker": "IFRA11", "nome": "Itaú FIC FI de Infraestrutura", "seg": "FI-Infra"}, {"ticker": "IFRI11", "nome": "Itaú FIC FI de Infraestrutura CDI", "seg": "FI-Infra"}, {"ticker": "IRIM11", "nome": "Iridium FII", "seg": "Recebível"}, {"ticker": "ITRI11", "nome": "Itaú Total Return FII", "seg": "Hedge Fund"}, {"ticker": "JMBI11", "nome": "Jive Mauá Bossanova FIC FI-Infra", "seg": "FI-Infra"}, {"ticker": "JSAF11", "nome": "JS Ativos Financeiros FII", "seg": "Fundo de Fundos"}, {"ticker": "JSRE11", "nome": "JS Real Estate Multigestão FII", "seg": "Laje Corporativa"}, {"ticker": "KCRE11", "nome": "Kinea Creditas FII", "seg": "Recebível"}, {"ticker": "KDIF11", "nome": "Kinea Infra FIC FIRF", "seg": "FI-Infra"}, {"ticker": "KFOF11", "nome": "Kinea Fundo de Fundos de Investimento Imobiliário FII", "seg": "Fundo de Fundos"}, {"ticker": "KISU11", "nome": "Kilima Fundo de Investimento Em Cotas de FII Suno 30", "seg": "Fundo de Fundos"}, {"ticker": "KNCA11", "nome": "Kinea Crédito Agro Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "KNCR11", "nome": "Kinea Rendimentos Imobiliários FII", "seg": "Recebível"}, {"ticker": "KNHF11", "nome": "Kinea Hedge Fund FII", "seg": "Hedge Fund"}, {"ticker": "KNHY11", "nome": "Kinea High Yield CRI FII", "seg": "Recebível"}, {"ticker": "KNIP11", "nome": "Kinea Indices de Preços FII", "seg": "Recebível"}, {"ticker": "KNRI11", "nome": "Kinea Renda Imobiliária FII", "seg": "Híbrido"}, {"ticker": "KNSC11", "nome": "Kinea Securities FII", "seg": "Recebível"}, {"ticker": "KNUQ11", "nome": "Kinea Unique HY CDI FII", "seg": "Recebível"}, {"ticker": "KORE11", "nome": "Kinea Oportunidades Real Estate FII", "seg": "Laje Corporativa"}, {"ticker": "LIFE11", "nome": "Life Capital Partners FII", "seg": "Recebível"}, {"ticker": "LVBI11", "nome": "VBI Logístico", "seg": "Galpão Logístico"}, {"ticker": "MANA11", "nome": "Manatí Capital Hedge Fund FII", "seg": "Recebível"}, {"ticker": "MCCI11", "nome": "Mauá Capital Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "MCRE11", "nome": "Mauá Capital Real Estate FII", "seg": "Hedge Fund"}, {"ticker": "MFII11", "nome": "Merito Desenvolvimento Imobiliário FII", "seg": "Desenvolvimento"}, {"ticker": "MXRF11", "nome": "Maxi Renda FII", "seg": "Recebível"}, {"ticker": "OUJP11", "nome": "Ourinvest JPP FII", "seg": "Recebível"}, {"ticker": "PCIP11", "nome": "Pátria Crédito Imobiliário", "seg": "Recebível"}, {"ticker": "PLAG11", "nome": "VBI Agro FII", "seg": "Agronegócio"}, {"ticker": "PMLL11", "nome": "Patria Malls FII", "seg": "Shopping Center"}, {"ticker": "PORD11", "nome": "Polo Crédito Imobiliário FII", "seg": "Recebível"}, {"ticker": "PQAG11", "nome": "Parque Anhanguera FII", "seg": "Laje Corporativa"}, {"ticker": "PSEC11", "nome": "Patria Securities FII", "seg": "Hedge Fund"}, {"ticker": "RBRL11", "nome": "RBR Log FII", "seg": "Galpão Logístico"}, {"ticker": "RBRP11", "nome": "RBR Properties FII", "seg": "Híbrido"}, {"ticker": "RBRR11", "nome": "FII RBR Rendimento High", "seg": "Recebível"}, {"ticker": "RBRX11", "nome": "RBR Plus Multiestratégia Real Estate", "seg": "Hedge Fund"}, {"ticker": "RBRY11", "nome": "RBR Crédito Imobiliário Estruturado FII", "seg": "Recebível"}, {"ticker": "RBVA11", "nome": "Agências Caixa FII", "seg": "Renda Urbana"}, {"ticker": "RCRB11", "nome": "Rio Bravo Renda Corporativava FII", "seg": "Laje Corporativa"}, {"ticker": "RECR11", "nome": "FII REC Recebíveis Imobiliários", "seg": "Recebível"}, {"ticker": "RECT11", "nome": "FII REC Renda Imobiliária", "seg": "Laje Corporativa"}, {"ticker": "RINV11", "nome": "Real Investor FII", "seg": "Fundo de Fundos"}, {"ticker": "RPRI11", "nome": "RBR Premium Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "RURA11", "nome": "Itaú Asset Rural Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "RZAG11", "nome": "Riza Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "RZAK11", "nome": "Riza Akin FII", "seg": "Recebível"}, {"ticker": "RZAT11", "nome": "Riza Arctium Real Estate FII", "seg": "Híbrido"}, {"ticker": "RZTR11", "nome": "Riza Terrax FII", "seg": "Agronegócio"}, {"ticker": "SNAG11", "nome": "Suno Agro Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "SNCI11", "nome": "Suno Recebíveis Imobiliários FII", "seg": "Recebível"}, {"ticker": "SNEL11", "nome": "Suno Energias Limpas FII", "seg": "Outros"}, {"ticker": "SNFF11", "nome": "Suno Fundo de Fundos", "seg": "Fundo de Fundos"}, {"ticker": "TEPP11", "nome": "Tellus Properties FII", "seg": "Laje Corporativa"}, {"ticker": "TGAR11", "nome": "TG Ativo Real FII", "seg": "Desenvolvimento"}, {"ticker": "TJKB11", "nome": "TJK Renda Imobiliária FII", "seg": "Educacional"}, {"ticker": "TOPP11", "nome": "RBR Top Offices FII", "seg": "Laje Corporativa"}, {"ticker": "TRBL11", "nome": "Tellus Rio Bravo Renda Log FII", "seg": "Galpão Logístico"}, {"ticker": "TRXF11", "nome": "TRX Real Estate FII", "seg": "Renda Urbana"}, {"ticker": "TVRI11", "nome": "Tivio Renda Imobiliária FII", "seg": "Agência Bancária"}, {"ticker": "URPR11", "nome": "Urca Prime Renda FII", "seg": "Recebível"}, {"ticker": "VCJR11", "nome": "Vectis Juros Real FII", "seg": "Recebível"}, {"ticker": "VCRA11", "nome": "Vectis Datagro Crédito Agronegócio Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "VGHF11", "nome": "Valora Hedge Fund FII", "seg": "Hedge Fund"}, {"ticker": "VGIA11", "nome": "Valora CRA Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "VGIP11", "nome": "Valora CRI Índice de Preço FII", "seg": "Recebível"}, {"ticker": "VGIR11", "nome": "Valora CRI CDI FII", "seg": "Recebível"}, {"ticker": "VGRI11", "nome": "Valora Renda Imobiliária FII", "seg": "Laje Corporativa"}, {"ticker": "VILG11", "nome": "Vinci Logística FII", "seg": "Galpão Logístico"}, {"ticker": "VINO11", "nome": "Vinci Offices FII", "seg": "Laje Corporativa"}, {"ticker": "VISC11", "nome": "Vinci Shopping Centers FII", "seg": "Shopping Center"}, {"ticker": "VRTA11", "nome": "Fator Verità FII", "seg": "Recebível"}, {"ticker": "XPCA11", "nome": "XP Crédito Agrícola Fiagro-FII", "seg": "FIAgro - FII"}, {"ticker": "XPCI11", "nome": "XP Crédito Imobiliário FII", "seg": "Recebível"}, {"ticker": "XPIN11", "nome": "XP Industrial FII", "seg": "Galpão Logístico"}, {"ticker": "XPLG11", "nome": "XP Log FII", "seg": "Galpão Logístico"}, {"ticker": "XPML11", "nome": "XP Malls FII", "seg": "Shopping Center"}];
 const QUALI_CRITERIA=[
   {id:'q1',peso:5.7,nome:'Track Record dos Gestores',desc:'Histórico dos gestores, tempo de trabalho em conjunto, movimentações dentro do time',ranges:['Troca recente do time, <1 ano juntos. Compra/merge com nova gestora','1-3 anos juntos, histórico limitado mas com expertise','> 3 anos de atuação, estratégia relevante na gestora']},
@@ -4185,7 +4249,7 @@ function updateScore(){
     const sp=document.getElementById('sum-pct');if(sp)sp.textContent=pct.toFixed(0)+'%';
   }
 }
-function finalizarAnalise(){
+async function finalizarAnalise(){
   const ticker=currentTicker,analista=document.getElementById('sel-analista').value,tipo=document.getElementById('sel-tipo').value;
   if(!ticker||!analista){alert('Selecione o fundo e o analista antes de finalizar.');return;}
   let qs=0,qc=0;const qScores={},qJust={};
@@ -4210,9 +4274,20 @@ function finalizarAnalise(){
   const quantiScore=qws>0?qwv/qws:0,scoreTotal=qualiScore*0.4+quantiScore*0.6;
   const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===ticker)||{};
   const hoje=new Date(),data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
-  analyses[ticker]={ticker,nome:fund.nome||'',seg:fund.seg||'',analista,data,tipo,qualiScores:qScores,qualiJust:qJust,quantiScores:nScores,quantiJust:nJust,scoreTotal,scoreQuali:qualiScore,scoreQuanti:quantiScore,finalizado:true};
+  const analiseObj={ticker,nome:fund.nome||'',seg:fund.seg||'',analista,data,tipo,qualiScores:qScores,qualiJust:qJust,quantiScores:nScores,quantiJust:nJust,scoreTotal,scoreQuali:qualiScore,scoreQuanti:quantiScore,finalizado:true};
+  analyses[ticker]=analiseObj;
   localStorage.setItem('apex_fii_analyses',JSON.stringify(analyses));
-  alert('✓ Análise de '+ticker+' finalizada!\nScore Final: '+scoreTotal.toFixed(1)+'/10');
+  // Salvar no Supabase (com feedback visual)
+  const btnF=document.querySelector('.btn-finalizar');
+  if(btnF){btnF.textContent='Salvando...';btnF.disabled=true;}
+  try{
+    await supaSave(analiseObj);
+    alert('✓ Análise de '+ticker+' finalizada e salva!\nScore Final: '+scoreTotal.toFixed(1)+'/10');
+  }catch(e){
+    alert('⚠️ Análise salva localmente, mas houve erro no banco:\n'+e.message+'\n\nOs dados estão seguros no browser.');
+  }finally{
+    if(btnF){btnF.textContent='✓ Finalizar Análise';btnF.disabled=false;}
+  }
   renderScoreRanking();injectAnalyseTags();
 }
 function reloadAnalise(ticker){
@@ -4335,7 +4410,12 @@ function preencherDadosBTG(ticker, tipo){
   updateScore();
 }
 
-document.addEventListener('DOMContentLoaded',()=>{buildFundDataMap();injectAnalyseTags();});
+document.addEventListener('DOMContentLoaded',()=>{
+  buildFundDataMap();
+  injectAnalyseTags();
+  // Carregar análises do Supabase (sobrescreve cache local se houver dados mais recentes)
+  supaLoad();
+});
 </script>
 </body>
 </html>
