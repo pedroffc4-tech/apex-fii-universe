@@ -156,6 +156,12 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .comp-item-vals{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
 .comp-up{color:var(--success)}.comp-down{color:var(--danger)}.comp-neu{color:#6b7a9a}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
+.api-key-banner{background:var(--warning-bg);border:1.5px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.api-key-banner input{flex:1;min-width:260px;padding:8px 12px;border:1.5px solid var(--apex-mist);border-radius:7px;font-size:12px;font-family:'Manrope',sans-serif;outline:none}
+.api-key-banner input:focus{border-color:var(--apex-blue)}
+.btn-save-key{padding:8px 18px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
+.btn-save-key:hover{background:#005fa3}
+.api-key-ok{background:var(--success-bg);border-color:#a7f3d0}
 .footer strong{color:#fff}
 @media(max-width:640px){.content{padding:14px}.nav-tab{padding:11px 13px;font-size:10px}.kpi-val{font-size:22px}.header{padding:0 14px}}
 </style>
@@ -3698,6 +3704,16 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <h2>✦ Análise de Fundos</h2>
     <p>Selecione um fundo elegível, anexe os relatórios gerenciais e gere a análise prévia com IA</p>
   </div>
+  <div id="api-key-banner" class="api-key-banner" style="display:none">
+    <span style="font-size:18px">🔑</span>
+    <div style="flex:1">
+      <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">Chave de API Anthropic necessária</div>
+      <div style="font-size:10px;color:#6b7a9a">Insira sua chave para habilitar a geração automática de análises com IA. Ela ficará salva no navegador.</div>
+    </div>
+    <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+    <button class="btn-save-key" onclick="saveApiKey()">Salvar chave</button>
+    <button class="btn-save-key" style="background:#6b7a9a" onclick="clearApiKey()">Remover</button>
+  </div>
   <div class="card">
     <div class="card-title">1. Seleção do Fundo</div>
     <div class="analise-setup">
@@ -3709,6 +3725,9 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
           <option value="papel-ipca">Papel (IPCA)</option>
           <option value="papel-cdi">Papel (CDI)</option>
           <option value="tijolo">Tijolo</option>
+          <option value="hibrido">Híbrido</option>
+          <option value="fi-infra">FI-Infra</option>
+          <option value="hedge">Hedge Fund</option>
         </select></div>
       <div class="form-group"><label class="form-label">Analista Responsável</label>
         <select class="form-select" id="sel-analista">
@@ -3789,7 +3808,7 @@ const QUALI_CRITERIA=[
   {id:'q7',peso:5.7,nome:'Dividendos × Média de Mercado',desc:'Comparar DY (12M, YTD, último mês) com a média dos pares',ranges:['DY abaixo da média do mercado','DY competitivo vs CDI e pares, porém inconsistente','DY constante acima da média, sem agredir o financeiro']}
 ];
 const QUANTI_CRITERIA=[
-  {id:'n1',peso:5.0,nome:'DY 12m',desc:'Avaliar histórico de dividendos e crescimento',getRange:(t)=>t==='papel-cdi'?[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-14%'},{label:'7–10',txt:'> 14%'}]:t==='tijolo'?[{label:'0–3',txt:'< 8%'},{label:'4–6',txt:'8-10%'},{label:'7–10',txt:'> 10%'}]:[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-12%'},{label:'7–10',txt:'> 12%'}],applicavel:true},
+  {id:'n1',peso:5.0,nome:'DY 12m',desc:'Avaliar histórico de dividendos e crescimento',getRange:(t)=>{if(t==='papel-cdi')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-14%'},{label:'7–10',txt:'> 14%'}];if(t==='tijolo'||t==='hibrido')return[{label:'0–3',txt:'< 8%'},{label:'4–6',txt:'8-10%'},{label:'7–10',txt:'> 10%'}];if(t==='fi-infra'||t==='hedge')return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-14%'},{label:'7–10',txt:'> 14%'}];return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-12%'},{label:'7–10',txt:'> 12%'}];},applicavel:true},
   {id:'n2',peso:5.0,nome:'Performance 12m',desc:'Performance vs IFIX',ranges:[{label:'0–3',txt:'< IFIX−0,5dp'},{label:'4–6',txt:'IFIX ± 0,5dp'},{label:'7–10',txt:'> IFIX+0,5dp'}],applicavel:true},
   {id:'n3',peso:5.0,nome:'Alavancagem',desc:'Grau de alavancagem vs média de mercado',ranges:[{label:'0–3',txt:'> 15%'},{label:'4–6',txt:'10-15%'},{label:'7–10',txt:'< 10%'}],applicavel:true},
   {id:'n4',peso:5.0,nome:'Spread Over / Prazo',desc:'Spread do DY vs média de mercado',ranges:[{label:'N/A',txt:'—'},{label:'N/A',txt:'—'},{label:'N/A',txt:'—'}],applicavel:false,checkAplic:true},
@@ -3811,7 +3830,7 @@ function showTab(id,el){
   document.getElementById('tab-'+id)?.classList.add('active');
   el.classList.add('active');
   if(id==='fundos') injectAnalyseTags();
-  if(id==='analise') initAnaliseFundoDropdown();
+  if(id==='analise'){initAnaliseFundoDropdown();checkApiKeyBanner();}
   if(id==='ranking') renderScoreRanking();
 }
 function showSubTab(id,el){
@@ -3920,8 +3939,11 @@ async function gerarAnalise(){
 Responda APENAS em JSON válido sem texto adicional:
 {"comparativo":[{"label":"indicador","anterior":"val","atual":"val","trend":"up|down|neutral"}],"qualitativo":[{"id":"q1","nota":7,"justificativa":"texto baseado nos relatórios"}]}
 Critérios (q1-q7): q1=Track Record, q2=Governança, q3=Concentração Carteira, q4=Waiver/Default, q5=Localização/Qualidade, q6=Dividendos/FFO, q7=DY×Mercado. Base sua análise exclusivamente nos relatórios fornecidos.`;
+    const apiKey=localStorage.getItem('apex_anthropic_key')||'';
+    if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Anthropic no topo desta aba.');}
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[
         {type:'text',text:prompt},
         {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfPenultimo.b64},title:'Penúltimo Relatório'},
@@ -3952,18 +3974,24 @@ function renderComparativo(items){
 }
 function renderQualiBlocksPlaceholder(){
   const cont=document.getElementById('quali-blocks');if(!cont)return;
-  cont.innerHTML=QUALI_CRITERIA.map(c=>`<div class="score-block">
+  cont.innerHTML=QUALI_CRITERIA.map(c=>`<div class="score-block" id="block-${c.id}">
     <div class="score-block-header">
-      <div style="flex:1"><div class="score-block-title">${c.nome} <span style="font-size:10px;color:#6b7a9a;font-weight:500">· ${c.peso}%</span></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div class="score-block-title">${c.nome} <span style="font-size:10px;color:#6b7a9a;font-weight:500">· ${c.peso}%</span></div>
+          <label class="applicable-check"><input type="checkbox" id="aplic-${c.id}" checked onchange="toggleAplic('${c.id}','quali')"> Aplicável</label>
+        </div>
         <div class="score-block-desc">${c.desc}</div>
         <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
           <span class="range-pill r-low">0–3: ${c.ranges[0].substring(0,55)}${c.ranges[0].length>55?'…':''}</span>
           <span class="range-pill r-mid">4–6: ${c.ranges[1].substring(0,55)}${c.ranges[1].length>55?'…':''}</span>
           <span class="range-pill r-high">7–10: ${c.ranges[2].substring(0,55)}${c.ranges[2].length>55?'…':''}</span>
         </div></div>
-      <div class="score-block-right"><div class="score-input-wrap"><div class="score-input-label">Nota</div>
-        <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
-        <div id="quali-sug-${c.id}" class="score-suggested">Aguardando IA...</div></div></div>
+      <div class="score-block-right">
+        <div class="score-input-wrap"><div class="score-input-label">Nota</div>
+          <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
+        <div id="quali-sug-${c.id}" class="score-suggested">Aguardando IA...</div>
+      </div></div>
     <textarea class="form-textarea" id="quali-just-${c.id}" placeholder="Justificativa do analista..."></textarea>
   </div>`).join('');
 }
@@ -3971,33 +3999,77 @@ function renderQuantiBlocks(tipo){
   const cont=document.getElementById('quanti-blocks');if(!cont)return;
   cont.innerHTML=QUANTI_CRITERIA.map(c=>{
     const ranges=c.getRange?c.getRange(tipo):c.ranges;
-    const nc=!!c.checkAplic;
-    return`<div class="score-block">
+    return`<div class="score-block" id="block-${c.id}">
       <div class="score-block-header">
-        <div style="flex:1"><div class="score-block-title">${c.nome} <span style="font-size:10px;color:#6b7a9a;font-weight:500">· ${c.peso}%</span>
-          ${nc?`<label class="applicable-check" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="aplic-${c.id}" onchange="updateScore()"> Aplicável</label>`:''}
-        </div>
-        <div class="score-block-desc">${c.desc}</div>
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
-          ${ranges.map((r,i)=>`<span class="range-pill ${i===0?'r-low':i===1?'r-mid':'r-high'}">${r.label}: ${r.txt}</span>`).join('')}
-        </div></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <div class="score-block-title">${c.nome} <span style="font-size:10px;color:#6b7a9a;font-weight:500">· ${c.peso}%</span></div>
+            <label class="applicable-check"><input type="checkbox" id="aplic-${c.id}" checked onchange="toggleAplic('${c.id}','quanti')"> Aplicável</label>
+          </div>
+          <div class="score-block-desc">${c.desc}</div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+            ${ranges.map((r,i)=>`<span class="range-pill ${i===0?'r-low':i===1?'r-mid':'r-high'}">${r.label}: ${r.txt}</span>`).join('')}
+          </div></div>
         <div class="score-block-right"><div class="score-input-wrap"><div class="score-input-label">Nota</div>
-          <input type="number" class="score-num" id="quanti-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" ${nc?'disabled':''} oninput="updateScore()"></div>
+          <input type="number" class="score-num" id="quanti-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
         </div></div>
       <textarea class="form-textarea" id="quanti-just-${c.id}" placeholder="Justificativa do analista..."></textarea>
     </div>`;
   }).join('');
-  QUANTI_CRITERIA.filter(c=>c.checkAplic).forEach(c=>{
-    const cb=document.getElementById('aplic-'+c.id);
-    if(cb)cb.addEventListener('change',()=>{const inp=document.getElementById('quanti-note-'+c.id);if(inp){inp.disabled=!cb.checked;if(!cb.checked)inp.value='';}updateScore();});
-  });
+}
+function toggleAplic(id, type){
+  const cb=document.getElementById('aplic-'+id);
+  const block=document.getElementById('block-'+id);
+  const noteEl=document.getElementById((type==='quali'?'quali-note-':'quanti-note-')+id);
+  const justEl=document.getElementById((type==='quali'?'quali-just-':'quanti-just-')+id);
+  const isOff=!cb.checked;
+  if(noteEl){noteEl.disabled=isOff;if(isOff)noteEl.value='';}
+  if(block) block.style.opacity=isOff?'0.45':'1';
+  if(justEl){justEl.style.opacity=isOff?'0.4':'1';}
+  updateScore();
+}
+function saveApiKey(){
+  const key=document.getElementById('api-key-input')?.value?.trim();
+  if(!key||!key.startsWith('sk-')){alert('Chave inválida. Deve começar com sk-');return;}
+  localStorage.setItem('apex_anthropic_key',key);
+  checkApiKeyBanner();
+  alert('✅ Chave salva com sucesso!');
+}
+function clearApiKey(){
+  localStorage.removeItem('apex_anthropic_key');
+  checkApiKeyBanner();
+}
+function checkApiKeyBanner(){
+  const banner=document.getElementById('api-key-banner');
+  if(!banner) return;
+  const key=localStorage.getItem('apex_anthropic_key');
+  banner.style.display='flex';
+  if(key){
+    banner.classList.add('api-key-ok');
+    banner.querySelector('.api-key-banner input').value='';
+    banner.querySelector('.api-key-banner input').placeholder='Chave configurada ✓';
+    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API configurada ✓';
+    banner.querySelector('.api-key-banner > div > div:last-child').textContent='A IA está pronta para gerar análises.';
+  } else {
+    banner.classList.remove('api-key-ok');
+    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API Anthropic necessária';
+    banner.querySelector('.api-key-banner > div > div:last-child').textContent='Insira sua chave para habilitar a geração automática de análises com IA.';
+  }
 }
 function updateScore(){
   let qs=0,qc=0;
-  QUALI_CRITERIA.forEach(c=>{const v=parseFloat(document.getElementById('quali-note-'+c.id)?.value);if(!isNaN(v)){qs+=v;qc++;}});
+  QUALI_CRITERIA.forEach(c=>{
+    const cb=document.getElementById('aplic-'+c.id);
+    if(cb&&!cb.checked) return;
+    const v=parseFloat(document.getElementById('quali-note-'+c.id)?.value);if(!isNaN(v)){qs+=v;qc++;}
+  });
   const qualiScore=qc>0?qs/qc:null;
   let qws=0,qwv=0;
-  QUANTI_CRITERIA.forEach(c=>{const na=c.checkAplic&&!document.getElementById('aplic-'+c.id)?.checked;if(na)return;const v=parseFloat(document.getElementById('quanti-note-'+c.id)?.value);if(!isNaN(v)){qws+=c.peso;qwv+=v*c.peso;}});
+  QUANTI_CRITERIA.forEach(c=>{
+    const cb=document.getElementById('aplic-'+c.id);
+    if(cb&&!cb.checked) return;
+    const v=parseFloat(document.getElementById('quanti-note-'+c.id)?.value);if(!isNaN(v)){qws+=c.peso;qwv+=v*c.peso;}
+  });
   const quantiScore=qws>0?qwv/qws:null;
   const qb=document.getElementById('badge-quali');if(qb)qb.textContent=qualiScore!==null?qualiScore.toFixed(1)+'/10':'—';
   const nb=document.getElementById('badge-quanti');if(nb)nb.textContent=quantiScore!==null?quantiScore.toFixed(1)+'/10':'—';
@@ -4015,10 +4087,24 @@ function finalizarAnalise(){
   const ticker=currentTicker,analista=document.getElementById('sel-analista').value,tipo=document.getElementById('sel-tipo').value;
   if(!ticker||!analista){alert('Selecione o fundo e o analista antes de finalizar.');return;}
   let qs=0,qc=0;const qScores={},qJust={};
-  QUALI_CRITERIA.forEach(c=>{const v=parseFloat(document.getElementById('quali-note-'+c.id)?.value);const j=document.getElementById('quali-just-'+c.id)?.value||'';qScores[c.id]=isNaN(v)?null:v;qJust[c.id]=j;if(!isNaN(v)){qs+=v;qc++;}});
+  QUALI_CRITERIA.forEach(c=>{
+    const cb=document.getElementById('aplic-'+c.id);
+    const na=cb&&!cb.checked;
+    const v=parseFloat(document.getElementById('quali-note-'+c.id)?.value);
+    const j=document.getElementById('quali-just-'+c.id)?.value||'';
+    qScores[c.id]=na?null:isNaN(v)?null:v;qJust[c.id]=j;
+    if(!na&&!isNaN(v)){qs+=v;qc++;}
+  });
   const qualiScore=qc>0?qs/qc:0;
   let qws=0,qwv=0;const nScores={},nJust={};
-  QUANTI_CRITERIA.forEach(c=>{const na=c.checkAplic&&!document.getElementById('aplic-'+c.id)?.checked;const v=na?null:parseFloat(document.getElementById('quanti-note-'+c.id)?.value);const j=document.getElementById('quanti-just-'+c.id)?.value||'';nScores[c.id]=na?null:isNaN(v)?null:v;nJust[c.id]=j;if(!na&&!isNaN(v)){qws+=c.peso;qwv+=v*c.peso;}});
+  QUANTI_CRITERIA.forEach(c=>{
+    const cb=document.getElementById('aplic-'+c.id);
+    const na=cb&&!cb.checked;
+    const v=na?null:parseFloat(document.getElementById('quanti-note-'+c.id)?.value);
+    const j=document.getElementById('quanti-just-'+c.id)?.value||'';
+    nScores[c.id]=na?null:isNaN(v)?null:v;nJust[c.id]=j;
+    if(!na&&!isNaN(v)){qws+=c.peso;qwv+=v*c.peso;}
+  });
   const quantiScore=qws>0?qwv/qws:0,scoreTotal=qualiScore*0.4+quantiScore*0.6;
   const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===ticker)||{};
   const hoje=new Date(),data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
