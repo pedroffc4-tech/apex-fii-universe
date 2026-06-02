@@ -3733,7 +3733,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div class="card">
     <div class="card-title">1. Seleção do Fundo</div>
     <div class="analise-setup">
-      <div class="form-group"><label class="form-label">Fundo Elegível</label>
+      <div class="form-group"><label class="form-label">Fundo</label>
         <select class="form-select" id="sel-fundo" onchange="onFundoSelect()"><option value="">— Selecione o fundo —</option></select></div>
       <div class="form-group"><label class="form-label">Tipo do Fundo</label>
         <select class="form-select" id="sel-tipo">
@@ -4080,9 +4080,54 @@ function openAnalise(ticker){
   initAnaliseFundoDropdown();
   setTimeout(()=>{document.getElementById('sel-fundo').value=ticker;onFundoSelect();},100);
 }
-function initAnaliseFundoDropdown(){
-  const sel=document.getElementById('sel-fundo');if(sel.options.length>1)return;
-  ELIGIBLE_FUNDS.forEach(f=>{const o=document.createElement('option');o.value=f.ticker;o.text=f.ticker+' · '+f.nome;sel.add(o);});
+async function initAnaliseFundoDropdown(){
+  const sel=document.getElementById('sel-fundo');
+  if(sel.options.length>1)return;
+  // Tentar carregar TODOS os fundos do Supabase (elegíveis + não elegíveis)
+  const db=getDB();
+  let todos=[];
+  if(db){
+    try{
+      // Pegar semana mais recente
+      const {data:sems}=await db.from('semanas').select('semana_data').order('created_at',{ascending:false}).limit(1);
+      if(sems&&sems.length>0){
+        const {data:fds}=await db.from('fund_data').select('ticker,nome,segmento,elegivel').eq('semana_data',sems[0].semana_data).order('ticker');
+        if(fds&&fds.length>0) todos=fds;
+      }
+    }catch(e){console.warn('Erro ao carregar fundos do Supabase:',e.message);}
+  }
+  if(todos.length>0){
+    // Separar elegíveis e não elegíveis com optgroup
+    const elegiveis=todos.filter(f=>f.elegivel);
+    const outros=todos.filter(f=>!f.elegivel);
+    if(elegiveis.length>0){
+      const grp=document.createElement('optgroup');
+      grp.label='✅ Elegíveis ('+elegiveis.length+')';
+      elegiveis.forEach(f=>{
+        const o=document.createElement('option');
+        o.value=f.ticker;o.text=f.ticker+' · '+(f.nome||'');grp.appendChild(o);
+      });
+      sel.appendChild(grp);
+    }
+    if(outros.length>0){
+      const grp2=document.createElement('optgroup');
+      grp2.label='— Outros fundos ('+outros.length+')';
+      outros.forEach(f=>{
+        const o=document.createElement('option');
+        o.value=f.ticker;o.text=f.ticker+' · '+(f.nome||'');grp2.appendChild(o);
+      });
+      sel.appendChild(grp2);
+    }
+  }else{
+    // Fallback: usar apenas ELIGIBLE_FUNDS hardcoded
+    const grp=document.createElement('optgroup');
+    grp.label='✅ Elegíveis';
+    ELIGIBLE_FUNDS.forEach(f=>{
+      const o=document.createElement('option');
+      o.value=f.ticker;o.text=f.ticker+' · '+f.nome;grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  }
 }
 function onFundoSelect(){
   const ticker=document.getElementById('sel-fundo').value;currentTicker=ticker;
