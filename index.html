@@ -3736,7 +3736,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <div class="form-group"><label class="form-label">Fundo</label>
         <select class="form-select" id="sel-fundo" onchange="onFundoSelect()"><option value="">— Selecione o fundo —</option></select></div>
       <div class="form-group"><label class="form-label">Tipo do Fundo</label>
-        <select class="form-select" id="sel-tipo">
+        <select class="form-select" id="sel-tipo" onchange="onTipoChange()">
           <option value="">— Selecione o tipo —</option>
           <option value="papel-ipca">Papel (IPCA)</option>
           <option value="papel-cdi">Papel (CDI)</option>
@@ -3755,7 +3755,11 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div id="fundo-status-banner" style="display:none;margin-top:10px"></div>
   </div>
   <div class="card" id="card-pdfs" style="display:none">
-    <div class="card-title">2. Relatórios Gerenciais</div>
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSection('pdf-body')">
+      <span>2. Relatórios Gerenciais <span style="font-size:10px;font-weight:400;color:#6b7a9a;margin-left:6px">(opcional — use para gerar análise com IA)</span></span>
+      <span style="font-size:11px;color:var(--apex-blue)">▼ expandir</span>
+    </div>
+    <div id="pdf-body" style="display:none">
     <div class="pdf-upload-area">
       <div class="pdf-box" id="box-ultimo" onclick="document.getElementById('input-pdf-ultimo').click()">
         <div class="pdf-box-icon">📄</div><div class="pdf-box-label">Último Relatório</div>
@@ -3768,12 +3772,13 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
         <input type="file" id="input-pdf-penultimo" accept=".pdf" onchange="onPdfLoad(this,'penultimo')">
       </div>
     </div>
-    <div class="btn-gerar-wrap">
-      <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()" disabled><span>✦</span> Gerar Análise Prévia com IA</button>
-    </div>
+      <div class="btn-gerar-wrap">
+        <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()" disabled><span>✦</span> Gerar Análise com IA</button>
+      </div>
+    </div><!-- /pdf-body -->
   </div>
-  <div class="card" id="card-comparativo" style="display:none">
-    <div class="card-title">3. Comparativo entre Relatórios</div>
+  <div class="card" id="card-comparativo" style="display:none;margin-top:0">
+    <div class="card-title">3. Comparativo entre Relatórios <span style="font-size:10px;font-weight:400;color:#6b7a9a">(preenchido pela IA após upload dos PDFs)</span></div>
     <div id="comparativo-content"><div style="color:#6b7a9a;font-size:12px;font-style:italic">Aguardando geração...</div></div>
   </div>
   <div id="card-quali" style="display:none">
@@ -4130,11 +4135,17 @@ async function initAnaliseFundoDropdown(){
   }
 }
 function onFundoSelect(){
-  const ticker=document.getElementById('sel-fundo').value;currentTicker=ticker;
-  if(!ticker){document.getElementById('card-pdfs').style.display='none';return;}
-  document.getElementById('card-pdfs').style.display='block';
-  const banner=document.getElementById('fundo-status-banner');
-  const a=analyses[ticker];
+  const ticker=document.getElementById('sel-fundo').value;
+  const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
+  currentTicker=ticker;
+  if(!ticker){
+    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.style.display='none';
+    });
+    return;
+  }
+  // Mostrar seção de PDF (opcional)
+  const pdfCard=document.getElementById('card-pdfs');if(pdfCard)pdfCard.style.display='block';
   // Alerta de pré-análise
   const pa=PRE_ANALISE_MAP[ticker];
   const paAlertEl=document.getElementById('pa-alert');
@@ -4151,15 +4162,27 @@ function onFundoSelect(){
       </div>`;
     }else{paAlertEl.style.display='none';}
   }
+  // Banner de análise existente
+  const banner=document.getElementById('fundo-status-banner');
+  const a=analyses[ticker];
   if(a?.finalizado){
-    banner.style.display='block';
-    banner.innerHTML=`<div style="background:var(--success-bg);border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#155a34;font-weight:600">✓ Analisado em ${a.data} por ${a.analista} · Score: ${a.scoreTotal?.toFixed(1)||'—'}/10 &nbsp;<span style="cursor:pointer;text-decoration:underline" onclick="reloadAnalise('${ticker}')">Reabrir</span></div>`;
-  }else{banner.style.display='none';}
+    if(banner){banner.style.display='block';
+      banner.innerHTML=`<div style="background:var(--success-bg);border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#155a34;font-weight:600">✓ Analisado em ${a.data} por ${a.analista} · Score: ${a.scoreTotal?.toFixed(1)||'—'}/10 &nbsp;<span style="cursor:pointer;text-decoration:underline" onclick="reloadAnalise('${ticker}')">Reabrir</span></div>`;}
+  }else{if(banner)banner.style.display='none';}
+  // Reset PDFs
   const bu=document.getElementById('box-ultimo');if(bu){bu.classList.remove('loaded');bu.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF mais recente';}
   const bp=document.getElementById('box-penultimo');if(bp){bp.classList.remove('loaded');bp.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF anterior';}
   pdfUltimo=null;pdfPenultimo=null;updateGerarBtn();
-  ['card-comparativo','card-quali','card-quanti','card-summary'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-  if(a?.finalizado)reloadAnalise(ticker);
+  // ── MOSTRAR BLOCOS IMEDIATAMENTE (sem precisar de IA) ──
+  ['card-quali','card-quanti','card-summary'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='block';
+  });
+  if(a?.finalizado){reloadAnalise(ticker);}
+  else{
+    renderQuantiBlocks(tipo);
+    renderQualiBlocksPlaceholder();
+    setTimeout(()=>preencherDadosBTG(ticker,tipo),50);
+  }
 }
 function onPdfLoad(input,which){
   const file=input.files[0];if(!file)return;
@@ -4991,6 +5014,12 @@ function segChipInline(seg){
   return`<span class="seg-chip" style="background:${bg};color:${c}">${seg||'—'}</span>`;
 }
 
+function onTipoChange(){
+  if(!currentTicker)return;
+  const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
+  renderQuantiBlocks(tipo);
+  setTimeout(()=>preencherDadosBTG(currentTicker,tipo),50);
+}
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
