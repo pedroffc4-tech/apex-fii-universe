@@ -4085,7 +4085,7 @@ function toggleAplic(id, type){
 }
 function saveApiKey(){
   const key=document.getElementById('api-key-input')?.value?.trim();
-  if(!key||!key.startsWith('AIza')){alert('Chave inválida. Deve começar com AIza');return;}
+  if(!key||key.length<10){alert('Cole a chave completa gerada no Google AI Studio.');return;}
   localStorage.setItem('apex_gemini_key',key);
   checkApiKeyBanner();
   alert('✅ Chave salva com sucesso!');
