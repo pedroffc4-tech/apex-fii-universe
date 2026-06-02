@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>APEX Partners — FII Universe</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -3805,14 +3806,25 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 const SUPA_URL='https://ystjnkvodohjcruixiqv.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzdGpua3ZvZG9oamNydWl4aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMjUsImV4cCI6MjA5NTk4NDAyNX0.pqtJybMMp_i9p05oakWjYp1IHajhaZBd07QIfPzHdpU';
 
+// ── Cliente Supabase (SDK oficial via CDN) ───────────────────
+let _db=null;
+function getDB(){
+  if(_db)return _db;
+  if(typeof supabase==='undefined'){console.warn('SDK Supabase não carregou');return null;}
+  _db=supabase.createClient(SUPA_URL,SUPA_KEY);
+  return _db;
+}
+
 // Carregar análises do Supabase
 async function supaLoad(){
+  const db=getDB();
+  const ss=document.getElementById('sync-status');
+  if(!db){if(ss)ss.innerHTML='⚠️ SDK não carregado';return;}
   try{
-    const r=await fetch(SUPA_URL+'/rest/v1/analyses?select=*',{
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-    });
-    if(!r.ok) return;
-    const rows=await r.json();
+    if(ss)ss.innerHTML='⟳ Sincronizando...';
+    const {data:rows,error}=await db.from('analyses').select('*');
+    if(error)throw new Error(error.message);
+    if(!rows||rows.length===0){if(ss)ss.innerHTML='✅ Banco vazio — pronto para uso';return;}
     rows.forEach(row=>{
       analyses[row.ticker]={
         ticker:row.ticker,nome:row.nome,seg:row.segmento,
@@ -3824,18 +3836,19 @@ async function supaLoad(){
       };
     });
     localStorage.setItem('apex_fii_analyses',JSON.stringify(analyses));
-    console.log('✅ Supabase: '+rows.length+' análises carregadas');
-    const ss=document.getElementById('sync-status');
     if(ss)ss.innerHTML='✅ Sincronizado · '+rows.length+' análises';
-    injectAnalyseTags();
-    renderScoreRanking();
-  }catch(e){console.warn('Supabase load falhou (usando cache local):',e.message);
-    const ss=document.getElementById('sync-status');
-    if(ss)ss.innerHTML='⚠️ Offline (cache local)';}
+    console.log('✅ Supabase: '+rows.length+' análises carregadas');
+    injectAnalyseTags();renderScoreRanking();
+  }catch(e){
+    console.warn('Supabase load falhou:',e.message);
+    if(ss)ss.innerHTML='⚠️ Offline — '+e.message.substring(0,50);
+  }
 }
 
 // Salvar/atualizar análise no Supabase
 async function supaSave(a){
+  const db=getDB();
+  if(!db)throw new Error('SDK Supabase não disponível');
   const payload={
     ticker:a.ticker,nome:a.nome,segmento:a.seg,
     analista:a.analista,data:a.data,tipo:a.tipo,
@@ -3845,19 +3858,8 @@ async function supaSave(a){
     score_quanti:a.scoreQuanti,finalizado:a.finalizado,
     updated_at:new Date().toISOString()
   };
-  const r=await fetch(SUPA_URL+'/rest/v1/analyses',{
-    method:'POST',
-    headers:{
-      'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'resolution=merge-duplicates'
-    },
-    body:JSON.stringify(payload)
-  });
-  if(!r.ok){
-    const err=await r.text();
-    throw new Error('Erro ao salvar no banco: '+err.substring(0,200));
-  }
+  const {error}=await db.from('analyses').upsert(payload,{onConflict:'ticker'});
+  if(error)throw new Error(error.message);
   console.log('✅ Supabase: análise de '+a.ticker+' salva');
 }
 
