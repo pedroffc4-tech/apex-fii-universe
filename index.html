@@ -3932,34 +3932,76 @@ async function gerarAnalise(){
   const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Gerando análise...';}
   ['card-comparativo','card-quali','card-quanti','card-summary'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='block';});
-  renderQuantiBlocks(tipo);renderQualiBlocksPlaceholder();
+  renderQuantiBlocks(tipo);renderQualiBlocksPlaceholder();setTimeout(()=>preencherDadosBTG(currentTicker,tipo),50);
   try{
     const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===currentTicker)||{};
-    const prompt=`Você é analista especialista em FIIs. Analise o fundo ${currentTicker} (${fund.nome}, segmento: ${fund.seg}) com base nos dois relatórios gerenciais fornecidos.
-Responda APENAS em JSON válido sem texto adicional:
-{"comparativo":[{"label":"indicador","anterior":"val","atual":"val","trend":"up|down|neutral"}],"qualitativo":[{"id":"q1","nota":7,"justificativa":"texto baseado nos relatórios"}]}
-Critérios (q1-q7): q1=Track Record, q2=Governança, q3=Concentração Carteira, q4=Waiver/Default, q5=Localização/Qualidade, q6=Dividendos/FFO, q7=DY×Mercado. Base sua análise exclusivamente nos relatórios fornecidos.`;
+    const fd=fundDataMap[currentTicker]||{};
+    const prompt=`Você é analista sênior de FIIs da Apex Partners. Analise o fundo ${currentTicker} (${fund.nome}, segmento: ${fund.seg}).
+
+DADOS DISPONÍVEIS DO BTG GUIDE (já calculados):
+- DY Anualizado: ${fd.yieldPct||'N/D'} | P/VP: ${fd.pvpTxt||'N/D'} | Vol ADTV 90d: ${fd.volFmt||'N/D'} | MktCap: ${fd.mktFmt||'N/D'}
+
+RELATÓRIOS: foram fornecidos o último e o penúltimo relatório gerencial do fundo.
+
+Extraia dos relatórios e responda APENAS em JSON válido (sem texto fora do JSON, sem markdown):
+{
+  "comparativo": [{"label":"Nome do indicador","anterior":"valor","atual":"valor","trend":"up|down|neutral"}],
+  "qualitativo": [{"id":"q1","nota":7,"justificativa":"Justificativa concisa baseada nos relatórios"}],
+  "quantitativo_pdf": [{"id":"n3","valor":"valor extraído","nota":7,"justificativa":"Justificativa"}]
+}
+
+QUALITATIVO (q1-q7, notas 0-10):
+q1=Track Record gestores | q2=Governança e transparência | q3=Concentração da carteira | q4=Histórico waiver/default | q5=Localização/qualidade dos ativos | q6=Dividendos vs FFO | q7=DY vs média do mercado
+
+QUANTITATIVO DOS RELATÓRIOS (extraia apenas o que encontrar nos documentos):
+n3=Alavancagem % (0-3:>15% | 4-6:10-15% | 7-10:<10%)
+n7=Qtd cotistas (0-3:<10mil | 4-6:10-50mil | 7-10:>50mil)
+n9=Tempo de constituição em anos (0-3:1-3a | 4-6:3-5a | 7-10:>5a)
+n10=Vacância física % (0-3:>10% | 4-6:5-10% | 7-10:<5%)
+n11=Volatilidade 12m vs IFIX (0-3:alta | 4-6:média | 7-10:baixa)
+n12=LTV % apenas tijolo (0-3:>40% | 4-6:20-40% | 7-10:<20%)
+
+Para o comparativo, inclua: DY mensal, vacância, cotistas, patrimônio, distribuição e outros indicadores relevantes.
+Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, omita o item do quantitativo_pdf.`;
     const apiKey=localStorage.getItem('apex_anthropic_key')||'';
     if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Anthropic no topo desta aba.');}
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:[{role:'user',content:[
         {type:'text',text:prompt},
         {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfPenultimo.b64},title:'Penúltimo Relatório'},
         {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfUltimo.b64},title:'Último Relatório'}
       ]}]})
     });
+    if(!resp.ok){const err=await resp.text();throw new Error('API retornou '+resp.status+': '+err.substring(0,200));}
     const data=await resp.json();
+    if(data.error){throw new Error('API error: '+data.error.message);}
     const raw=(data.content?.find(c=>c.type==='text')?.text)||'';
-    const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(!raw){throw new Error('Resposta vazia da IA. Tente novamente.');}
+    // Extrair bloco JSON mesmo que venha com texto ao redor
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch){throw new Error('JSON não encontrado na resposta. Raw: '+raw.substring(0,300));}
+    const result=JSON.parse(jsonMatch[0]);
     renderComparativo(result.comparativo||[]);
+    // Preencher qualitativo
     (result.qualitativo||[]).forEach(item=>{
       const n=document.getElementById('quali-note-'+item.id);if(n)n.value=item.nota;
       const j=document.getElementById('quali-just-'+item.id);if(j){j.value=item.justificativa;j.classList.add('suggested');}
-      const s=document.getElementById('quali-sug-'+item.id);if(s)s.textContent='Sugerido: '+item.nota;
-      updateScore();
+      const s=document.getElementById('quali-sug-'+item.id);if(s)s.textContent='Sugerido IA: '+item.nota;
     });
+    // Preencher quantitativo extraído dos PDFs
+    (result.quantitativo_pdf||[]).forEach(item=>{
+      const n=document.getElementById('quanti-note-'+item.id);
+      const j=document.getElementById('quanti-just-'+item.id);
+      const s=document.getElementById('quanti-sug-'+item.id);
+      const v=document.getElementById('quanti-val-'+item.id);
+      if(n&&!n.value){n.value=item.nota;}
+      if(j&&!j.value){j.value=item.justificativa;j.classList.add('suggested');}
+      if(s)s.innerHTML=`<span style="background:#e8f0fe;color:#1a47a0;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700">📄 PDF: ${item.nota}/10</span>`;
+      if(v&&item.valor)v.textContent='Valor: '+item.valor;
+    });
+    updateScore();
   }catch(e){
     const c=document.getElementById('comparativo-content');
     if(c)c.innerHTML='<div style="color:var(--danger);font-size:12px;font-weight:600">⚠️ Erro ao conectar com a IA: '+e.message+'</div>';
@@ -4002,10 +4044,12 @@ function renderQuantiBlocks(tipo){
     return`<div class="score-block" id="block-${c.id}">
       <div class="score-block-header">
         <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">
             <div class="score-block-title">${c.nome} <span style="font-size:10px;color:#6b7a9a;font-weight:500">· ${c.peso}%</span></div>
             <label class="applicable-check"><input type="checkbox" id="aplic-${c.id}" checked onchange="toggleAplic('${c.id}','quanti')"> Aplicável</label>
+            <span id="quanti-sug-${c.id}"></span>
           </div>
+          <div id="quanti-val-${c.id}" style="font-size:10px;color:var(--apex-blue);font-weight:600;margin-bottom:4px"></div>
           <div class="score-block-desc">${c.desc}</div>
           <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
             ${ranges.map((r,i)=>`<span class="range-pill ${i===0?'r-low':i===1?'r-mid':'r-high'}">${r.label}: ${r.txt}</span>`).join('')}
@@ -4121,6 +4165,7 @@ function reloadAnalise(ticker){
   renderQuantiBlocks(a.tipo||'papel-ipca');renderQualiBlocksPlaceholder();
   QUALI_CRITERIA.forEach(c=>{const v=a.qualiScores[c.id];const j=a.qualiJust[c.id];if(v!=null){const el=document.getElementById('quali-note-'+c.id);if(el)el.value=v;}if(j){const el=document.getElementById('quali-just-'+c.id);if(el)el.value=j;}});
   QUANTI_CRITERIA.forEach(c=>{const v=a.quantiScores[c.id];const j=a.quantiJust[c.id];if(c.checkAplic&&v!=null){const cb=document.getElementById('aplic-'+c.id);if(cb){cb.checked=true;const inp=document.getElementById('quanti-note-'+c.id);if(inp)inp.disabled=false;}}if(v!=null){const el=document.getElementById('quanti-note-'+c.id);if(el)el.value=v;}if(j){const el=document.getElementById('quanti-just-'+c.id);if(el)el.value=j;}});
+  setTimeout(()=>preencherDadosBTG(ticker,a.tipo||'papel-ipca'),50);
   updateScore();
 }
 function renderScoreRanking(){
@@ -4153,7 +4198,86 @@ function exportarPDF(){
   <p style="margin-top:30px;font-size:10px;color:#999">APEX Partners · Uso Interno · ${new Date().toLocaleString('pt-BR')}</p></body></html>`);
   w.document.close();setTimeout(()=>w.print(),500);
 }
-document.addEventListener('DOMContentLoaded',()=>{injectAnalyseTags();});
+// ── MAPA DE DADOS BTG POR FUNDO ───────────────────────────────
+const fundDataMap = {};
+function buildFundDataMap(){
+  document.querySelectorAll('#fund-body tr').forEach(r=>{
+    const ticker=r.querySelector('strong')?.textContent?.trim();
+    if(!ticker) return;
+    const cells=r.querySelectorAll('td');
+    const volRaw  = parseFloat(cells[4]?.dataset?.val||0);
+    const yieldRaw= parseFloat(cells[5]?.dataset?.val||0);
+    const pvpTxt  = cells[6]?.textContent?.trim()||'—';
+    const pvpVal  = parseFloat(pvpTxt.replace('x','').replace(',','.'));
+    const mktRaw  = parseFloat(cells[7]?.dataset?.val||0);
+    fundDataMap[ticker]={
+      vol:volRaw,
+      yield:yieldRaw,
+      pvp:pvpVal,
+      mkt:mktRaw,
+      yieldPct:(yieldRaw*100).toFixed(2)+'%',
+      pvpTxt:pvpTxt,
+      volFmt:'R$ '+volRaw.toLocaleString('pt-BR',{maximumFractionDigits:0}),
+      mktFmt:'R$ '+(mktRaw/1e6).toFixed(1)+'M',
+      preco:cells[3]?.textContent?.trim()||'—',
+    };
+  });
+}
+
+// Sugerir nota com base nos limites do critério
+function sugerirNota(valor, limites){
+  // limites: [{max, nota}] ordenado do menor para maior threshold
+  if(isNaN(valor)||valor===null) return null;
+  for(const l of limites){
+    if(valor<=l.max) return l.nota;
+  }
+  return limites[limites.length-1].nota;
+}
+
+// Preencher scores quantitativos com dados do BTG Guide
+function preencherDadosBTG(ticker, tipo){
+  const fd=fundDataMap[ticker];
+  if(!fd) return;
+
+  // n1: DY 12m — score baseado no tipo
+  const dy=fd.yield;
+  let n1Limites;
+  if(tipo==='papel-cdi'||tipo==='hedge') n1Limites=[{max:0.12,nota:2},{max:0.14,nota:5},{max:99,nota:8}];
+  else if(tipo==='tijolo'||tipo==='hibrido') n1Limites=[{max:0.08,nota:2},{max:0.10,nota:5},{max:99,nota:8}];
+  else n1Limites=[{max:0.10,nota:2},{max:0.12,nota:5},{max:99,nota:8}]; // ipca, fi-infra
+  const n1Score = dy>0.14?10 : dy>0.12?9 : dy>0.10?8 : dy>0.09?7 : dy>0.08?6 : dy>0.07?5 : dy>0.06?4 : dy>0.05?3 : 2;
+
+  // n5: ADTV 3m
+  const vol=fd.vol;
+  const n5Score = vol>3e6?10 : vol>2e6?9 : vol>1e6?8 : vol>500e3?7 : vol>400e3?6 : vol>350e3?5 : vol>300e3?4 : 2;
+
+  // n6: PL Fundo (usando MktCap como proxy)
+  const mkt=fd.mkt;
+  const n6Score = mkt>2e9?10 : mkt>1e9?9 : mkt>700e6?8 : mkt>500e6?7 : mkt>400e6?6 : mkt>300e6?5 : mkt>200e6?4 : 2;
+
+  // n8: P/VP
+  const pvp=fd.pvp;
+  const n8Score = pvp<0.85?10 : pvp<0.90?9 : pvp<0.95?8 : pvp<1.00?7 : pvp<1.05?6 : pvp<1.10?5 : pvp<1.15?4 : 2;
+
+  const sugestoes = {
+    n1:{score:n1Score, label:`DY ${fd.yieldPct}`, fonte:'BTG'},
+    n5:{score:n5Score, label:`Vol ${fd.volFmt}/dia`, fonte:'BTG'},
+    n6:{score:n6Score, label:`MktCap ${fd.mktFmt}`, fonte:'BTG'},
+    n8:{score:n8Score, label:`P/VP ${fd.pvpTxt}`, fonte:'BTG'},
+  };
+
+  Object.entries(sugestoes).forEach(([id,s])=>{
+    const n=document.getElementById('quanti-note-'+id);
+    const sug=document.getElementById('quanti-sug-'+id);
+    const val=document.getElementById('quanti-val-'+id);
+    if(n&&!n.disabled&&!n.value){n.value=s.score;}
+    if(sug)sug.innerHTML=`<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700">📊 BTG: ${s.score}/10</span>`;
+    if(val)val.textContent=s.label;
+  });
+  updateScore();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{buildFundDataMap();injectAnalyseTags();});
 </script>
 </body>
 </html>
