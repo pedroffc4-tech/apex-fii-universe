@@ -3966,7 +3966,7 @@ Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, 
     const apiKey=localStorage.getItem('apex_gemini_key')||'';
     if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Gemini (AIza...) no topo desta aba.');}
     // Gemini 1.5 Flash — gratuito, lê PDFs nativamente
-    const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const resp=await fetch(geminiUrl,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
