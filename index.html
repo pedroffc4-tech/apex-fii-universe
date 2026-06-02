@@ -3966,42 +3966,57 @@ Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, 
     const apiKey=localStorage.getItem('apex_gemini_key')||'';
     if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Gemini (AIza...) no topo desta aba.');}
     // Gemini 1.5 Flash — gratuito, lê PDFs nativamente
-    // Tentar modelos em ordem até um funcionar
-    const GEMINI_MODELS = [
-      'gemini-2.0-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro-latest',
-    ];
-    let data = null;
-    let lastError = '';
-    for(const model of GEMINI_MODELS){
-      const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const resp=await fetch(geminiUrl,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[
-            {text:prompt},
-            {inline_data:{mime_type:'application/pdf',data:pdfPenultimo.b64}},
-            {inline_data:{mime_type:'application/pdf',data:pdfUltimo.b64}}
-          ]}],
-          generationConfig:{temperature:0.2,maxOutputTokens:4096}
-        })
-      });
-      if(resp.status===404){lastError='Modelo '+model+' não disponível';continue;}
-      if(!resp.ok){const err=await resp.json().catch(()=>({}));lastError=(err?.error?.message||'erro '+resp.status);continue;}
-      data=await resp.json();
-      if(data.error){lastError=data.error.message;data=null;continue;}
-      console.log('✅ Gemini usando modelo:',model);
-      break;
+    // Testar API key primeiro com request simples
+    const testUrl=`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const testResp=await fetch(testUrl);
+    if(!testResp.ok){
+      if(testResp.status===400||testResp.status===403){throw new Error('Chave de API inválida ou sem permissão. Verifique a chave no Google AI Studio.');}
+      throw new Error('Erro ao conectar com a API Google ('+testResp.status+'). Verifique sua conexão.');
     }
-    if(!data){throw new Error('Nenhum modelo Gemini disponível. Erro: '+lastError);}
+    const testData=await testResp.json();
+    // Pegar modelos disponíveis que suportam generateContent e PDFs
+    const availableModels=(testData.models||[])
+      .filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'))
+      .map(m=>m.name.replace('models/',''));
+    console.log('Modelos disponíveis na conta:', availableModels);
+    // Preferência: modelos flash/pro mais recentes primeiro
+    const preferidos=['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-2.5-flash',
+      'gemini-1.5-flash-latest','gemini-1.5-flash-002','gemini-1.5-flash-8b',
+      'gemini-1.5-flash','gemini-1.5-pro-latest','gemini-1.5-pro-002','gemini-1.5-pro'];
+    const modelosParaTentar=preferidos.filter(m=>availableModels.some(a=>a.includes(m)||m.includes(a)));
+    // Se nenhum preferido estiver disponível, usar qualquer um
+    const fallback=availableModels.filter(m=>m.includes('gemini')&&!m.includes('embedding'));
+    const todosMdl=[...new Set([...modelosParaTentar,...fallback])];
+    if(todosMdl.length===0){throw new Error('Nenhum modelo Gemini encontrado na conta. Verifique se a API está habilitada em aistudio.google.com');}
+    console.log('Tentando modelos:', todosMdl);
+    let data=null, modelUsado='', lastError='';
+    for(const model of todosMdl){
+      try{
+        const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const r=await fetch(url,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            contents:[{parts:[
+              {text:prompt},
+              {inline_data:{mime_type:'application/pdf',data:pdfPenultimo.b64}},
+              {inline_data:{mime_type:'application/pdf',data:pdfUltimo.b64}}
+            ]}],
+            generationConfig:{temperature:0.2,maxOutputTokens:4096}
+          })
+        });
+        if(!r.ok){const e=await r.json().catch(()=>({}));lastError=(e?.error?.message||'status '+r.status);continue;}
+        const d=await r.json();
+        if(d.error){lastError=d.error.message;continue;}
+        data=d; modelUsado=model; break;
+      }catch(e){lastError=e.message;continue;}
+    }
+    if(!data){throw new Error('Falha em todos os modelos. Último erro: '+lastError);}
+    console.log('✅ Análise gerada com modelo:', modelUsado);
     const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    if(!raw){throw new Error('Resposta vazia do Gemini. Verifique sua chave API.');}
+    if(!raw){throw new Error('Resposta vazia do Gemini ('+modelUsado+'). Tente novamente.');}
     const jsonMatch=raw.match(/\{[\s\S]*\}/);
-    if(!jsonMatch){throw new Error('JSON não encontrado na resposta. Raw: '+raw.substring(0,300));}
+    if(!jsonMatch){throw new Error('JSON inválido na resposta. Raw: '+raw.substring(0,300));}
     const result=JSON.parse(jsonMatch[0]);
     renderComparativo(result.comparativo||[]);
     // Preencher qualitativo
