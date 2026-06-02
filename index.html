@@ -4015,9 +4015,27 @@ Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, 
     console.log('✅ Análise gerada com modelo:', modelUsado);
     const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
     if(!raw){throw new Error('Resposta vazia do Gemini ('+modelUsado+'). Tente novamente.');}
-    const jsonMatch=raw.match(/\{[\s\S]*\}/);
-    if(!jsonMatch){throw new Error('JSON inválido na resposta. Raw: '+raw.substring(0,300));}
-    const result=JSON.parse(jsonMatch[0]);
+    console.log('Resposta bruta Gemini:', raw.substring(0,500));
+    // Limpeza robusta da resposta
+    let jsonStr = raw
+      .replace(/^```json\s*/,'').replace(/^```\s*/,'')  // remove abertura de code block
+      .replace(/\s*```$/,'')                               // remove fechamento
+      .replace(/,\s*([}\]])/g,'$1')                      // remove trailing commas
+      .trim();
+    // Extrair apenas o objeto JSON principal
+    const start = jsonStr.indexOf('{');
+    const end   = jsonStr.lastIndexOf('}');
+    if(start===-1||end===-1){throw new Error('JSON não encontrado. Resposta: '+raw.substring(0,400));}
+    jsonStr = jsonStr.substring(start, end+1);
+    let result;
+    try{
+      result = JSON.parse(jsonStr);
+    }catch(e){
+      // Última tentativa: remover caracteres de controle e tentar novamente
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g,' ').replace(/,\s*([}\]])/g,'$1');
+      try{ result=JSON.parse(jsonStr); }
+      catch(e2){ throw new Error('JSON inválido mesmo após limpeza: '+e2.message+' | Trecho: '+jsonStr.substring(0,300)); }
+    }
     renderComparativo(result.comparativo||[]);
     // Preencher qualitativo
     (result.qualitativo||[]).forEach(item=>{
