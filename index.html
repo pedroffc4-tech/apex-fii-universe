@@ -4074,7 +4074,14 @@ function injectAnalyseTags(){
 }
 function makeTagHTML(ticker){
   const a=analyses[ticker];
-  if(a?.finalizado)return`<span class="tag-done" onclick="openAnalise('${ticker}')" title="Abrir análise">🟢 ${a.data} · ${a.analista}</span>`;
+  if(a?.finalizado)return`
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+      <span class="tag-done" onclick="openAnalise('${ticker}')" title="Abrir análise">🟢 ${a.data} · ${a.analista}</span>
+      <button onclick="exportarPDF('${ticker}')" title="Baixar PDF da análise"
+        style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">
+        ⬇ PDF
+      </button>
+    </div>`;
   return`<span class="tag-pending" onclick="openAnalise('${ticker}')" title="Iniciar análise">🟡 Análise Pendente</span>`;
 }
 function openAnalise(ticker){
@@ -4513,9 +4520,22 @@ function renderScoreRanking(){
   const rows=fin.map((a,i)=>{
     const badge=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;background:var(--apex-mist);color:var(--apex-navy)">${i+1}</span>`;
     const col=a.scoreTotal>=7?'var(--success)':a.scoreTotal>=5?'var(--warning)':'var(--danger)';
-    return`<tr><td>${badge}</td><td><strong style="color:var(--apex-blue)">${a.ticker}</strong></td><td style="max-width:200px;white-space:normal">${a.nome}</td><td style="font-size:16px;font-weight:800;color:${col};text-align:center">${a.scoreTotal?.toFixed(1)||'—'}</td><td style="text-align:center">${a.scoreQuali?.toFixed(1)||'—'}</td><td style="text-align:center">${a.scoreQuanti?.toFixed(1)||'—'}</td><td style="font-size:11px">${a.analista}</td><td style="font-size:11px;color:#6b7a9a">${a.data}</td></tr>`;
+    return`<tr>
+      <td>${badge}</td>
+      <td><strong style="color:var(--apex-blue)">${a.ticker}</strong></td>
+      <td style="max-width:200px;white-space:normal">${a.nome}</td>
+      <td style="font-size:16px;font-weight:800;color:${col};text-align:center">${a.scoreTotal?.toFixed(1)||'—'}</td>
+      <td style="text-align:center">${a.scoreQuali?.toFixed(1)||'—'}</td>
+      <td style="text-align:center">${a.scoreQuanti?.toFixed(1)||'—'}</td>
+      <td style="font-size:11px">${a.analista}</td>
+      <td style="font-size:11px;color:#6b7a9a">${a.data}</td>
+      <td><button onclick="exportarPDF('${a.ticker}')"
+        style="padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">
+        ⬇ PDF
+      </button></td>
+    </tr>`;
   }).join('');
-  cont.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Ticker</th><th>Nome</th><th>Score</th><th>Quali</th><th>Quanti</th><th>Analista</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  cont.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Ticker</th><th>Nome</th><th>Score</th><th>Quali</th><th>Quanti</th><th>Analista</th><th>Data</th><th>Download</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function exportCSV(){
   const tbl=document.getElementById('tbl-fundos');if(!tbl)return;
@@ -4525,15 +4545,177 @@ function exportCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='FII_Elegiveis_02062026.csv';a.click();URL.revokeObjectURL(url);
 }
-function exportarPDF(){
-  const a=analyses[currentTicker];if(!a){alert('Finalize a análise antes de exportar.');return;}
+function exportarPDF(ticker){
+  const t=ticker||currentTicker;
+  const a=analyses[t];if(!a){alert('Análise não encontrada para este fundo.');return;}
   const w=window.open('','_blank');
-  w.document.write(`<html><head><title>Análise ${a.ticker}</title><style>body{font-family:sans-serif;padding:40px;max-width:800px;margin:0 auto}h1{color:#002060}h2{color:#002060;font-size:14px;margin-top:20px;border-bottom:1px solid #DAE3F3;padding-bottom:6px}.box{background:#002060;color:#fff;padding:16px;border-radius:8px;display:flex;gap:30px;margin:16px 0}.si{text-align:center}.sv{font-size:28px;font-weight:800}.sl{font-size:10px;opacity:.7;text-transform:uppercase}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}th{background:#002060;color:#fff;padding:8px}td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:top}.just{color:#555;font-size:11px;font-style:italic}</style></head><body>
-  <h1>Análise — ${a.ticker}</h1><p style="color:#555;font-size:12px">${a.nome} · ${a.seg} · ${a.data} · ${a.analista}</p>
-  <div class="box"><div class="si"><div class="sv">${a.scoreQuali?.toFixed(1)||'—'}</div><div class="sl">Qualitativo 40%</div></div><div class="si"><div class="sv">${a.scoreQuanti?.toFixed(1)||'—'}</div><div class="sl">Quantitativo 60%</div></div><div class="si"><div class="sv" style="font-size:36px">${a.scoreTotal?.toFixed(1)||'—'}</div><div class="sl">Score Final/10</div></div></div>
-  <h2>Análise Qualitativa</h2><table><thead><tr><th>Critério</th><th>Nota</th><th>Justificativa</th></tr></thead><tbody>${QUALI_CRITERIA.map(c=>`<tr><td>${c.nome}</td><td style="text-align:center;font-weight:700">${a.qualiScores[c.id]??'—'}</td><td class="just">${a.qualiJust[c.id]||'—'}</td></tr>`).join('')}</tbody></table>
-  <h2>Análise Quantitativa</h2><table><thead><tr><th>Indicador</th><th>Nota</th><th>Justificativa</th></tr></thead><tbody>${QUANTI_CRITERIA.map(c=>`<tr><td>${c.nome}</td><td style="text-align:center;font-weight:700">${a.quantiScores[c.id]??'N/A'}</td><td class="just">${a.quantiJust[c.id]||'—'}</td></tr>`).join('')}</tbody></table>
-  <p style="margin-top:30px;font-size:10px;color:#999">APEX Partners · Uso Interno · ${new Date().toLocaleString('pt-BR')}</p></body></html>`);
+  const dataGeracao=new Date().toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'});
+  const scoreColor=a.scoreTotal>=7?'#1b8a52':a.scoreTotal>=5?'#a06800':'#c0392b';
+  const scoreBg=a.scoreTotal>=7?'#e6f4ed':a.scoreTotal>=5?'#fef9ec':'#fdecea';
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <title>Análise ${a.ticker} — APEX Partners</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Manrope',sans-serif;background:#F6F6F6;color:#002060;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .page{max-width:860px;margin:0 auto;background:#fff}
+
+    /* ── CAPA ── */
+    .capa{background:#000123;padding:36px 40px 28px;display:flex;justify-content:space-between;align-items:flex-start}
+    .capa-left{display:flex;flex-direction:column;gap:20px}
+    .capa-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0076D2}
+    .capa-titulo{font-size:28px;font-weight:800;color:#fff;line-height:1.1}
+    .capa-subtitulo{font-size:13px;color:#a0c4f0;margin-top:4px;font-weight:400}
+    .capa-right{text-align:right}
+    .capa-meta{font-size:11px;color:#a0c4f0;line-height:2}
+    .capa-meta strong{color:#fff}
+
+    /* ── FAIXA SCORE ── */
+    .score-strip{background:#002060;padding:20px 40px;display:grid;grid-template-columns:1fr 1fr 1.8fr;gap:1px}
+    .score-item{text-align:center;padding:12px 20px;border-right:1px solid rgba(255,255,255,.12)}
+    .score-item:last-child{border:none}
+    .score-val{font-size:38px;font-weight:800;color:#fff;line-height:1}
+    .score-val.destaque{font-size:52px;color:${scoreColor}}
+    .score-lbl{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#a0c4f0;margin-top:6px}
+    .score-peso{font-size:10px;color:#0076D2;margin-top:2px;font-weight:500}
+
+    /* ── CONTEÚDO ── */
+    .conteudo{padding:32px 40px}
+    .secao-titulo{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0076D2;margin:24px 0 12px;padding-bottom:8px;border-bottom:1.5px solid #DAE3F3}
+    .secao-titulo:first-child{margin-top:0}
+
+    /* ── FICHA DO FUNDO ── */
+    .ficha{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#DAE3F3;border-radius:8px;overflow:hidden;margin-bottom:4px}
+    .ficha-item{background:#fff;padding:12px 14px}
+    .ficha-lbl{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#0076D2;margin-bottom:4px}
+    .ficha-val{font-size:13px;font-weight:700;color:#002060}
+
+    /* ── TABELAS ── */
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px}
+    thead tr{background:#002060}
+    thead th{color:#fff;padding:9px 12px;text-align:left;font-weight:700;font-size:10px;letter-spacing:.4px}
+    thead th.center{text-align:center}
+    tbody td{padding:9px 12px;border-bottom:1px solid #eef2fa;vertical-align:top;color:#002060}
+    tbody tr:nth-child(even) td{background:#f4f8fd}
+    .col-criterio{width:200px;font-weight:600}
+    .col-nota{width:60px;text-align:center}
+    .col-peso{font-size:9px;color:#6b7a9a;font-weight:400;margin-top:2px}
+    .just{color:#5a6e8a;line-height:1.55}
+
+    /* ── BADGES ── */
+    .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:800}
+    .badge-verde{background:#e6f4ed;color:#155a34}
+    .badge-ambar{background:#fef9ec;color:#a06800}
+    .badge-verm{background:#fdecea;color:#c0392b}
+    .badge-na{background:#f0f0f0;color:#888;font-style:italic;font-weight:400;font-size:10px}
+
+    /* ── RODAPÉ ── */
+    .rodape{background:#000123;padding:14px 40px;display:flex;justify-content:space-between;align-items:center;margin-top:0}
+    .rodape-esq{font-size:9px;color:#a0c4f0;letter-spacing:.3px}
+    .rodape-dir{font-size:9px;color:#a0c4f0}
+
+    @media print{
+      body{background:#fff}
+      .page{max-width:100%}
+      .capa,.score-strip,.rodape{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }
+  </style>
+  </head><body><div class="page">
+
+  <!-- CAPA -->
+  <div class="capa">
+    <div class="capa-left">
+      <svg xmlns="http://www.w3.org/2000/svg" width="140" height="26" viewBox="0 0 1650.05 313.2"><defs><clipPath id="cpPDF"><path transform="matrix(1,0,0,-1,0,313.2)" d="M0 313.2H1650.053V0H0Z"/></clipPath></defs><path transform="matrix(1,0,0,-1,0,313.2)" d="M256.136 296.6H16.135987V16.600007H256.136Z" fill="#0078d2"/><path transform="matrix(1,0,0,-1,136.1357,86.59981)" d="M0 0-80-70 0-140 80-70Z" fill="#fff"/><path transform="matrix(1,0,0,-1,644.8252,161.5935)" d="M0 0H48.953V13.052H0V55.279H65.691V67.98H-35.042V-59.913H68.829V-47.213H0Z" fill="#fff"/><g clip-path="url(#cpPDF)"><path transform="matrix(1,0,0,-1,519.187,165.71282)" d="M0 0C-11.296 0-14.016 1.03-14.016 1.03V61.649H2.333C24.997 61.649 33.861 47.779 33.861 29.459 33.861 11.138 21.907 0 0 0M15.587 72.099H-49.058V-55.794H-14.016V-11.152H18.933C49.896-11.152 67.679 4.111 67.679 30.512 67.679 52.822 56.32 72.099 15.587 72.099" fill="#fff"/><path transform="matrix(1,0,0,-1,855.2474,221.50632)" d="M0 0-50.713 73.836-9.519 127.892H-27.867L-59.411 86.5-87.84 127.892H-125.328L-79.128 60.625-125.328 0H-106.981L-70.431 47.962-37.49 0Z" fill="#fff"/><path transform="matrix(1,0,0,-1,353.2971,171.10532)" d="M0 0 17.994 42.702 35.715 0ZM38.74 77.491H18.604L-35.815-50.401H-21.238L-5.209-12.363H40.845L56.667-50.401H93.269Z" fill="#fff"/></g></svg>
+      <div>
+        <div class="capa-tag">Análise de FII — Uso Interno · Confidencial</div>
+        <div class="capa-titulo">${a.ticker}</div>
+        <div class="capa-subtitulo">${a.nome||''}</div>
+      </div>
+    </div>
+    <div class="capa-right">
+      <div class="capa-meta">
+        <div><strong>Segmento</strong> ${a.seg||'—'}</div>
+        <div><strong>Tipo</strong> ${(a.tipo||'—').replace(/-/g,' ').toUpperCase()}</div>
+        <div><strong>Analista</strong> ${a.analista||'—'}</div>
+        <div><strong>Data</strong> ${a.data||'—'}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE STRIP -->
+  <div class="score-strip">
+    <div class="score-item">
+      <div class="score-val">${a.scoreQuali?.toFixed(1)||'—'}</div>
+      <div class="score-lbl">Score Qualitativo</div>
+      <div class="score-peso">Peso 40%</div>
+    </div>
+    <div class="score-item">
+      <div class="score-val">${a.scoreQuanti?.toFixed(1)||'—'}</div>
+      <div class="score-lbl">Score Quantitativo</div>
+      <div class="score-peso">Peso 60%</div>
+    </div>
+    <div class="score-item">
+      <div class="score-val destaque">${a.scoreTotal?.toFixed(1)||'—'}<span style="font-size:18px;color:#a0c4f0;font-weight:400">/10</span></div>
+      <div class="score-lbl">Score Final</div>
+      <div class="score-peso" style="color:${scoreColor};font-weight:700">${a.scoreTotal>=7?'✓ Aprovado':a.scoreTotal>=5?'→ Em avaliação':'✗ Reprovado'}</div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div class="conteudo">
+
+    <!-- FICHA DO FUNDO -->
+    <div class="secao-titulo">Ficha do Fundo</div>
+    <div class="ficha">
+      <div class="ficha-item"><div class="ficha-lbl">Ticker</div><div class="ficha-val">${a.ticker}</div></div>
+      <div class="ficha-item"><div class="ficha-lbl">Segmento</div><div class="ficha-val">${a.seg||'—'}</div></div>
+      <div class="ficha-item"><div class="ficha-lbl">Analista</div><div class="ficha-val">${a.analista||'—'}</div></div>
+      <div class="ficha-item"><div class="ficha-lbl">Data de Análise</div><div class="ficha-val">${a.data||'—'}</div></div>
+    </div>
+
+    <!-- ANÁLISE QUALITATIVA -->
+    <div class="secao-titulo" style="margin-top:28px">Análise Qualitativa — 40%</div>
+    <table>
+      <thead><tr>
+        <th class="col-criterio">Critério</th>
+        <th class="col-nota center">Nota</th>
+        <th>Justificativa</th>
+      </tr></thead>
+      <tbody>${QUALI_CRITERIA.map(c=>{
+        const nota=a.qualiScores?.[c.id];
+        const na=nota===null||nota===undefined;
+        const badge=na?'<span class="badge badge-na">N/A</span>':nota>=7?`<span class="badge badge-verde">${nota}</span>`:nota>=4?`<span class="badge badge-ambar">${nota}</span>`:`<span class="badge badge-verm">${nota}</span>`;
+        return`<tr><td class="col-criterio">${c.nome}<div class="col-peso">${c.peso}% do total</div></td><td class="col-nota">${badge}</td><td class="just">${a.qualiJust?.[c.id]||'<em style="color:#aaa">Sem justificativa registrada</em>'}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+
+    <!-- ANÁLISE QUANTITATIVA -->
+    <div class="secao-titulo" style="margin-top:28px">Análise Quantitativa — 60%</div>
+    <table>
+      <thead><tr>
+        <th class="col-criterio">Indicador</th>
+        <th class="col-nota center">Nota</th>
+        <th>Justificativa</th>
+      </tr></thead>
+      <tbody>${QUANTI_CRITERIA.map(c=>{
+        const nota=a.quantiScores?.[c.id];
+        const na=nota===null||nota===undefined;
+        const badge=na?'<span class="badge badge-na">N/A</span>':nota>=7?`<span class="badge badge-verde">${nota}</span>`:nota>=4?`<span class="badge badge-ambar">${nota}</span>`:`<span class="badge badge-verm">${nota}</span>`;
+        return`<tr><td class="col-criterio">${c.nome}<div class="col-peso">${c.peso}% do total</div></td><td class="col-nota">${badge}</td><td class="just">${a.quantiJust?.[c.id]||'<em style="color:#aaa">Sem justificativa registrada</em>'}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+
+  </div><!-- /conteudo -->
+
+  <!-- RODAPÉ -->
+  <div class="rodape">
+    <div class="rodape-esq">APEX Partners · FII Universe · Documento Confidencial · Uso Interno</div>
+    <div class="rodape-dir">Gerado em ${dataGeracao}</div>
+  </div>
+
+  </div></body></html>`);
   w.document.close();setTimeout(()=>w.print(),500);
 }
 // ── MAPA DE DADOS BTG POR FUNDO ───────────────────────────────
