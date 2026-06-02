@@ -79,12 +79,17 @@ body{background:var(--apex-light);min-height:100vh;color:var(--apex-navy)}
 .dot-in{background:var(--success)}.dot-out{background:var(--danger)}
 .mov-seg{margin-left:auto;font-size:10px;color:#6b7a9a}
 .crit-fail{font-size:9px;padding:2px 7px;background:var(--danger-bg);color:var(--danger);border-radius:4px;font-weight:700;margin-left:auto}
+.mov-item-rich{padding:8px 0;border-bottom:1px solid #f0f4fa}
+.mov-item-rich:last-child{border:none}
+.mov-justif{font-size:10px;line-height:1.5;padding:6px 10px;border-radius:6px;margin-left:14px}
+.mov-justif-in{background:#e6f4ed;color:#1a5c35}
+.mov-justif-out{background:#fdecea;color:#7a1f1f}
 
 .disclaimer{background:var(--apex-blue-lt);border-radius:8px;padding:12px 16px;font-size:11px;color:var(--apex-navy);margin-bottom:16px;border-left:3px solid var(--apex-blue);font-weight:500}
 
 .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--apex-mist);margin-bottom:14px;box-shadow:0 1px 4px rgba(0,32,96,.04)}
 table{width:100%;border-collapse:collapse;font-size:11px}
-thead th{background:var(--apex-navy);color:#fff;padding:10px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:62px;z-index:10}
+thead th{background:var(--apex-navy);color:#fff;padding:10px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none}
 thead th:hover{background:#003080}
 thead th.sorted{background:var(--apex-blue)}
 .sort-arrow{float:right;opacity:.6;font-size:10px;margin-left:4px}
@@ -239,12 +244,43 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <div class="mov-grid">
         <div>
           <div class="mov-lbl mov-in">Entraram (1)</div>
-          <div class="mov-item"><span class="dot dot-in"></span><strong>KNRI11</strong><span class="mov-seg">Híbrido</span></div>
+          <div class="mov-item-rich">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              <span class="dot dot-in"></span>
+              <strong>KNRI11</strong>
+              <span class="mov-seg">Híbrido</span>
+            </div>
+            <div class="mov-justif mov-justif-in">
+              📈 DY Anualizado atingiu <strong>8,31%</strong> — voltou acima do critério mínimo de 8%.<br>
+              Vol: R$7,9M · P/VP: 0,97x · MktCap: R$4.477M
+            </div>
+          </div>
         </div>
         <div>
           <div class="mov-lbl mov-out">Saíram (2)</div>
-          <div class="mov-item"><span class="dot dot-out"></span><strong>CPUR11</strong><span class="crit-fail">Critério</span></div>
-<div class="mov-item"><span class="dot dot-out"></span><strong>PATL11</strong><span class="crit-fail">Critério</span></div>
+          <div class="mov-item-rich">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              <span class="dot dot-out"></span>
+              <strong>CPUR11</strong>
+              <span class="mov-seg">Renda Urbana</span>
+              <span class="crit-fail">Yield</span>
+            </div>
+            <div class="mov-justif mov-justif-out">
+              📉 DY Anualizado caiu para <strong>6,83%</strong> — abaixo do mínimo de 8%.<br>
+              Vol: R$4,5M · P/VP: 1,06x · MktCap: R$703M
+            </div>
+          </div>
+          <div class="mov-item-rich" style="margin-top:10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              <span class="dot dot-out"></span>
+              <strong>PATL11</strong>
+              <span class="mov-seg">Galpão Logístico</span>
+              <span class="crit-fail">Sem dado</span>
+            </div>
+            <div class="mov-justif mov-justif-out">
+              ⚠️ Removido do universo BTG FII Guide nesta semana — dado ausente (<strong>—</strong>) no relatório.
+            </div>
+          </div>
         </div>
       </div>
     </div>
