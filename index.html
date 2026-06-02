@@ -3962,80 +3962,85 @@ n11=Volatilidade 12m vs IFIX (0-3:alta | 4-6:média | 7-10:baixa)
 n12=LTV % apenas tijolo (0-3:>40% | 4-6:20-40% | 7-10:<20%)
 
 Para o comparativo, inclua: DY mensal, vacância, cotistas, patrimônio, distribuição e outros indicadores relevantes.
-Justificativas concisas (max 2 frases). Se não encontrar dado nos relatórios, omita o item do quantitativo_pdf.`;
+REGRAS DO JSON: justificativas em uma linha só, sem aspas duplas, sem quebras de linha internas. Se não encontrar dado, omita o item de quantitativo_pdf.`;
     const apiKey=localStorage.getItem('apex_gemini_key')||'';
     if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Gemini (AIza...) no topo desta aba.');}
     // Gemini 1.5 Flash — gratuito, lê PDFs nativamente
-    // Testar API key primeiro com request simples
-    const testUrl=`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-    const testResp=await fetch(testUrl);
+    // ── Função de reparo de JSON ─────────────────────────────────
+    function repairJSON(s){
+      return s
+        .replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'')
+        .replace(/,(\s*[}\]])/g,'$1')
+        .trim();
+    }
+    // ── Validar chave ─────────────────────────────────────────────
+    const testResp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if(!testResp.ok){
-      if(testResp.status===400||testResp.status===403){throw new Error('Chave de API inválida ou sem permissão. Verifique a chave no Google AI Studio.');}
-      throw new Error('Erro ao conectar com a API Google ('+testResp.status+'). Verifique sua conexão.');
+      const sc=testResp.status;
+      if(sc===400||sc===403)throw new Error('Chave de API inválida. Verifique no Google AI Studio.');
+      throw new Error('Erro de conexão com Google ('+sc+').');
     }
     const testData=await testResp.json();
-    // Pegar modelos disponíveis que suportam generateContent e PDFs
-    const availableModels=(testData.models||[])
-      .filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'))
+    const available=(testData.models||[])
+      .filter(m=>{
+        const methods=m.supportedGenerationMethods||[];
+        const nm=m.name||'';
+        return methods.includes('generateContent')&&!nm.includes('tts')&&!nm.includes('embed');
+      })
       .map(m=>m.name.replace('models/',''));
-    console.log('Modelos disponíveis na conta:', availableModels);
-    // Preferência: modelos flash/pro mais recentes primeiro
-    const preferidos=['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-2.5-flash',
-      'gemini-1.5-flash-latest','gemini-1.5-flash-002','gemini-1.5-flash-8b',
-      'gemini-1.5-flash','gemini-1.5-pro-latest','gemini-1.5-pro-002','gemini-1.5-pro'];
-    const modelosParaTentar=preferidos.filter(m=>availableModels.some(a=>a.includes(m)||m.includes(a)));
-    // Se nenhum preferido estiver disponível, usar qualquer um
-    const fallback=availableModels.filter(m=>m.includes('gemini')&&!m.includes('embedding'));
-    const todosMdl=[...new Set([...modelosParaTentar,...fallback])];
-    if(todosMdl.length===0){throw new Error('Nenhum modelo Gemini encontrado na conta. Verifique se a API está habilitada em aistudio.google.com');}
-    console.log('Tentando modelos:', todosMdl);
-    let data=null, modelUsado='', lastError='';
-    for(const model of todosMdl){
+    console.log('Modelos disponíveis:', available);
+    const PREFS=['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-flash-latest',
+                 'gemini-2.0-flash-lite','gemini-1.5-flash-002','gemini-1.5-flash-8b',
+                 'gemini-2.5-flash','gemini-1.5-pro'];
+    const order=[
+      ...PREFS.filter(p=>available.some(a=>a===p||a.startsWith(p))),
+      ...available.filter(a=>!PREFS.some(p=>a===p||a.startsWith(p)))
+    ].filter(m=>!m.includes('tts')).slice(0,3);
+    if(order.length===0)throw new Error('Nenhum modelo disponível. Verifique se a API Generative Language está ativada em console.cloud.google.com');
+    console.log('Tentando (máx 3):', order);
+    let result=null,modelUsado='',lastErr='';
+    for(const model of order){
       try{
         const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const r=await fetch(url,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
+        const rr=await fetch(url,{
+          method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
             contents:[{parts:[
               {text:prompt},
               {inline_data:{mime_type:'application/pdf',data:pdfPenultimo.b64}},
               {inline_data:{mime_type:'application/pdf',data:pdfUltimo.b64}}
             ]}],
-            generationConfig:{temperature:0.2,maxOutputTokens:4096}
+            generationConfig:{temperature:0.1,maxOutputTokens:4096,responseMimeType:'application/json'}
           })
         });
-        if(!r.ok){const e=await r.json().catch(()=>({}));lastError=(e?.error?.message||'status '+r.status);continue;}
-        const d=await r.json();
-        if(d.error){lastError=d.error.message;continue;}
-        data=d; modelUsado=model; break;
-      }catch(e){lastError=e.message;continue;}
+        if(rr.status===429){lastErr='Limite atingido (429). Aguarde 30s e tente novamente.';break;}
+        if(rr.status===503){lastErr='Serviço indisponível (503)';continue;}
+        if(!rr.ok){const ee=await rr.json().catch(()=>({}));lastErr=ee?.error?.message||'status '+rr.status;continue;}
+        const dd=await rr.json();
+        if(dd.error){lastErr=dd.error.message;continue;}
+        let raw=(dd?.candidates?.[0]?.content?.parts?.[0]?.text)||'';
+        console.log('Raw ('+model+'):', raw.substring(0,400));
+        if(!raw){lastErr='Resposta vazia';continue;}
+        // Reparar JSON
+        raw=repairJSON(raw);
+        const si=raw.indexOf('{'),ei=raw.lastIndexOf('}');
+        if(si<0||ei<0){lastErr='JSON não encontrado';continue;}
+        raw=raw.substring(si,ei+1);
+        try{result=JSON.parse(raw);modelUsado=model;break;}
+        catch(pe){
+          // Tentar escapar quebras de linha dentro de strings
+          raw=raw.replace(/"((?:[^"\\]|\\.)*)"/g,(_,g)=>'"'+g.replace(/\n/g,' ').replace(/\r/g,'')+'"');
+          try{result=JSON.parse(raw);modelUsado=model;break;}
+          catch(pe2){lastErr='JSON inválido: '+pe2.message;continue;}
+        }
+      }catch(fe){lastErr=fe.message;continue;}
     }
-    if(!data){throw new Error('Falha em todos os modelos. Último erro: '+lastError);}
+    if(!result)throw new Error(lastErr||'Falha na análise. Tente novamente em 30s.');
     console.log('✅ Análise gerada com modelo:', modelUsado);
     const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
     if(!raw){throw new Error('Resposta vazia do Gemini ('+modelUsado+'). Tente novamente.');}
     console.log('Resposta bruta Gemini:', raw.substring(0,500));
-    // Limpeza robusta da resposta
-    let jsonStr = raw
-      .replace(/^```json\s*/,'').replace(/^```\s*/,'')  // remove abertura de code block
-      .replace(/\s*```$/,'')                               // remove fechamento
-      .replace(/,\s*([}\]])/g,'$1')                      // remove trailing commas
-      .trim();
-    // Extrair apenas o objeto JSON principal
-    const start = jsonStr.indexOf('{');
-    const end   = jsonStr.lastIndexOf('}');
-    if(start===-1||end===-1){throw new Error('JSON não encontrado. Resposta: '+raw.substring(0,400));}
-    jsonStr = jsonStr.substring(start, end+1);
-    let result;
-    try{
-      result = JSON.parse(jsonStr);
-    }catch(e){
-      // Última tentativa: remover caracteres de controle e tentar novamente
-      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g,' ').replace(/,\s*([}\]])/g,'$1');
-      try{ result=JSON.parse(jsonStr); }
-      catch(e2){ throw new Error('JSON inválido mesmo após limpeza: '+e2.message+' | Trecho: '+jsonStr.substring(0,300)); }
-    }
+
     renderComparativo(result.comparativo||[]);
     // Preencher qualitativo
     (result.qualitativo||[]).forEach(item=>{
