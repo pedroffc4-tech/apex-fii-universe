@@ -5190,17 +5190,125 @@ const CRIT_VOL=400000, CRIT_YIELD=0.08, CRIT_PVP=1.15, CRIT_MKT=200000000;
 let adminFundos=[], adminSemanaData='', adminSemanaNum=0;
 
 // ── Carregar e processar Excel ────────────────────────────────
+// ── Validação do BTG FII Guide ──────────────────────────────
+function validarBTGGuide(wb){
+  const erros=[];
+
+  // 1. Verificar se a aba "Stock Guide" existe
+  if(!wb.SheetNames.includes('Stock Guide')){
+    erros.push('Aba "Stock Guide" não encontrada. Abas disponíveis: '+wb.SheetNames.slice(0,5).join(', ')+'...');
+    return {valido:false, erros};
+  }
+
+  const ws=wb.Sheets['Stock Guide'];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
+
+  // 2. Verificar se tem linhas suficientes (mínimo de 10 linhas de dados)
+  if(rows.length<10){
+    erros.push('Planilha com muito poucas linhas ('+rows.length+'). O BTG FII Guide deve ter pelo menos 200 fundos.');
+    return {valido:false, erros};
+  }
+
+  // 3. Verificar estrutura da linha de cabeçalho (linha 4, índice 4)
+  const header=rows[4]||[];
+  // Colunas esperadas nas posições corretas
+  const estruturaEsperada=[
+    {col:1,  nome:'Ticker/Código', matches:['Código','Ticker','código']},
+    {col:3,  nome:'Nome do Fundo', matches:['Nome','nome']},
+    {col:6,  nome:'Segmento',      matches:['Segmento','segmento']},
+    {col:8,  nome:'Volume (col 8)',matches:['Média','Media','média','média - 3','volume']},
+    {col:12, nome:'Valor de Mercado (col 12)', matches:['Valor de Mercado','mercado','Market']},
+    {col:14, nome:'P/VPA (col 14)',matches:['P/VPA','P/VP','pvp','pvpa']},
+    {col:17, nome:'DY Anualizado (col 17)', matches:['DY','Dividend','dividend','anualiz']},
+  ];
+  const colsFaltando=[];
+  estruturaEsperada.forEach(e=>{
+    const val=String(header[e.col]||'').toLowerCase();
+    const encontrou=e.matches.some(m=>val.includes(m.toLowerCase()));
+    if(!encontrou) colsFaltando.push(e.nome+' (col '+e.col+')');
+  });
+
+  if(colsFaltando.length>3){
+    // Só bloqueia se mais de 3 colunas críticas estiverem fora do lugar
+    // (tolerância para variações menores de versão do BTG Guide)
+    erros.push('Estrutura de colunas fora do padrão. Colunas não reconhecidas: '+colsFaltando.join(', '));
+    erros.push('Verifique se o arquivo é o BTG FII Guide (aba Stock Guide) na versão correta.');
+  }
+
+  // 4. Verificar se há pelo menos 50 tickers válidos nos dados
+  const tickersValidos=rows.slice(5).filter(r=>{
+    const t=String(r[1]||'').trim();
+    return /^[A-Z]{4}[0-9]{2}$/.test(t);
+  }).length;
+
+  if(tickersValidos<50){
+    erros.push('Apenas '+tickersValidos+' tickers válidos encontrados. O BTG FII Guide deve conter pelo menos 200 fundos.');
+  }
+
+  return {valido:erros.length===0, erros, tickersValidos};
+}
+
+function mostrarErroValidacao(erros){
+  const box=document.getElementById('admin-upload-box');
+  const preview=document.getElementById('admin-preview');
+  if(box){
+    box.style.background='var(--danger-bg)';
+    box.style.borderColor='var(--danger)';
+    box.querySelector('div:nth-child(2)').textContent='❌ Arquivo inválido — não é o BTG FII Guide';
+  }
+  if(preview){
+    preview.style.display='block';
+    preview.innerHTML=`
+      <div style="background:var(--danger-bg);border:1.5px solid #f5c6c6;border-radius:10px;padding:16px 18px">
+        <div style="font-size:13px;font-weight:800;color:var(--danger);margin-bottom:10px">
+          ❌ Arquivo não reconhecido como BTG FII Guide
+        </div>
+        <div style="font-size:11px;color:#7a1f1f;margin-bottom:10px">
+          Os seguintes problemas foram encontrados:
+        </div>
+        <ul style="font-size:11px;color:#7a1f1f;padding-left:18px;line-height:1.8">
+          ${erros.map(e=>`<li>${e}</li>`).join('')}
+        </ul>
+        <div style="margin-top:12px;font-size:11px;color:#5a6e8a;background:#fff;border-radius:6px;padding:10px 12px">
+          💡 <strong>Como resolver:</strong> Acesse o BTG Pactual → FII Guide → exporte a planilha completa 
+          sem modificações e tente novamente.
+        </div>
+      </div>`;
+  }
+  // Garantir que o botão de confirmar fique bloqueado
+  const btnConfirm=document.getElementById('admin-btn-confirm');
+  if(btnConfirm) btnConfirm.style.display='none';
+  document.getElementById('admin-btn-wrap').style.display='flex';
+  // Esconder botão de confirmar, mostrar só cancelar
+  document.getElementById('admin-btn-wrap').innerHTML=`
+    <button onclick="adminReset()"
+      style="padding:10px 24px;background:var(--danger);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+      ✕ Remover arquivo e tentar novamente
+    </button>`;
+}
+
 async function onBTGUpload(input){
   const file=input.files[0];
   if(!file)return;
   const box=document.getElementById('admin-upload-box');
   box.style.background='var(--apex-blue-lt)';
-  box.querySelector('div:nth-child(2)').textContent='⟳ Processando...';
+  box.style.borderColor='var(--apex-blue)';
+  box.querySelector('div:nth-child(2)').textContent='⟳ Validando arquivo...';
 
   const data=await file.arrayBuffer();
   const wb=XLSX.read(data,{type:'array'});
+
+  // ── VALIDAÇÃO ─────────────────────────────────────────────
+  const validacao=validarBTGGuide(wb);
+  if(!validacao.valido){
+    mostrarErroValidacao(validacao.erros);
+    return; // Bloqueia todo o processamento
+  }
+
+  // ── Arquivo válido — prosseguir ───────────────────────────
+  box.querySelector('div:nth-child(2)').textContent='⟳ Processando '+validacao.tickersValidos+' fundos...';
+
   const ws=wb.Sheets['Stock Guide'];
-  if(!ws){alert('Aba "Stock Guide" não encontrada no arquivo. Verifique se é o BTG FII Guide correto.');adminReset();return;}
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
 
   // Dados começam na linha 5 (índice 5)
@@ -5352,8 +5460,25 @@ function adminReset(){
   document.getElementById('admin-file-input').value='';
   document.getElementById('admin-preview').style.display='none';
   document.getElementById('admin-btn-wrap').style.display='none';
+  // Restaurar botões originais (caso tenham sido sobrescritos pela validação)
+  const btnWrap=document.getElementById('admin-btn-wrap');
+  if(btnWrap && !document.getElementById('admin-btn-confirm')){
+    btnWrap.innerHTML=`
+      <button id="admin-btn-cancel" onclick="adminReset()"
+        style="padding:10px 24px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+        Cancelar
+      </button>
+      <button id="admin-btn-confirm" onclick="adminConfirmar()"
+        style="padding:10px 24px;background:var(--apex-blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+        ✓ Confirmar e Salvar
+      </button>`;
+  }
   const box=document.getElementById('admin-upload-box');
-  if(box){box.style.background='#fafcff';box.querySelector('div:nth-child(2)').textContent='Clique para selecionar o BTG FII Guide';}
+  if(box){
+    box.style.background='#fafcff';
+    box.style.borderColor='var(--apex-mist)';
+    box.querySelector('div:nth-child(2)').textContent='Clique para selecionar o BTG FII Guide';
+  }
 }
 
 // ── Listar semanas processadas ────────────────────────────────
