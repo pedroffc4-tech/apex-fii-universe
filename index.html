@@ -211,6 +211,22 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 /* ── KPI ROW 1 (analítico) ── */
 .kpi-grid-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
 .kpi.aprovado{border-top-color:var(--success)}.kpi.em-aval{border-top-color:var(--warning)}.kpi.reprovado{border-top-color:var(--danger)}
+.com-item{border:1px solid var(--apex-mist);border-radius:10px;padding:14px;margin-bottom:10px;background:#fff}
+.com-item.questionamento{border-left:3px solid var(--warning)}
+.com-item.comentario{border-left:3px solid var(--apex-blue)}
+.com-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.com-autor{font-size:12px;font-weight:700;color:var(--apex-navy)}
+.com-data{font-size:10px;color:#6b7a9a}
+.com-tipo-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px}
+.com-tipo-q{background:var(--warning-bg);color:var(--warning)}
+.com-tipo-c{background:var(--apex-blue-lt);color:var(--apex-blue)}
+.com-texto{font-size:12px;color:#002060;line-height:1.6;margin-bottom:8px}
+.com-resposta{background:#f4f8fd;border-radius:6px;padding:10px 12px;margin-top:8px;border-left:2px solid var(--success)}
+.com-resposta-label{font-size:9px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.com-resposta-texto{font-size:11px;color:#002060;line-height:1.5}
+.com-aguardando{font-size:10px;color:var(--warning);font-weight:600;display:flex;align-items:center;gap:5px;margin-top:6px}
+.btn-responder{font-size:10px;color:var(--apex-blue);background:none;border:none;cursor:pointer;font-weight:700;padding:0;font-family:'Manrope',sans-serif;text-decoration:underline;margin-left:auto}
+.form-resposta{background:#f4f8fd;border-radius:8px;padding:12px;margin-top:8px;border:1px solid var(--apex-mist)}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
 .badge-reprov{display:inline-flex;align-items:center;gap:3px;background:#fdecea;color:#c0392b;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #f5c6c6;white-space:nowrap;cursor:help}
 .badge-monit{display:inline-flex;align-items:center;gap:3px;background:#fef9ec;color:#a06800;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;white-space:nowrap;cursor:help}
@@ -392,7 +408,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <!-- CARD ATIVIDADE RECENTE -->
   <div class="card" id="card-atv-visao">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Atividade Recente — Análises e Pré-Análises</span>
+      <span>Atividade desta semana</span>
       <a onclick="document.querySelectorAll('.nav-tab')[4].click();return false" style="font-size:10px;color:var(--apex-blue);cursor:pointer;font-weight:700;text-decoration:none">Ver tudo →</a>
     </div>
     <div id="atv-visao-content">
@@ -425,6 +441,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <option>Lucas S.</option>
       <option>Pedro C.</option>
       <option>Pedro F.</option>
+      <option>Rafael P.</option>
     </select>
     <select id="atv-seg-filter" onchange="renderAtividade()">
       <option value="">Todos os segmentos</option>
@@ -3897,7 +3914,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <div class="form-group"><label class="form-label">Analista Responsável</label>
         <select class="form-select" id="sel-analista">
           <option value="">— Selecione —</option>
-          <option>João V.</option><option>Lucas S.</option><option>Pedro C.</option><option>Pedro F.</option>
+          <option>João V.</option><option>Lucas S.</option><option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
+          <option>Rafael P.</option>
         </select></div>
     </div>
     <div id="pa-alert" style="display:none;margin-top:10px"></div>
@@ -3958,6 +3976,59 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     </div>
     <button class="btn-finalizar" onclick="finalizarAnalise()">✓ Finalizar Análise</button>
     <button class="btn-secondary" onclick="exportarPDF()">⬇ Exportar PDF</button>
+  </div>
+</div>
+
+<!-- SEÇÃO DE COMENTÁRIOS -->
+<div id="card-comentarios" style="display:none;margin-top:14px">
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>💬 Comentários e Questionamentos</span>
+      <button onclick="abrirNovoComentario()" id="btn-novo-comentario"
+        style="padding:5px 14px;background:var(--apex-blue);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+        + Novo comentário
+      </button>
+    </div>
+
+    <!-- Formulário novo comentário (oculto por padrão) -->
+    <div id="form-comentario" style="display:none;background:var(--apex-blue-lt);border-radius:8px;padding:14px;margin-bottom:14px;border:1px solid var(--apex-mist)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="form-group">
+          <label class="form-label">Analista</label>
+          <select class="form-select" id="com-analista">
+            <option value="">— Selecione —</option>
+            <option>João V.</option><option>Lucas S.</option>
+            <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" id="com-tipo">
+            <option value="comentario">💬 Comentário</option>
+            <option value="questionamento">❓ Questionamento</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Texto</label>
+        <textarea class="form-textarea" id="com-texto" placeholder="Escreva seu comentário ou questionamento sobre esta análise..." style="min-height:80px"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="fecharNovoComentario()"
+          style="padding:7px 16px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+          Cancelar
+        </button>
+        <button onclick="salvarComentario()"
+          style="padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+          Publicar
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de comentários -->
+    <div id="lista-comentarios">
+      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando comentários...</div>
+    </div>
   </div>
 </div>
 
@@ -4319,7 +4390,7 @@ function onFundoSelect(){
   const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
   currentTicker=ticker;
   if(!ticker){
-    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
+    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner','card-comentarios'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.style.display='none';
     });
     return;
@@ -4354,6 +4425,9 @@ function onFundoSelect(){
   const bp=document.getElementById('box-penultimo');if(bp){bp.classList.remove('loaded');bp.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF anterior';}
   pdfUltimo=null;pdfPenultimo=null;updateGerarBtn();
   // ── MOSTRAR BLOCOS IMEDIATAMENTE (sem precisar de IA) ──
+  // Mostrar/carregar comentários
+  const cardCom=document.getElementById('card-comentarios');
+  if(cardCom){cardCom.style.display='block';if(ticker)carregarComentarios(ticker);}
   ['card-quali','card-quanti','card-summary'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.display='block';
   });
@@ -5381,37 +5455,59 @@ function onTipoChange(){
 // ══════════════════════════════════════════════════════════════
 // ATIVIDADE — Feed de movimentações
 // ══════════════════════════════════════════════════════════════
-function buildAtividadeItems(){
-  const items=[];
+// Comentários globais em memória (carregados do Supabase)
+let _comentariosGlobais=[];
+async function carregarTodosComentarios(){
+  const db=getDB();if(!db)return;
+  try{
+    const {data}=await db.from('analysis_comments').select('*').order('created_at',{ascending:false}).limit(50);
+    _comentariosGlobais=data||[];
+    renderAtvVisaoGeral();
+    if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
+  }catch(e){console.warn('Erro ao carregar comentários:',e.message);}
+}
 
-  // 1. Análises finalizadas (do objeto analyses — localStorage + Supabase)
+function buildAtividadeItems(apenasEstaSemana=false){
+  const items=[];
+  // Calcular intervalo da semana atual (seg-dom)
+  const hoje=new Date();
+  const diaSemana=hoje.getDay();
+  const seg=new Date(hoje);seg.setDate(hoje.getDate()-(diaSemana===0?6:diaSemana-1));seg.setHours(0,0,0,0);
+  const dom=new Date(seg);dom.setDate(seg.getDate()+6);dom.setHours(23,59,59,999);
+  const dentroDaSemana=(ts)=>!apenasEstaSemana||(ts>=seg.getTime()&&ts<=dom.getTime());
+
+  // 1. Análises finalizadas
   Object.values(analyses).forEach(a=>{
     if(!a.finalizado) return;
-    items.push({
-      tipo:'analise',
-      ticker:a.ticker, nome:a.nome||'', seg:a.seg||'',
-      analista:a.analista||'—', data:a.data||'—',
-      scoreTotal:a.scoreTotal, scoreQuali:a.scoreQuali, scoreQuanti:a.scoreQuanti,
-      desc:`Análise finalizada com score ${a.scoreTotal?.toFixed(1)||'—'}/10`,
-      ts:parseDateBR(a.data)
-    });
+    const ts=parseDateBR(a.data);
+    if(!dentroDaSemana(ts)) return;
+    items.push({tipo:'analise',ticker:a.ticker,nome:a.nome||'',seg:a.seg||'',
+      analista:a.analista||'—',data:a.data||'—',
+      scoreTotal:a.scoreTotal,scoreQuali:a.scoreQuali,scoreQuanti:a.scoreQuanti,ts});
   });
 
-  // 2. Pré-análises incluídas (do PRE_ANALISE)
+  // 2. Pré-análises
   PRE_ANALISE.forEach(p=>{
-    if(!p.data_rev) return;
-    items.push({
-      tipo: p.status==='Reprovado'?'pre-reprov':'pre-monit',
-      ticker:p.ticker, nome:p.nome||'', seg:p.segmento||'',
-      analista:p.analista||'—', data:p.data_rev,
-      obs:p.obs||'', det:p.det||'',
-      status:p.status,
-      desc:`Pré-análise registrada: ${p.status} — ${p.obs}`,
-      ts:parseDateBR(p.data_rev)
-    });
+    if(!p.data_rev)return;
+    const ts=parseDateBR(p.data_rev);
+    if(!dentroDaSemana(ts))return;
+    items.push({tipo:p.status==='Reprovado'?'pre-reprov':'pre-monit',
+      ticker:p.ticker,nome:p.nome||'',seg:p.segmento||'',
+      analista:p.analista||'—',data:p.data_rev,
+      obs:p.obs||'',det:p.det||'',status:p.status,ts});
   });
 
-  // Ordenar por data desc
+  // 3. Comentários e questionamentos
+  _comentariosGlobais.forEach(c=>{
+    const ts=new Date(c.created_at||0).getTime();
+    if(!dentroDaSemana(ts))return;
+    items.push({tipo:c.tipo==='questionamento'?'questionamento':'comentario',
+      ticker:c.ticker,nome:analyses[c.ticker]?.nome||c.ticker,
+      seg:analyses[c.ticker]?.seg||'',
+      analista:c.autor,data:c.data_comentario||'',
+      texto:c.texto,temResposta:!!c.resposta,ts});
+  });
+
   items.sort((a,b)=>(b.ts||0)-(a.ts||0));
   return items;
 }
@@ -5429,7 +5525,7 @@ function renderAtividade(){
   const analistaF=document.getElementById('atv-analista-filter')?.value||'';
   const segF   =document.getElementById('atv-seg-filter')?.value||'';
 
-  let items=buildAtividadeItems();
+  let items=buildAtividadeItems(false); // aba completa — sem filtro de semana
 
   // Filtros
   if(tipoF)      items=items.filter(i=>i.tipo===tipoF||(tipoF==='pre'&&i.tipo.startsWith('pre')));
@@ -5518,7 +5614,8 @@ function renderAtvItem(item){
   };
   const tipoLabel={
     'analise':'✦ Análise finalizada','pre-reprov':'⚠ Pré-análise · Reprovado',
-    'pre-monit':'⚠ Pré-análise · Monitorar','revisao':'↺ Análise revisada'
+    'pre-monit':'⚠ Pré-análise · Monitorar','revisao':'↺ Análise revisada',
+    'comentario':'💬 Comentário','questionamento':'❓ Questionamento'
   };
 
   // Score pill para análises
@@ -5539,6 +5636,11 @@ function renderAtvItem(item){
   }
   if(isAnalise){
     descExtra=`<div class="atv-desc">Quali: <strong>${item.scoreQuali?.toFixed(1)||'—'}</strong> · Quanti: <strong>${item.scoreQuanti?.toFixed(1)||'—'}</strong></div>`;
+  }
+  if(item.tipo==='comentario'||item.tipo==='questionamento'){
+    descExtra=`<div class="atv-desc" style="font-style:italic">"${(item.texto||'').substring(0,120)}${(item.texto||'').length>120?'…':''}"</div>
+    ${item.tipo==='questionamento'&&!item.temResposta?'<div style="font-size:10px;color:var(--warning);font-weight:600;margin-top:3px">⏳ Aguardando resposta</div>':''}
+    ${item.tipo==='questionamento'&&item.temResposta?'<div style="font-size:10px;color:var(--success);font-weight:600;margin-top:3px">✓ Respondido</div>':''}`;
   }
 
   // Botão PDF se for análise finalizada
@@ -5570,7 +5672,7 @@ function renderAtvVisaoGeral(){
   const el=document.getElementById('atv-visao-content');
   if(!el) return;
 
-  const items=buildAtividadeItems().slice(0,8); // últimas 8 atividades
+  const items=buildAtividadeItems(true).slice(0,8); // apenas esta semana, máx 8
 
   if(items.length===0){
     el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Nenhuma atividade registrada ainda.</div>';
@@ -5582,7 +5684,7 @@ function renderAtvVisaoGeral(){
     const isReprov=item.tipo==='pre-reprov';
     const isMonit=item.tipo==='pre-monit';
 
-    const iconMap={'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺'};
+    const iconMap={'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺','comentario':'💬','questionamento':'❓'};
     const tipoLabel={'analise':'Análise finalizada','pre-reprov':'Pré-análise · Reprovado','pre-monit':'Pré-análise · Monitorar','revisao':'Análise revisada'};
     const tipoColor={'analise':'var(--apex-blue)','pre-reprov':'var(--danger)','pre-monit':'var(--warning)','revisao':'#a06800'};
     const tipoBg={'analise':'var(--apex-blue-lt)','pre-reprov':'var(--danger-bg)','pre-monit':'var(--warning-bg)','revisao':'#fffff0'};
@@ -5784,6 +5886,120 @@ function closeModal(){
 // Fechar com ESC
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
+// ══════════════════════════════════════════════════════════════
+// COMENTÁRIOS — Sistema de comentários e questionamentos
+// ══════════════════════════════════════════════════════════════
+function abrirNovoComentario(){
+  document.getElementById('form-comentario').style.display='block';
+  document.getElementById('btn-novo-comentario').style.display='none';
+}
+function fecharNovoComentario(){
+  document.getElementById('form-comentario').style.display='none';
+  document.getElementById('btn-novo-comentario').style.display='';
+  document.getElementById('com-texto').value='';
+  document.getElementById('com-analista').value='';
+}
+
+async function salvarComentario(){
+  const ticker=currentTicker;
+  const autor=document.getElementById('com-analista').value;
+  const tipo=document.getElementById('com-tipo').value;
+  const texto=document.getElementById('com-texto').value.trim();
+  if(!autor){alert('Selecione o analista');return;}
+  if(!texto){alert('Escreva o comentário antes de publicar');return;}
+  const db=getDB();
+  if(!db){alert('Supabase não disponível');return;}
+  const hoje=new Date();
+  const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const {error}=await db.from('analysis_comments').insert({
+    ticker,autor,tipo,texto,data_comentario:data,
+    created_at:new Date().toISOString()
+  });
+  if(error){alert('Erro ao salvar: '+error.message);return;}
+  fecharNovoComentario();
+  await carregarComentarios(ticker);
+  renderAtvVisaoGeral();
+}
+
+async function carregarComentarios(ticker){
+  const lista=document.getElementById('lista-comentarios');
+  if(!lista)return;
+  const db=getDB();
+  if(!db){lista.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Supabase não disponível</div>';return;}
+  const {data:coms,error}=await db.from('analysis_comments').select('*')
+    .eq('ticker',ticker).order('created_at',{ascending:true});
+  if(error){lista.innerHTML='<div style="color:var(--danger);font-size:12px">Erro: '+error.message+'</div>';return;}
+  if(!coms||coms.length===0){
+    lista.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Nenhum comentário ainda. Seja o primeiro!</div>';
+    return;
+  }
+  const analiseAnalista=analyses[ticker]?.analista||'';
+  lista.innerHTML=coms.map(c=>renderComentarioItem(c,analiseAnalista)).join('');
+}
+
+function renderComentarioItem(c,analiseAnalista){
+  const isQ=c.tipo==='questionamento';
+  const temResposta=!!c.resposta;
+  const respostaHtml=temResposta?`
+    <div class="com-resposta">
+      <div class="com-resposta-label">↳ Resposta de ${c.respondido_por||'—'} · ${c.respondido_em||''}</div>
+      <div class="com-resposta-texto">${c.resposta}</div>
+    </div>`:
+    (isQ?`<div class="com-aguardando">⏳ Aguardando resposta do analista responsável
+      <button class="btn-responder" onclick="abrirFormResposta('${c.id}','${analiseAnalista}')">Responder</button>
+    </div>
+    <div id="form-resp-${c.id}" class="form-resposta" style="display:none">
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Respondendo como</label>
+        <select class="form-select" id="resp-autor-${c.id}" style="margin-bottom:6px">
+          <option value="">— Selecione —</option>
+          <option>João V.</option><option>Lucas S.</option>
+          <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
+        </select>
+      </div>
+      <textarea class="form-textarea" id="resp-texto-${c.id}" placeholder="Escreva sua resposta..." style="min-height:60px;margin-bottom:8px"></textarea>
+      <div style="display:flex;gap:6px;justify-content:flex-end">
+        <button onclick="document.getElementById('form-resp-${c.id}').style.display='none'"
+          style="padding:5px 12px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Cancelar</button>
+        <button onclick="publicarResposta('${c.id}','${c.ticker}')"
+          style="padding:5px 12px;background:var(--success);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Publicar resposta</button>
+      </div>
+    </div>`:'');
+  return`<div class="com-item ${c.tipo||'comentario'}">
+    <div class="com-header">
+      <span class="com-autor">${c.autor}</span>
+      <span class="com-data">${c.data_comentario||''}</span>
+      <span class="com-tipo-badge ${isQ?'com-tipo-q':'com-tipo-c'}">${isQ?'❓ Questionamento':'💬 Comentário'}</span>
+    </div>
+    <div class="com-texto">${c.texto}</div>
+    ${respostaHtml}
+  </div>`;
+}
+
+function abrirFormResposta(id,analiseAnalista){
+  const el=document.getElementById('form-resp-'+id);
+  if(el){el.style.display='block';
+    const sel=document.getElementById('resp-autor-'+id);
+    if(sel&&analiseAnalista)sel.value=analiseAnalista;
+  }
+}
+
+async function publicarResposta(id,ticker){
+  const autor=document.getElementById('resp-autor-'+id)?.value;
+  const texto=document.getElementById('resp-texto-'+id)?.value?.trim();
+  if(!autor){alert('Selecione o analista que está respondendo');return;}
+  if(!texto){alert('Escreva a resposta antes de publicar');return;}
+  const db=getDB();if(!db)return;
+  const hoje=new Date();
+  const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const {error}=await db.from('analysis_comments').update({
+    resposta:texto, respondido_por:autor, respondido_em:data
+  }).eq('id',id);
+  if(error){alert('Erro: '+error.message);return;}
+  await carregarComentarios(ticker);
+  renderAtvVisaoGeral();
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
@@ -5794,6 +6010,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   injectPreAnaliseBadges();
   setTimeout(renderAtvVisaoGeral, 300);
   setTimeout(updateKpiRow, 400);
+  setTimeout(carregarTodosComentarios, 600);
 });
 </script>
 </body>
