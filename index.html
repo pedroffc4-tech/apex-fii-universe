@@ -5441,9 +5441,12 @@ async function adminConfirmar(){
       if(eF)throw new Error('Erro ao salvar fundos: '+eF.message);
     }
 
-    alert(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total`);
+    // 3. Gerar e baixar backup JSON automaticamente
+    gerarBackupJSON(adminSemanaData, adminSemanaNum, adminFundos);
 
-    // 3. Atualizar a página com os novos dados
+    alert(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total\n\n📥 Backup JSON gerado automaticamente na pasta Downloads.`);
+
+    // 4. Atualizar a página com os novos dados
     await carregarESemanaAtual();
     adminReset();
     await carregarListaSemanas();
@@ -5452,6 +5455,101 @@ async function adminConfirmar(){
     alert('❌ Erro ao salvar: '+e.message);
   }finally{
     btn.textContent='✓ Confirmar e Salvar';btn.disabled=false;
+  }
+}
+
+// ── Backup JSON automático ───────────────────────────────────
+function gerarBackupJSON(semanaData, numSemana, fundos){
+  try{
+    // Montar estrutura completa do backup
+    const nEl  = fundos.filter(f=>f.elegivel).length;
+    const nNel = fundos.length - nEl;
+    const agora = new Date();
+    const geradoEm = agora.toLocaleString('pt-BR',{
+      day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',second:'2-digit'
+    });
+
+    const backup = {
+      meta: {
+        semana:     numSemana,
+        data:       semanaData,
+        gerado_em:  geradoEm,
+        plataforma: 'APEX Partners — FII Universe',
+        versao:     '2.0'
+      },
+      resumo: {
+        n_total:        fundos.length,
+        n_elegiveis:    nEl,
+        n_nao_elegiveis:nNel,
+        pct_elegiveis:  parseFloat((nEl/fundos.length*100).toFixed(1)),
+        entraram: (fundos._entraram||[]).map(m=>({
+          ticker:   m.ticker,
+          segmento: m.segmento,
+          motivo:   m.motivo
+        })),
+        sairam: (fundos._sairam||[]).map(m=>({
+          ticker:   m.ticker,
+          segmento: m.segmento,
+          criterio: m.criterio||'',
+          motivo:   m.motivo
+        }))
+      },
+      criterios_elegibilidade: {
+        vol_minimo_90d:   400000,
+        dy_anual_minimo:  0.08,
+        pvp_maximo:       1.15,
+        mktcap_minimo:    200000000
+      },
+      fundos: fundos.map(f=>({
+        ticker:      f.ticker,
+        nome:        f.nome,
+        segmento:    f.segmento,
+        elegivel:    f.elegivel,
+        // Critérios
+        vol3m:       f.vol3m        ?? null,
+        dy_anual:    f.dy_anual     ?? null,
+        pvp_atual:   f.pvp_atual    ?? null,
+        mktcap:      f.mktcap       ?? null,
+        // Dados adicionais
+        fechamento:  f.fechamento   ?? null,
+        vp:          f.vp           ?? null,
+        dy_ltm:      f.dy_ltm       ?? null,
+        ret_mes:     f.ret_mes      ?? null,
+        ret_ano:     f.ret_ano      ?? null,
+        ret_ltm:     f.ret_ltm      ?? null,
+        // Flags de reprovação (apenas para não elegíveis)
+        ...(!f.elegivel ? {
+          fail_vol:    f.fail_vol    || false,
+          fail_yield:  f.fail_yield  || false,
+          fail_pvp:    f.fail_pvp    || false,
+          fail_mktcap: f.fail_mktcap || false
+        } : {})
+      }))
+    };
+
+    // Converter para JSON formatado
+    const jsonStr = JSON.stringify(backup, null, 2);
+    const blob = new Blob([jsonStr], {type:'application/json;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+
+    // Nome do arquivo: FII_Backup_SemanaNN_DDMMAAAA.json
+    const dataSemana = semanaData.replace(/\//g,'');  // ex: 09062026
+    const nomeArquivo = `FII_Backup_Semana${numSemana||'XX'}_${dataSemana}.json`;
+
+    // Disparar download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Backup gerado: ${nomeArquivo} (${(jsonStr.length/1024).toFixed(0)} KB)`);
+  }catch(e){
+    console.error('Erro ao gerar backup JSON:', e);
+    // Não bloqueia o fluxo principal — backup é best-effort
   }
 }
 
