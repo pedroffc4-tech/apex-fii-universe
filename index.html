@@ -270,6 +270,24 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .btn-forum{padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;position:relative}
 .btn-forum:hover{background:var(--apex-blue)}
 .forum-badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.pin-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,2,32,.6);z-index:2000;backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.pin-modal-overlay.open{display:flex}
+.pin-modal-box{background:#fff;border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.pin-modal-header{background:var(--apex-dark);padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.pin-modal-body{padding:20px}
+.confirm-input{width:100%;padding:10px 14px;border:2px solid var(--apex-mist);border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:'Manrope',sans-serif;letter-spacing:2px;outline:none;margin-top:6px}
+.confirm-input:focus{border-color:var(--apex-blue)}
+.confirm-input.danger{border-color:var(--danger);background:var(--danger-bg)}
+.btn-excluir{padding:4px 10px;background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c6;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
+.btn-excluir:hover{background:var(--danger);color:#fff}
+.btn-editar{padding:4px 10px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
+.btn-editar:hover{background:var(--apex-blue);color:#fff}
+.btn-restaurar{padding:4px 10px;background:var(--success-bg);color:var(--success);border:1px solid #a7f3d0;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
+.btn-restaurar:hover{background:var(--success);color:#fff}
+.semana-deletada td{opacity:.45;text-decoration:line-through}
+.semana-deletada .btn-restaurar{opacity:1;text-decoration:none}
+.edit-inline{display:flex;gap:6px;align-items:center}
+.edit-inline input{padding:5px 8px;border:1.5px solid var(--apex-blue);border-radius:6px;font-size:11px;font-family:'Manrope',sans-serif;font-weight:700;outline:none;width:100px}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
 .badge-reprov{display:inline-flex;align-items:center;gap:3px;background:#fdecea;color:#c0392b;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #f5c6c6;white-space:nowrap;cursor:help}
 .badge-monit{display:inline-flex;align-items:center;gap:3px;background:#fef9ec;color:#a06800;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;white-space:nowrap;cursor:help}
@@ -4148,6 +4166,34 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   </div>
 </div>
 
+<!-- MODAL DE CONFIRMAÇÃO / PIN -->
+<div class="pin-modal-overlay" id="confirm-overlay">
+  <div class="pin-modal-box">
+    <div class="pin-modal-header">
+      <span style="font-size:13px;font-weight:800;color:#fff" id="confirm-title">Confirmar exclusão</span>
+      <button onclick="closeConfirmModal()" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div class="pin-modal-body">
+      <div style="font-size:12px;color:#5a6e8a;margin-bottom:14px;line-height:1.6" id="confirm-desc">—</div>
+      <div id="confirm-pin-wrap" style="display:none;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">PIN de administrador</div>
+        <input type="password" class="confirm-input" id="confirm-pin" placeholder="••••" maxlength="4" oninput="checkConfirmReady()">
+      </div>
+      <div id="confirm-word-wrap" style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px" id="confirm-word-label">—</div>
+        <input type="text" class="confirm-input" id="confirm-word" placeholder="—" oninput="checkConfirmReady()">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeConfirmModal()" style="flex:1;padding:10px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Cancelar</button>
+        <button id="confirm-ok-btn" onclick="executeConfirmAction()" disabled
+          style="flex:1;padding:10px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'Manrope',sans-serif;transition:all .2s" id="confirm-ok-btn">
+          Confirmar exclusão
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ FÓRUM DE DISCUSSÃO ══ -->
 <div class="forum-modal-overlay" id="forum-overlay" onclick="if(event.target===this)closeForum()">
   <div class="forum-panel">
@@ -4831,10 +4877,11 @@ function renderScoreRanking(){
       <td style="text-align:center">${a.scoreQuanti?.toFixed(1)||'—'}</td>
       <td style="font-size:11px">${a.analista}</td>
       <td style="font-size:11px;color:#6b7a9a">${a.data}</td>
-      <td><div style="display:flex;gap:5px;align-items:center">
+      <td><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
         <button onclick="exportarPDF('${a.ticker}')"
           style="padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⬇ PDF</button>
         <button class="btn-forum" data-forum-ticker="${a.ticker}" onclick="openForum('${a.ticker}')">💬</button>
+        <button class="btn-excluir" onclick="confirmarExcluirAnalise('${a.ticker}')" title="Excluir análise">🗑</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -5586,9 +5633,12 @@ async function carregarListaSemanas(){
   const db=getDB();if(!db){el.innerHTML='<div style="color:#6b7a9a;font-size:12px">Supabase não disponível</div>';return;}
   const {data:semanas,error}=await db.from('semanas').select('*').order('created_at',{ascending:false});
   if(error||!semanas||semanas.length===0){el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Nenhuma semana processada ainda</div>';return;}
-  el.innerHTML=`<div class="tbl-wrap" style="border:none"><table>
-    <thead><tr><th>Data</th><th>#</th><th>Total</th><th>Elegíveis</th><th>Não Elegíveis</th><th>Entraram</th><th>Saíram</th></tr></thead>
-    <tbody>${semanas.map(s=>`<tr>
+  const ativas   = semanas.filter(s=>!s.deleted_at);
+  const inativas = semanas.filter(s=>!!s.deleted_at);
+  const renderRow = s=>{
+    const deletada = !!s.deleted_at;
+    const rowId = 'row-'+s.semana_data.replace(/\//g,'-');
+    return`<tr id="${rowId}" class="${deletada?'semana-deletada':''}">
       <td><strong>${s.semana_data}</strong></td>
       <td>${s.num_semana||'—'}</td>
       <td>${s.n_total||0}</td>
@@ -5596,8 +5646,20 @@ async function carregarListaSemanas(){
       <td style="color:var(--danger);font-weight:700">${s.n_nao_elegiveis||0}</td>
       <td style="color:var(--success);font-weight:600">${JSON.parse(s.entraram||'[]').length}</td>
       <td style="color:var(--danger);font-weight:600">${JSON.parse(s.sairam||'[]').length}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+      <td class="acoes-semana"><div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${deletada
+          ? `<button class="btn-restaurar" onclick="restaurarSemana('${s.semana_data}')">↺ Restaurar</button>`
+          : `<button class="btn-editar"    onclick="editarSemana('${s.semana_data}',${s.num_semana||0})">✏️ Editar</button>
+             <button class="btn-excluir"   onclick="confirmarExcluirSemana('${s.semana_data}')">🗑 Excluir</button>`
+        }
+      </div></td>
+    </tr>`;
+  };
+  el.innerHTML=`<div class="tbl-wrap" style="border:none"><table>
+    <thead><tr><th>Data</th><th>#</th><th>Total</th><th>Elegíveis</th><th>Não Elegíveis</th><th>Entraram</th><th>Saíram</th><th>Ações</th></tr></thead>
+    <tbody>${[...ativas,...inativas].map(renderRow).join('')}</tbody>
+  </table></div>
+  ${inativas.length>0?`<div style="font-size:10px;color:#6b7a9a;margin-top:8px;text-align:right">${inativas.length} semana(s) oculta(s) — restaurável(is) a qualquer momento</div>`:''}`;
 }
 
 // ── Carregar e renderizar semana mais recente ─────────────────
@@ -6359,6 +6421,190 @@ async function carregarForumGlobal(){
     if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
   }catch(e){console.warn('Forum global:',e.message);}
 }
+// ══════════════════════════════════════════════════════════════
+// CRUD — Excluir análise · Excluir/editar semana
+// ══════════════════════════════════════════════════════════════
+
+// ── PIN de Admin (localStorage) ──────────────────────────────
+const ADMIN_PIN_KEY = 'apex_admin_pin';
+function getAdminPin(){ return localStorage.getItem(ADMIN_PIN_KEY)||''; }
+function setAdminPin(pin){ localStorage.setItem(ADMIN_PIN_KEY, pin); }
+
+// ── Modal de confirmação genérico ────────────────────────────
+let _confirmAction = null;
+let _confirmExpected = '';
+let _confirmNeedsPin = false;
+
+function openConfirmModal({title, desc, wordLabel, expectedWord, needsPin=false, onConfirm}){
+  _confirmAction   = onConfirm;
+  _confirmExpected = expectedWord.toUpperCase();
+  _confirmNeedsPin = needsPin;
+  document.getElementById('confirm-title').textContent   = title;
+  document.getElementById('confirm-desc').textContent    = desc;
+  document.getElementById('confirm-word-label').textContent = wordLabel;
+  document.getElementById('confirm-word').value          = '';
+  document.getElementById('confirm-word').placeholder    = expectedWord;
+  document.getElementById('confirm-pin').value           = '';
+  document.getElementById('confirm-pin-wrap').style.display = needsPin ? 'block' : 'none';
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.disabled = true;
+  btn.style.background = '#ccc';
+  btn.style.cursor = 'not-allowed';
+  document.getElementById('confirm-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('confirm-word').focus(), 100);
+}
+
+function closeConfirmModal(){
+  document.getElementById('confirm-overlay').classList.remove('open');
+  _confirmAction = null;
+}
+
+function checkConfirmReady(){
+  const word = document.getElementById('confirm-word').value.toUpperCase().trim();
+  const pin  = document.getElementById('confirm-pin').value;
+  const wordOk = word === _confirmExpected;
+  const pinOk  = !_confirmNeedsPin || pin === getAdminPin();
+  const ok = wordOk && pinOk;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.disabled = !ok;
+  btn.style.background = ok ? 'var(--danger)' : '#ccc';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  document.getElementById('confirm-word').classList.toggle('danger', word.length>0 && !wordOk);
+}
+
+async function executeConfirmAction(){
+  if(!_confirmAction) return;
+  closeConfirmModal();
+  await _confirmAction();
+}
+
+// ── Configurar PIN de Admin ───────────────────────────────────
+function configurarPin(){
+  const atual = getAdminPin();
+  const novo  = prompt(atual
+    ? 'PIN atual configurado. Digite o novo PIN de 4 dígitos (ou cancele para manter):'
+    : 'Defina um PIN de 4 dígitos para operações de administrador:');
+  if(!novo) return;
+  if(!/^\d{4}$/.test(novo)){ alert('O PIN deve ter exatamente 4 dígitos numéricos.'); return; }
+  setAdminPin(novo);
+  alert('✅ PIN de admin configurado com sucesso!');
+}
+
+// ── EXCLUIR ANÁLISE ───────────────────────────────────────────
+function confirmarExcluirAnalise(ticker){
+  const a = analyses[ticker];
+  if(!a){ alert('Análise não encontrada.'); return; }
+  openConfirmModal({
+    title:        '🗑 Excluir Análise',
+    desc:         `Você está prestes a excluir permanentemente a análise de ${ticker} (${a.nome||''}), feita por ${a.analista||'—'} em ${a.data||'—'}.
+
+Os comentários do fórum serão preservados. Esta ação não pode ser desfeita.`,
+    wordLabel:    `Digite o ticker "${ticker}" para confirmar:`,
+    expectedWord: ticker,
+    needsPin:     false,
+    onConfirm:    ()=>excluirAnalise(ticker)
+  });
+}
+
+async function excluirAnalise(ticker){
+  const db = getDB();
+  if(!db){ alert('Supabase não disponível.'); return; }
+  // 1. Remover do Supabase
+  const {error} = await db.from('analyses').delete().eq('ticker', ticker);
+  if(error){ alert('Erro ao excluir: '+error.message); return; }
+  // 2. Remover do cache local
+  delete analyses[ticker];
+  localStorage.setItem('apex_fii_analyses', JSON.stringify(analyses));
+  // 3. Atualizar UI
+  injectAnalyseTags();
+  renderScoreRanking();
+  updateKpiRow();
+  renderAtvVisaoGeral();
+  alert(`✅ Análise de ${ticker} excluída. Os comentários do fórum foram preservados.`);
+}
+
+// ── EXCLUIR SEMANA (soft delete) ──────────────────────────────
+function confirmarExcluirSemana(data){
+  if(!getAdminPin()){
+    alert('Nenhum PIN configurado. Va em Admin e clique em Configurar PIN antes de excluir semanas.');
+    return;
+  }
+  openConfirmModal({
+    title:        '🗑 Excluir Semana',
+    desc:         `Você está prestes a ocultar a semana ${data} do dashboard.
+
+Os dados de fundos do BTG Guide desta semana serão ocultados. As análises de fundos serão preservadas. A semana pode ser restaurada depois pela aba Admin.`,
+    wordLabel:    `Digite a data "${data}" para confirmar:`,
+    expectedWord: data,
+    needsPin:     true,
+    onConfirm:    ()=>excluirSemana(data)
+  });
+}
+
+async function excluirSemana(data){
+  const db = getDB();
+  if(!db){ alert('Supabase não disponível.'); return; }
+  const {error} = await db.from('semanas')
+    .update({deleted_at: new Date().toISOString()})
+    .eq('semana_data', data);
+  if(error){ alert('Erro ao excluir semana: '+error.message); return; }
+  alert(`✅ Semana ${data} ocultada do dashboard. Você pode restaurá-la a qualquer momento.`);
+  await carregarListaSemanas();
+  await carregarESemanaAtual();
+}
+
+async function restaurarSemana(data){
+  const db = getDB();
+  if(!db){ alert('Supabase não disponível.'); return; }
+  const {error} = await db.from('semanas')
+    .update({deleted_at: null})
+    .eq('semana_data', data);
+  if(error){ alert('Erro ao restaurar: '+error.message); return; }
+  alert(`✅ Semana ${data} restaurada com sucesso!`);
+  await carregarListaSemanas();
+  await carregarESemanaAtual();
+}
+
+// ── EDITAR SEMANA (data e número) ─────────────────────────────
+function editarSemana(data, numAtual){
+  const rowId = 'row-'+data.replace(/\//g,'-');
+  const row   = document.getElementById(rowId);
+  if(!row) return;
+  const cells = row.querySelectorAll('td');
+  // Substituir as duas primeiras células por campos editáveis
+  cells[0].innerHTML=`<div class="edit-inline">
+    <input type="text" id="edit-data-${rowId}" value="${data}" placeholder="DD/MM/AAAA" maxlength="10" style="width:110px">
+  </div>`;
+  cells[1].innerHTML=`<div class="edit-inline">
+    <input type="number" id="edit-num-${rowId}" value="${numAtual||''}" placeholder="#" style="width:55px">
+  </div>`;
+  // Trocar botão editar por salvar/cancelar
+  const acoes = row.querySelector('.acoes-semana');
+  if(acoes) acoes.innerHTML=`
+    <button onclick="salvarEdicaoSemana('${data}','${rowId}')" class="btn-editar" style="background:var(--success);color:#fff;border-color:var(--success)">✓ Salvar</button>
+    <button onclick="carregarListaSemanas()" class="btn-excluir" style="background:#f0f0f0;color:var(--apex-navy);border-color:#ccc">Cancelar</button>`;
+}
+
+async function salvarEdicaoSemana(dataOriginal, rowId){
+  const novaData = document.getElementById('edit-data-'+rowId)?.value?.trim();
+  const novoNum  = parseInt(document.getElementById('edit-num-'+rowId)?.value)||0;
+  if(!novaData || !/^\d{2}\/\d{2}\/\d{4}$/.test(novaData)){
+    alert('Data inválida. Use o formato DD/MM/AAAA.');return;
+  }
+  const db=getDB();if(!db)return;
+  const updates = {semana_data: novaData, num_semana: novoNum};
+  // Atualizar semana
+  const {error:eS} = await db.from('semanas').update(updates).eq('semana_data', dataOriginal);
+  if(eS){ alert('Erro ao salvar: '+eS.message); return; }
+  // Atualizar fund_data se a data mudou
+  if(novaData !== dataOriginal){
+    await db.from('fund_data').update({semana_data: novaData}).eq('semana_data', dataOriginal);
+  }
+  alert(`✅ Semana atualizada: ${novaData} (#${novoNum})`);
+  await carregarListaSemanas();
+  await carregarESemanaAtual();
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
