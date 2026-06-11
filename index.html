@@ -157,6 +157,60 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .comp-item-label{font-size:10px;font-weight:700;color:#6b7a9a;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .comp-item-vals{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
 .comp-up{color:var(--success)}.comp-down{color:var(--danger)}.comp-neu{color:#6b7a9a}
+.atv-timeline-item{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #eef2fa;align-items:flex-start}
+.atv-timeline-item:last-child{border:none}
+.atv-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px}
+.atv-icon.analise{background:#EBF4FB;border:1.5px solid var(--apex-blue)}
+.atv-icon.revisao{background:#fffff0;border:1.5px solid #a06800}
+.atv-icon.pre-reprov{background:#fdecea;border:1.5px solid var(--danger)}
+.atv-icon.pre-monit{background:#fef9ec;border:1.5px solid var(--warning)}
+.atv-body{flex:1;min-width:0}
+.atv-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.atv-ticker{font-size:14px;font-weight:800;color:var(--apex-navy)}
+.atv-nome{font-size:11px;color:#6b7a9a;font-weight:400}
+.atv-tipo-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.atv-tipo-analise{background:var(--apex-blue-lt);color:var(--apex-blue)}
+.atv-tipo-revisao{background:#fffff0;color:#a06800}
+.atv-tipo-pre-reprov{background:#fdecea;color:var(--danger)}
+.atv-tipo-pre-monit{background:#fef9ec;color:var(--warning)}
+.atv-desc{font-size:11px;color:#5a6e8a;line-height:1.5;margin-bottom:5px}
+.atv-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.atv-meta-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#6b7a9a}
+.atv-meta-item strong{color:var(--apex-navy);font-weight:700}
+.atv-score-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.atv-empty{text-align:center;padding:60px 20px;color:#6b7a9a}
+.atv-empty-icon{font-size:36px;margin-bottom:12px}
+.atv-date-divider{font-size:10px;font-weight:700;color:var(--apex-blue);text-transform:uppercase;letter-spacing:.8px;padding:14px 0 6px;border-bottom:1px solid var(--apex-mist);margin-bottom:4px}
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,2,32,.55);z-index:1000;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:740px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.modal-header{background:var(--apex-dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:14px;font-weight:800;color:#fff}
+.modal-subtitle{font-size:10px;color:#a0c4f0;margin-top:3px}
+.modal-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}
+.modal-close:hover{background:rgba(255,255,255,.25)}
+.modal-body{overflow-y:auto;flex:1;padding:0}
+.modal-search{padding:14px 20px;border-bottom:1px solid var(--apex-mist);position:sticky;top:0;background:#fff;z-index:1}
+.modal-search input{width:100%;padding:8px 12px;border:1.5px solid var(--apex-mist);border-radius:8px;font-size:12px;font-family:'Manrope',sans-serif;outline:none;color:var(--apex-navy)}
+.modal-search input:focus{border-color:var(--apex-blue)}
+.modal-list{padding:8px 0}
+.modal-item{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid #f4f8fd;cursor:pointer;transition:background .15s}
+.modal-item:hover{background:var(--apex-blue-lt)}
+.modal-item:last-child{border:none}
+.modal-item-ticker{font-size:13px;font-weight:800;color:var(--apex-navy);min-width:72px}
+.modal-item-nome{font-size:11px;color:#5a6e8a;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-empty{text-align:center;padding:48px 20px;color:#6b7a9a}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--apex-mist);font-size:11px;color:#6b7a9a;text-align:right;flex-shrink:0;background:#fafcff}
+/* ── KPI CARDS CLICÁVEIS ── */
+.kpi-click{cursor:pointer;transition:all .18s;position:relative}
+.kpi-click:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,32,96,.13)}
+.kpi-click:active{transform:translateY(0)}
+.kpi-click::after{content:'↗';position:absolute;top:10px;right:12px;font-size:10px;color:var(--apex-blue);opacity:0;transition:opacity .2s}
+.kpi-click:hover::after{opacity:1}
+/* ── KPI ROW 1 (analítico) ── */
+.kpi-grid-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+.kpi.aprovado{border-top-color:var(--success)}.kpi.em-aval{border-top-color:var(--warning)}.kpi.reprovado{border-top-color:var(--danger)}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
 .badge-reprov{display:inline-flex;align-items:center;gap:3px;background:#fdecea;color:#c0392b;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #f5c6c6;white-space:nowrap;cursor:help}
 .badge-monit{display:inline-flex;align-items:center;gap:3px;background:#fef9ec;color:#a06800;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;white-space:nowrap;cursor:help}
@@ -192,6 +246,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div class="nav-tab" onclick="showTab('segmentos',this)">Por Segmento</div>
   <div class="nav-tab" onclick="showTab('ranking',this)">Ranking</div>
   <div class="nav-tab" onclick="showTab('fundos',this)">Fundos Elegíveis</div>
+  <div class="nav-tab" onclick="showTab('atividade',this)">◉ Atividade</div>
   <div class="nav-tab" onclick="showTab('analise',this)">✦ Análise</div>
   <div class="nav-tab" onclick="showTab('pre',this)">⚠ Pré-Análise</div>
   <div class="nav-tab" onclick="showTab('admin',this)">⚙ Admin</div>
@@ -205,8 +260,48 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <h2>Visão Geral — 02/06/2026</h2>
     <p>Filtragem semanal BTG FII Guide · 21 semanas de trackrecord · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15 | MktCap &gt; R$200M</p>
   </div>
+  <!-- LINHA 1 — Análise dos fundos (dinâmica, clicável) -->
+  <div class="kpi-grid-top" id="kpi-row-analitico">
+    <div class="kpi kpi-click green" onclick="openModal('elegiveis')" title="Ver fundos elegíveis">
+      <div class="kpi-lbl">Fundos Elegíveis</div>
+      <div class="kpi-val" id="kpi-n-elegiveis">127</div>
+      <div class="kpi-sub">Universo atual</div>
+    </div>
+    <div class="kpi kpi-click" onclick="openModal('analisados')" title="Ver todos os fundos analisados">
+      <div class="kpi-lbl">Analisados (Total)</div>
+      <div class="kpi-val" id="kpi-n-analisados">—</div>
+      <div class="kpi-sub">Com score finalizado</div>
+    </div>
+    <div class="kpi kpi-click aprovado" onclick="openModal('aprovados')" title="Ver fundos aprovados">
+      <div class="kpi-lbl">Aprovados</div>
+      <div class="kpi-val" id="kpi-n-aprovados">—</div>
+      <div class="kpi-sub">Score ≥ 6,0</div>
+    </div>
+    <div class="kpi kpi-click em-aval" onclick="openModal('em-avaliacao')" title="Ver fundos em avaliação">
+      <div class="kpi-lbl">Em Avaliação</div>
+      <div class="kpi-val" id="kpi-n-em-aval">—</div>
+      <div class="kpi-sub">Score 4,0 – 5,9</div>
+    </div>
+    <div class="kpi kpi-click reprovado" onclick="openModal('reprovados')" title="Ver fundos reprovados">
+      <div class="kpi-lbl">Reprovados</div>
+      <div class="kpi-val" id="kpi-n-reprovados">—</div>
+      <div class="kpi-sub">Score < 4,0</div>
+    </div>
+    <div class="kpi kpi-click amber" onclick="openModal('pendentes')" title="Ver fundos pendentes de análise">
+      <div class="kpi-lbl">Pendentes</div>
+      <div class="kpi-val" id="kpi-n-pendentes">—</div>
+      <div class="kpi-sub">Elegíveis sem análise</div>
+    </div>
+    <div class="kpi kpi-click" onclick="openModal('pre-analise')" title="Ver pré-análises">
+      <div class="kpi-lbl">Pré-análises</div>
+      <div class="kpi-val" id="kpi-n-pre">—</div>
+      <div class="kpi-sub">Histórico registrado</div>
+    </div>
+  </div>
+
+  <!-- LINHA 2 — Dados de elegibilidade (estáticos) -->
   <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-lbl">Fundos Analisados</div><div class="kpi-val">277</div><div class="kpi-sub">Universo BTG FII Guide</div></div>
+    <div class="kpi"><div class="kpi-lbl">Total BTG Guide</div><div class="kpi-val">277</div><div class="kpi-sub">Universo BTG FII Guide</div></div>
     <div class="kpi green"><div class="kpi-lbl">Elegíveis</div><div class="kpi-val">127</div><div class="kpi-sub">45.8% do universo</div></div>
     <div class="kpi red"><div class="kpi-lbl">Não Elegíveis</div><div class="kpi-val">150</div><div class="kpi-sub">54.2% do universo</div></div>
     <div class="kpi"><div class="kpi-lbl">Semanas de Histórico</div><div class="kpi-val">21</div><div class="kpi-sub">Desde 05/01/2026</div></div>
@@ -293,6 +388,60 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       </div>
     </div>
   </div>
+
+  <!-- CARD ATIVIDADE RECENTE -->
+  <div class="card" id="card-atv-visao">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Atividade Recente — Análises e Pré-Análises</span>
+      <a onclick="document.querySelectorAll('.nav-tab')[4].click();return false" style="font-size:10px;color:var(--apex-blue);cursor:pointer;font-weight:700;text-decoration:none">Ver tudo →</a>
+    </div>
+    <div id="atv-visao-content">
+      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ATIVIDADE ══ -->
+<div class="tab" id="tab-atividade">
+  <div class="section-hdr" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2>◉ Atividade da Plataforma</h2>
+      <p>Movimentações de análises realizadas, revisadas e pré-análises incluídas</p>
+    </div>
+    <button onclick="renderAtividade()" style="padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">⟳ Atualizar</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="search-bar" style="margin-bottom:20px">
+    <select id="atv-tipo-filter" onchange="renderAtividade()">
+      <option value="">Todos os tipos</option>
+      <option value="analise">✦ Análise finalizada</option>
+      <option value="revisao">↺ Análise revisada</option>
+      <option value="pre">⚠ Pré-análise</option>
+    </select>
+    <select id="atv-analista-filter" onchange="renderAtividade()">
+      <option value="">Todos os analistas</option>
+      <option>João V.</option>
+      <option>Lucas S.</option>
+      <option>Pedro C.</option>
+      <option>Pedro F.</option>
+    </select>
+    <select id="atv-seg-filter" onchange="renderAtividade()">
+      <option value="">Todos os segmentos</option>
+      <option>Recebível</option><option>Galpão Logístico</option><option>Shopping Center</option>
+      <option>Laje Corporativa</option><option>Fundo de Fundos</option><option>Hedge Fund</option>
+      <option>Renda Urbana</option><option>Híbrido</option><option>FI-Infra</option>
+      <option>FIAgro - FII</option><option>Agronegócio</option><option>Desenvolvimento</option>
+      <option>Outros</option>
+    </select>
+    <span class="fund-count" id="atv-count">—</span>
+  </div>
+
+  <!-- Sumário -->
+  <div id="atv-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px"></div>
+
+  <!-- Timeline -->
+  <div id="atv-timeline"></div>
 </div>
 
 <!-- ══ SEGMENTOS ══ -->
@@ -3915,6 +4064,26 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 
 </div>
 
+<!-- MODAL UNIVERSAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">—</div>
+        <div class="modal-subtitle" id="modal-subtitle">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-search">
+        <input type="text" id="modal-search-input" placeholder="Buscar por ticker ou nome..." oninput="filterModal()">
+      </div>
+      <div class="modal-list" id="modal-list"></div>
+    </div>
+    <div class="modal-footer" id="modal-footer">—</div>
+  </div>
+</div>
+
 <div class="footer">
   <strong>APEX Partners</strong> · FII Universe · Uso Interno · 02/06/2026 · Semana 16 de 21<br>
   Fonte: BTG Pactual FII Guide · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15x | MktCap &gt; R$200M
@@ -3958,6 +4127,9 @@ async function supaLoad(){
     if(ss)ss.innerHTML='✅ Sincronizado · '+rows.length+' análises';
     console.log('✅ Supabase: '+rows.length+' análises carregadas');
     injectAnalyseTags();renderScoreRanking();
+    if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
+    renderAtvVisaoGeral();
+    updateKpiRow();
   }catch(e){
     console.warn('Supabase load falhou:',e.message);
     if(ss)ss.innerHTML='⚠️ Offline — '+e.message.substring(0,50);
@@ -4022,6 +4194,7 @@ function showTab(id,el){
   if(id==='ranking') renderScoreRanking();
   if(id==='admin') carregarListaSemanas();
   if(id==='pre'){renderPreAnalise();filterPreAnalise();}
+  if(id==='atividade') renderAtividade();
 }
 function showSubTab(id,el){
   document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
@@ -4501,6 +4674,9 @@ async function finalizarAnalise(){
     if(btnF){btnF.textContent='✓ Finalizar Análise';btnF.disabled=false;}
   }
   renderScoreRanking();injectAnalyseTags();
+  if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
+  renderAtvVisaoGeral();
+  updateKpiRow();
 }
 function reloadAnalise(ticker){
   const a=analyses[ticker];if(!a)return;
@@ -5202,6 +5378,412 @@ function onTipoChange(){
   renderQuantiBlocks(tipo);
   setTimeout(()=>preencherDadosBTG(currentTicker,tipo),50);
 }
+// ══════════════════════════════════════════════════════════════
+// ATIVIDADE — Feed de movimentações
+// ══════════════════════════════════════════════════════════════
+function buildAtividadeItems(){
+  const items=[];
+
+  // 1. Análises finalizadas (do objeto analyses — localStorage + Supabase)
+  Object.values(analyses).forEach(a=>{
+    if(!a.finalizado) return;
+    items.push({
+      tipo:'analise',
+      ticker:a.ticker, nome:a.nome||'', seg:a.seg||'',
+      analista:a.analista||'—', data:a.data||'—',
+      scoreTotal:a.scoreTotal, scoreQuali:a.scoreQuali, scoreQuanti:a.scoreQuanti,
+      desc:`Análise finalizada com score ${a.scoreTotal?.toFixed(1)||'—'}/10`,
+      ts:parseDateBR(a.data)
+    });
+  });
+
+  // 2. Pré-análises incluídas (do PRE_ANALISE)
+  PRE_ANALISE.forEach(p=>{
+    if(!p.data_rev) return;
+    items.push({
+      tipo: p.status==='Reprovado'?'pre-reprov':'pre-monit',
+      ticker:p.ticker, nome:p.nome||'', seg:p.segmento||'',
+      analista:p.analista||'—', data:p.data_rev,
+      obs:p.obs||'', det:p.det||'',
+      status:p.status,
+      desc:`Pré-análise registrada: ${p.status} — ${p.obs}`,
+      ts:parseDateBR(p.data_rev)
+    });
+  });
+
+  // Ordenar por data desc
+  items.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return items;
+}
+
+function parseDateBR(str){
+  if(!str) return 0;
+  // DD/MM/AAAA
+  const p=str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(p) return new Date(p[3],p[2]-1,p[1]).getTime();
+  return new Date(str).getTime()||0;
+}
+
+function renderAtividade(){
+  const tipoF  =document.getElementById('atv-tipo-filter')?.value||'';
+  const analistaF=document.getElementById('atv-analista-filter')?.value||'';
+  const segF   =document.getElementById('atv-seg-filter')?.value||'';
+
+  let items=buildAtividadeItems();
+
+  // Filtros
+  if(tipoF)      items=items.filter(i=>i.tipo===tipoF||(tipoF==='pre'&&i.tipo.startsWith('pre')));
+  if(analistaF)  items=items.filter(i=>i.analista===analistaF);
+  if(segF)       items=items.filter(i=>i.seg===segF);
+
+  const countEl=document.getElementById('atv-count');
+  if(countEl) countEl.textContent=items.length+' movimentações';
+
+  // Sumário
+  const nAnalise=items.filter(i=>i.tipo==='analise').length;
+  const nPre    =items.filter(i=>i.tipo.startsWith('pre')).length;
+  const analistas=[...new Set(items.map(i=>i.analista).filter(Boolean))];
+  const summaryEl=document.getElementById('atv-summary');
+  if(summaryEl) summaryEl.innerHTML=`
+    <div class="kpi" style="border-top-color:var(--apex-blue)">
+      <div class="kpi-lbl">Análises</div>
+      <div class="kpi-val">${nAnalise}</div>
+      <div class="kpi-sub">fundos analisados</div>
+    </div>
+    <div class="kpi" style="border-top-color:var(--danger)">
+      <div class="kpi-lbl">Pré-Análises</div>
+      <div class="kpi-val">${nPre}</div>
+      <div class="kpi-sub">histórico registrado</div>
+    </div>
+    <div class="kpi" style="border-top-color:var(--success)">
+      <div class="kpi-lbl">Analistas Ativos</div>
+      <div class="kpi-val">${analistas.length}</div>
+      <div class="kpi-sub">${analistas.join(', ')||'—'}</div>
+    </div>`;
+
+  const tlEl=document.getElementById('atv-timeline');
+  if(!tlEl) return;
+
+  if(items.length===0){
+    tlEl.innerHTML=`<div class="atv-empty">
+      <div class="atv-empty-icon">📭</div>
+      <div style="font-size:15px;font-weight:700;color:var(--apex-navy);margin-bottom:6px">Nenhuma atividade encontrada</div>
+      <p style="font-size:12px">Finalize análises ou registre pré-análises para ver o histórico aqui.</p>
+    </div>`;
+    return;
+  }
+
+  // Agrupar por mês/ano
+  const grupos={};
+  items.forEach(item=>{
+    const d=item.data||'Sem data';
+    const key=d.length>=10?d.substring(3):'Sem data'; // MM/AAAA
+    if(!grupos[key]) grupos[key]=[];
+    grupos[key].push(item);
+  });
+
+  let html='';
+  Object.entries(grupos).forEach(([periodo,gr])=>{
+    // Formatar título do período
+    let tituloGrupo=periodo;
+    const mp=periodo.match(/(\d{2})\/(\d{4})/);
+    if(mp){
+      const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      tituloGrupo=meses[parseInt(mp[1])-1]+' '+mp[2];
+    }
+    html+=`<div class="atv-date-divider">${tituloGrupo} <span style="font-weight:400;color:#6b7a9a">(${gr.length})</span></div>`;
+    gr.forEach(item=>{
+      html+=renderAtvItem(item);
+    });
+  });
+
+  tlEl.innerHTML=html;
+}
+
+function renderAtvItem(item){
+  const isAnalise=item.tipo==='analise';
+  const isPre=item.tipo.startsWith('pre');
+  const isReprov=item.tipo==='pre-reprov';
+  const isMonit=item.tipo==='pre-monit';
+
+  const iconMap={
+    'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺'
+  };
+  const iconClass={
+    'analise':'analise','pre-reprov':'pre-reprov','pre-monit':'pre-monit','revisao':'revisao'
+  };
+  const badgeClass={
+    'analise':'atv-tipo-analise','pre-reprov':'atv-tipo-pre-reprov',
+    'pre-monit':'atv-tipo-pre-monit','revisao':'atv-tipo-revisao'
+  };
+  const tipoLabel={
+    'analise':'✦ Análise finalizada','pre-reprov':'⚠ Pré-análise · Reprovado',
+    'pre-monit':'⚠ Pré-análise · Monitorar','revisao':'↺ Análise revisada'
+  };
+
+  // Score pill para análises
+  let scorePill='';
+  if(isAnalise&&item.scoreTotal!=null){
+    const col=item.scoreTotal>=7?'var(--success)':item.scoreTotal>=5?'var(--warning)':'var(--danger)';
+    const bg=item.scoreTotal>=7?'var(--success-bg)':item.scoreTotal>=5?'var(--warning-bg)':'var(--danger-bg)';
+    scorePill=`<span class="atv-score-pill" style="background:${bg};color:${col}">Score ${item.scoreTotal.toFixed(1)}/10</span>`;
+  }
+
+  const segChipHtml=item.seg?`<span class="seg-chip" style="font-size:9px;padding:1px 7px;background:var(--apex-mist);color:var(--apex-navy)">${item.seg}</span>`:'';
+
+  // Descrição expandida
+  let descExtra='';
+  if(isPre&&item.det){
+    const short=item.det.substring(0,160)+(item.det.length>160?'…':'');
+    descExtra=`<div class="atv-desc" style="margin-top:4px;font-style:italic">"${short}"</div>`;
+  }
+  if(isAnalise){
+    descExtra=`<div class="atv-desc">Quali: <strong>${item.scoreQuali?.toFixed(1)||'—'}</strong> · Quanti: <strong>${item.scoreQuanti?.toFixed(1)||'—'}</strong></div>`;
+  }
+
+  // Botão PDF se for análise finalizada
+  const pdfBtn=isAnalise?`<button onclick="exportarPDF('${item.ticker}')"
+    style="padding:2px 9px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;margin-left:auto">⬇ PDF</button>`:'';
+
+  return`<div class="atv-timeline-item">
+    <div class="atv-icon ${iconClass[item.tipo]||'analise'}">${iconMap[item.tipo]||'◉'}</div>
+    <div class="atv-body">
+      <div class="atv-header">
+        <span class="atv-ticker">${item.ticker}</span>
+        <span class="atv-nome">${item.nome}</span>
+        ${segChipHtml}
+        <span class="atv-tipo-badge ${badgeClass[item.tipo]||''}">${tipoLabel[item.tipo]||item.tipo}</span>
+        ${scorePill}
+        ${pdfBtn}
+      </div>
+      ${descExtra}
+      <div class="atv-meta">
+        <div class="atv-meta-item">👤 <strong>${item.analista}</strong></div>
+        <div class="atv-meta-item">📅 <strong>${item.data}</strong></div>
+        ${isAnalise?`<button onclick="openAnalise('${item.ticker}')" style="font-size:9px;color:var(--apex-blue);background:none;border:none;cursor:pointer;font-family:'Manrope',sans-serif;font-weight:700;padding:0;text-decoration:underline">Ver análise</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAtvVisaoGeral(){
+  const el=document.getElementById('atv-visao-content');
+  if(!el) return;
+
+  const items=buildAtividadeItems().slice(0,8); // últimas 8 atividades
+
+  if(items.length===0){
+    el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Nenhuma atividade registrada ainda.</div>';
+    return;
+  }
+
+  el.innerHTML=items.map(item=>{
+    const isAnalise=item.tipo==='analise';
+    const isReprov=item.tipo==='pre-reprov';
+    const isMonit=item.tipo==='pre-monit';
+
+    const iconMap={'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺'};
+    const tipoLabel={'analise':'Análise finalizada','pre-reprov':'Pré-análise · Reprovado','pre-monit':'Pré-análise · Monitorar','revisao':'Análise revisada'};
+    const tipoColor={'analise':'var(--apex-blue)','pre-reprov':'var(--danger)','pre-monit':'var(--warning)','revisao':'#a06800'};
+    const tipoBg={'analise':'var(--apex-blue-lt)','pre-reprov':'var(--danger-bg)','pre-monit':'var(--warning-bg)','revisao':'#fffff0'};
+
+    let scorePill='';
+    if(isAnalise&&item.scoreTotal!=null){
+      const col=item.scoreTotal>=7?'var(--success)':item.scoreTotal>=5?'var(--warning)':'var(--danger)';
+      const bg=item.scoreTotal>=7?'var(--success-bg)':item.scoreTotal>=5?'var(--warning-bg)':'var(--danger-bg)';
+      scorePill=`<span style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700;background:${bg};color:${col}">Score ${item.scoreTotal.toFixed(1)}</span>`;
+    }
+
+    return`<div class="mov-item" style="padding:8px 0;align-items:flex-start;gap:10px;border-bottom:1px solid #f0f4fa">
+      <div style="width:28px;height:28px;border-radius:50%;background:${tipoBg[item.tipo]||'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px;border:1px solid ${tipoColor[item.tipo]||'#ccc'}">
+        ${iconMap[item.tipo]||'◉'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+          <strong style="font-size:12px;color:var(--apex-navy)">${item.ticker}</strong>
+          ${scorePill}
+          <span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:4px;background:${tipoBg[item.tipo]||'#f0f0f0'};color:${tipoColor[item.tipo]||'#444'}">${tipoLabel[item.tipo]||item.tipo}</span>
+        </div>
+        <div style="font-size:10px;color:#6b7a9a">
+          ${item.seg?`<span style="margin-right:6px">${item.seg}</span>`:''}
+          👤 ${item.analista} · 📅 ${item.data}
+        </div>
+      </div>
+      ${isAnalise?`<button onclick="exportarPDF('${item.ticker}')" style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">⬇ PDF</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL — KPI cards clicáveis da Visão Geral
+// ══════════════════════════════════════════════════════════════
+const SCORE_APROVADO  = 6.0;
+const SCORE_EM_AVAL   = 4.0;
+
+function getKpiData(){
+  const analisados  = Object.values(analyses).filter(a=>a.finalizado);
+  const aprovados   = analisados.filter(a=>a.scoreTotal>=SCORE_APROVADO);
+  const emAval      = analisados.filter(a=>a.scoreTotal>=SCORE_EM_AVAL&&a.scoreTotal<SCORE_APROVADO);
+  const reprovados  = analisados.filter(a=>a.scoreTotal<SCORE_EM_AVAL);
+  const tickersAnalisados = new Set(analisados.map(a=>a.ticker));
+  // Elegíveis: pegar da tabela de fundos (fund-body)
+  const elegiveis=[];
+  document.querySelectorAll('#fund-body tr').forEach(r=>{
+    const t=r.querySelector('strong')?.textContent?.trim();
+    if(t) elegiveis.push(t);
+  });
+  const pendentes = elegiveis.filter(t=>!tickersAnalisados.has(t));
+  return {analisados,aprovados,emAval,reprovados,pendentes,elegiveis};
+}
+
+function updateKpiRow(){
+  const d=getKpiData();
+  const set=function(id,val){const el=document.getElementById(id);if(el)el.textContent=val;};
+  set('kpi-n-elegiveis', d.elegiveis.length||127);
+  set('kpi-n-analisados',d.analisados.length);
+  set('kpi-n-aprovados', d.aprovados.length);
+  set('kpi-n-em-aval',   d.emAval.length);
+  set('kpi-n-reprovados',d.reprovados.length);
+  set('kpi-n-pendentes', d.pendentes.length);
+  set('kpi-n-pre',       PRE_ANALISE?.length||0);
+}
+
+// ── Modal open/close ──────────────────────────────────────────
+let _modalItems=[];
+
+function openModal(tipo){
+  const overlay=document.getElementById('modal-overlay');
+  const titleEl=document.getElementById('modal-title');
+  const subtitleEl=document.getElementById('modal-subtitle');
+  const footerEl=document.getElementById('modal-footer');
+  const searchEl=document.getElementById('modal-search-input');
+  if(!overlay)return;
+
+  const d=getKpiData();
+  let items=[], title='', subtitle='', renderFn=null;
+
+  const segChipMini=(seg)=>{
+    const MAP={
+      'Recebível':'var(--seg-rec-bg),var(--seg-rec-c)','Galpão Logístico':'var(--seg-gal-bg),var(--seg-gal-c)',
+      'Shopping Center':'var(--seg-sho-bg),var(--seg-sho-c)','Laje Corporativa':'var(--seg-laj-bg),var(--seg-laj-c)',
+      'Fundo de Fundos':'var(--seg-fof-bg),var(--seg-fof-c)','FI-Infra':'var(--seg-fii-bg),var(--seg-fii-c)',
+      'FIAgro - FII':'var(--seg-fia-bg),var(--seg-fia-c)','Hedge Fund':'var(--seg-hed-bg),var(--seg-hed-c)',
+      'Renda Urbana':'var(--seg-ren-bg),var(--seg-ren-c)','Híbrido':'var(--seg-hib-bg),var(--seg-hib-c)',
+    };
+    const [bg,c]=(MAP[seg]||'var(--seg-out-bg),var(--seg-out-c)').split(',');
+    return`<span style="background:${bg};color:${c};padding:1px 7px;border-radius:8px;font-size:9px;font-weight:600;white-space:nowrap">${seg||'—'}</span>`;
+  };
+
+  if(tipo==='elegiveis'){
+    title='Fundos Elegíveis'; subtitle='Todos os fundos que passam nos 4 critérios BTG Guide';
+    // Montar de ELIGIBLE_FUNDS
+    items=ELIGIBLE_FUNDS.map(f=>({ticker:f.ticker,nome:f.nome,seg:f.seg,extra:'',score:null}));
+    renderFn=(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
+      <span class="modal-item-ticker">${item.ticker}</span>
+      <span class="modal-item-nome">${item.nome}</span>
+      ${segChipMini(item.seg)}
+    </div>`;
+  }
+  else if(tipo==='analisados'){
+    title='Fundos Analisados'; subtitle='Todos os fundos com análise finalizada';
+    items=d.analisados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
+    renderFn=itemScoreFn(segChipMini,'var(--apex-blue)','#EBF4FB');
+  }
+  else if(tipo==='aprovados'){
+    title='Fundos Aprovados'; subtitle='Score ≥ 6,0 — Recomendados para investimento';
+    items=d.aprovados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
+    renderFn=itemScoreFn(segChipMini,'var(--success)','var(--success-bg)');
+  }
+  else if(tipo==='em-avaliacao'){
+    title='Fundos Em Avaliação'; subtitle='Score entre 4,0 e 5,9 — Requerem análise adicional';
+    items=d.emAval.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
+    renderFn=itemScoreFn(segChipMini,'var(--warning)','var(--warning-bg)');
+  }
+  else if(tipo==='reprovados'){
+    title='Fundos Reprovados'; subtitle='Score < 4,0 — Não recomendados no momento';
+    items=d.reprovados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
+    renderFn=itemScoreFn(segChipMini,'var(--danger)','var(--danger-bg)');
+  }
+  else if(tipo==='pendentes'){
+    title='Análise Pendente'; subtitle='Fundos elegíveis que ainda não foram analisados';
+    const tickersPendentes=new Set(d.pendentes);
+    items=ELIGIBLE_FUNDS.filter(f=>tickersPendentes.has(f.ticker)).map(f=>({ticker:f.ticker,nome:f.nome,seg:f.seg,score:null}));
+    renderFn=(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
+      <span class="modal-item-ticker">${item.ticker}</span>
+      <span class="modal-item-nome">${item.nome}</span>
+      ${segChipMini(item.seg)}
+      <span style="font-size:9px;font-weight:700;padding:2px 8px;background:#fef9ec;color:#a06800;border-radius:4px;white-space:nowrap">🟡 Iniciar análise</span>
+    </div>`;
+  }
+  else if(tipo==='pre-analise'){
+    title='Pré-Análises Registradas'; subtitle='Fundos com histórico de problemas ou em monitoramento';
+    items=PRE_ANALISE.map(p=>({ticker:p.ticker,nome:p.nome,seg:p.segmento,score:null,obs:p.obs,status:p.status}));
+    renderFn=(item)=>{
+      const isReprov=item.status==='Reprovado';
+      return`<div class="modal-item">
+        <span class="modal-item-ticker">${item.ticker}</span>
+        <span class="modal-item-nome">${item.nome}</span>
+        ${segChipMini(item.seg)}
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;background:${isReprov?'#fdecea':'#fef9ec'};color:${isReprov?'var(--danger)':'var(--warning)'};border-radius:4px;white-space:nowrap">${isReprov?'🔴':'🟡'} ${item.status}</span>
+      </div>`;
+    };
+  }
+
+  _modalItems=items;
+  titleEl.textContent=title;
+  subtitleEl.textContent=subtitle;
+  footerEl.textContent=items.length+' fundos';
+  if(searchEl)searchEl.value='';
+  renderModalList(items,renderFn||defaultRenderFn);
+  overlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  // Guardar renderFn para filtro
+  overlay._renderFn=renderFn||defaultRenderFn;
+}
+
+function itemScoreFn(segChipMini,col,bg){
+  return(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
+    <span class="modal-item-ticker">${item.ticker}</span>
+    <span class="modal-item-nome">${item.nome}</span>
+    ${segChipMini(item.seg)}
+    <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:800;background:${bg};color:${col};white-space:nowrap">${item.score?.toFixed(1)||'—'}/10</span>
+    <span style="font-size:10px;color:#6b7a9a;white-space:nowrap">${item.analista||''}</span>
+    ${item.score!=null?`<button onclick="event.stopPropagation();exportarPDF('${item.ticker}')" style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">⬇</button>`:''}
+  </div>`;
+}
+
+function defaultRenderFn(item){
+  return`<div class="modal-item"><span class="modal-item-ticker">${item.ticker}</span><span class="modal-item-nome">${item.nome||''}</span></div>`;
+}
+
+function renderModalList(items,renderFn){
+  const list=document.getElementById('modal-list');
+  const footer=document.getElementById('modal-footer');
+  if(!list)return;
+  if(items.length===0){
+    list.innerHTML='<div class="modal-empty"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-weight:700;color:var(--apex-navy)">Nenhum fundo encontrado</div></div>';
+  }else{
+    list.innerHTML=items.map(renderFn).join('');
+  }
+  if(footer)footer.textContent=items.length+' fundos';
+}
+
+function filterModal(){
+  const q=document.getElementById('modal-search-input')?.value?.toLowerCase()||'';
+  const overlay=document.getElementById('modal-overlay');
+  const filtered=q?_modalItems.filter(i=>(i.ticker+' '+(i.nome||'')).toLowerCase().includes(q)):_modalItems;
+  renderModalList(filtered,overlay._renderFn||defaultRenderFn);
+}
+
+function closeModal(){
+  const overlay=document.getElementById('modal-overlay');
+  if(overlay)overlay.classList.remove('open');
+  document.body.style.overflow='';
+}
+
+// Fechar com ESC
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
@@ -5209,7 +5791,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   carregarESemanaAtual();       // carregar dados da semana mais recente
   // Carregar lista de semanas se estiver na aba admin
   setTimeout(carregarListaSemanas, 500);
-  injectPreAnaliseBadges();      // badges na tabela de fundos
+  injectPreAnaliseBadges();
+  setTimeout(renderAtvVisaoGeral, 300);
+  setTimeout(updateKpiRow, 400);
 });
 </script>
 </body>
