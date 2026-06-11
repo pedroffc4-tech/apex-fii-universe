@@ -227,6 +227,49 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .com-aguardando{font-size:10px;color:var(--warning);font-weight:600;display:flex;align-items:center;gap:5px;margin-top:6px}
 .btn-responder{font-size:10px;color:var(--apex-blue);background:none;border:none;cursor:pointer;font-weight:700;padding:0;font-family:'Manrope',sans-serif;text-decoration:underline;margin-left:auto}
 .form-resposta{background:#f4f8fd;border-radius:8px;padding:12px;margin-top:8px;border:1px solid var(--apex-mist)}
+/* ── FÓRUM DE DISCUSSÃO ── */
+.forum-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,2,32,.6);z-index:1001;backdrop-filter:blur(4px);align-items:flex-start;justify-content:flex-end;padding:20px}
+.forum-modal-overlay.open{display:flex}
+.forum-panel{background:#fff;border-radius:14px;width:100%;max-width:520px;height:calc(100vh - 40px);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.2);overflow:hidden}
+.forum-header{background:var(--apex-dark);padding:16px 20px;flex-shrink:0}
+.forum-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.forum-title{font-size:13px;font-weight:800;color:#fff}
+.forum-ticker{font-size:18px;font-weight:800;color:var(--apex-blue)}
+.forum-subtitle{font-size:10px;color:#a0c4f0}
+.forum-close{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.forum-close:hover{background:rgba(255,255,255,.25)}
+.forum-tabs{display:flex;background:var(--apex-navy);padding:0 20px}
+.forum-tab{padding:10px 16px;font-size:10px;font-weight:700;color:#a0c4f0;cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.4px;text-transform:uppercase}
+.forum-tab.active{color:#fff;border-bottom-color:var(--apex-blue)}
+.forum-body{flex:1;overflow-y:auto;padding:0}
+.forum-tab-content{display:none;padding:16px}.forum-tab-content.active{display:block}
+.forum-post{border:1px solid var(--apex-mist);border-radius:10px;padding:14px;margin-bottom:10px;background:#fff}
+.forum-post.comentario{border-left:3px solid var(--apex-blue)}
+.forum-post.questionamento{border-left:3px solid var(--warning)}
+.forum-post.aprovacao{border-left:3px solid var(--success)}
+.forum-post.discordancia{border-left:3px solid var(--danger)}
+.forum-post-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.forum-post-autor{font-size:12px;font-weight:700;color:var(--apex-navy)}
+.forum-post-data{font-size:10px;color:#6b7a9a}
+.forum-tipo-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.ftb-comentario{background:var(--apex-blue-lt);color:var(--apex-blue)}
+.ftb-questionamento{background:var(--warning-bg);color:var(--warning)}
+.ftb-aprovacao{background:var(--success-bg);color:var(--success)}
+.ftb-discordancia{background:var(--danger-bg);color:var(--danger)}
+.forum-post-texto{font-size:12px;color:#002060;line-height:1.6}
+.forum-resposta{background:#f4f8fd;border-radius:6px;padding:10px 12px;margin-top:10px;border-left:2px solid var(--success)}
+.forum-resposta-label{font-size:9px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.forum-resposta-texto{font-size:11px;color:#002060;line-height:1.5}
+.forum-pendente{font-size:10px;color:var(--warning);font-weight:600;display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.btn-forum-responder{font-size:10px;color:var(--apex-blue);background:none;border:none;cursor:pointer;font-weight:700;font-family:'Manrope',sans-serif;text-decoration:underline}
+.forum-form-resposta{background:#f4f8fd;border-radius:8px;padding:12px;margin-top:8px;border:1px solid var(--apex-mist)}
+.forum-novo{padding:16px;border-top:1px solid var(--apex-mist);background:#fafcff;flex-shrink:0}
+.forum-novo-title{font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:10px}
+.forum-novo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.forum-empty{text-align:center;padding:40px 20px;color:#6b7a9a}
+.btn-forum{padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;position:relative}
+.btn-forum:hover{background:var(--apex-blue)}
+.forum-badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
 .badge-reprov{display:inline-flex;align-items:center;gap:3px;background:#fdecea;color:#c0392b;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #f5c6c6;white-space:nowrap;cursor:help}
 .badge-monit{display:inline-flex;align-items:center;gap:3px;background:#fef9ec;color:#a06800;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;white-space:nowrap;cursor:help}
@@ -3915,7 +3958,6 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
         <select class="form-select" id="sel-analista">
           <option value="">— Selecione —</option>
           <option>João V.</option><option>Lucas S.</option><option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
-          <option>Rafael P.</option>
         </select></div>
     </div>
     <div id="pa-alert" style="display:none;margin-top:10px"></div>
@@ -3976,61 +4018,12 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     </div>
     <button class="btn-finalizar" onclick="finalizarAnalise()">✓ Finalizar Análise</button>
     <button class="btn-secondary" onclick="exportarPDF()">⬇ Exportar PDF</button>
+    <button class="btn-secondary" id="btn-forum-analise" onclick="if(currentTicker)openForum(currentTicker);else alert('Selecione e finalize um fundo primeiro')" style="display:none">
+      💬 Fórum de Discussão
+    </button>
   </div>
 </div>
 
-<!-- SEÇÃO DE COMENTÁRIOS -->
-<div id="card-comentarios" style="display:none;margin-top:14px">
-  <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>💬 Comentários e Questionamentos</span>
-      <button onclick="abrirNovoComentario()" id="btn-novo-comentario"
-        style="padding:5px 14px;background:var(--apex-blue);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
-        + Novo comentário
-      </button>
-    </div>
-
-    <!-- Formulário novo comentário (oculto por padrão) -->
-    <div id="form-comentario" style="display:none;background:var(--apex-blue-lt);border-radius:8px;padding:14px;margin-bottom:14px;border:1px solid var(--apex-mist)">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div class="form-group">
-          <label class="form-label">Analista</label>
-          <select class="form-select" id="com-analista">
-            <option value="">— Selecione —</option>
-            <option>João V.</option><option>Lucas S.</option>
-            <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-select" id="com-tipo">
-            <option value="comentario">💬 Comentário</option>
-            <option value="questionamento">❓ Questionamento</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Texto</label>
-        <textarea class="form-textarea" id="com-texto" placeholder="Escreva seu comentário ou questionamento sobre esta análise..." style="min-height:80px"></textarea>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button onclick="fecharNovoComentario()"
-          style="padding:7px 16px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
-          Cancelar
-        </button>
-        <button onclick="salvarComentario()"
-          style="padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
-          Publicar
-        </button>
-      </div>
-    </div>
-
-    <!-- Lista de comentários -->
-    <div id="lista-comentarios">
-      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando comentários...</div>
-    </div>
-  </div>
-</div>
 
 <!-- ══ PRÉ-ANÁLISE ══ -->
 <div class="tab" id="tab-pre">
@@ -4155,6 +4148,66 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   </div>
 </div>
 
+<!-- ══ FÓRUM DE DISCUSSÃO ══ -->
+<div class="forum-modal-overlay" id="forum-overlay" onclick="if(event.target===this)closeForum()">
+  <div class="forum-panel">
+    <div class="forum-header">
+      <div class="forum-header-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="forum-ticker" id="forum-ticker">—</span>
+            <span class="forum-title">💬 Fórum de Discussão</span>
+          </div>
+          <div class="forum-subtitle" id="forum-subtitle">—</div>
+        </div>
+        <button class="forum-close" onclick="closeForum()">✕</button>
+      </div>
+    </div>
+    <div class="forum-tabs">
+      <div class="forum-tab active" onclick="switchForumTab('posts',this)">Discussões</div>
+      <div class="forum-tab" onclick="switchForumTab('novo',this)">+ Nova postagem</div>
+    </div>
+    <div class="forum-body">
+      <!-- Tab: Discussões -->
+      <div class="forum-tab-content active" id="forum-tab-posts">
+        <div id="forum-posts-list">
+          <div class="forum-empty"><div style="font-size:28px;margin-bottom:8px">💬</div>Nenhuma discussão ainda.</div>
+        </div>
+      </div>
+      <!-- Tab: Nova postagem -->
+      <div class="forum-tab-content" id="forum-tab-novo">
+        <div style="margin-bottom:12px">
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Analista</label>
+            <select class="form-select" id="forum-autor">
+              <option value="">— Selecione —</option>
+              <option>João V.</option><option>Lucas S.</option>
+              <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Tipo de postagem</label>
+            <select class="form-select" id="forum-tipo">
+              <option value="comentario">💬 Comentário — observação livre</option>
+              <option value="questionamento">❓ Questionamento — exige resposta do analista</option>
+              <option value="aprovacao">✅ Aprovação — concorda com a análise</option>
+              <option value="discordancia">⚠ Discordância — discorda de nota ou justificativa</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Mensagem</label>
+            <textarea class="form-textarea" id="forum-texto" placeholder="Escreva seu comentário, questionamento ou opinião sobre esta análise..." style="min-height:100px"></textarea>
+          </div>
+          <button onclick="publicarForumPost()"
+            style="width:100%;padding:11px;background:var(--apex-blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+            Publicar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="footer">
   <strong>APEX Partners</strong> · FII Universe · Uso Interno · 02/06/2026 · Semana 16 de 21<br>
   Fonte: BTG Pactual FII Guide · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15x | MktCap &gt; R$200M
@@ -4201,6 +4254,7 @@ async function supaLoad(){
     if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
     renderAtvVisaoGeral();
     updateKpiRow();
+    carregarForumGlobal();
   }catch(e){
     console.warn('Supabase load falhou:',e.message);
     if(ss)ss.innerHTML='⚠️ Offline — '+e.message.substring(0,50);
@@ -4319,12 +4373,11 @@ function injectAnalyseTags(){
 function makeTagHTML(ticker){
   const a=analyses[ticker];
   if(a?.finalizado)return`
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
       <span class="tag-done" onclick="openAnalise('${ticker}')" title="Abrir análise">🟢 ${a.data} · ${a.analista}</span>
-      <button onclick="exportarPDF('${ticker}')" title="Baixar PDF da análise"
-        style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">
-        ⬇ PDF
-      </button>
+      <button onclick="exportarPDF('${ticker}')" title="Baixar PDF"
+        style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⬇ PDF</button>
+      <button class="btn-forum" data-forum-ticker="${ticker}" onclick="openForum('${ticker}')" title="Fórum de discussão" style="padding:2px 8px">💬</button>
     </div>`;
   return`<span class="tag-pending" onclick="openAnalise('${ticker}')" title="Iniciar análise">🟡 Análise Pendente</span>`;
 }
@@ -4390,7 +4443,7 @@ function onFundoSelect(){
   const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
   currentTicker=ticker;
   if(!ticker){
-    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner','card-comentarios'].forEach(id=>{
+    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.style.display='none';
     });
     return;
@@ -4425,9 +4478,6 @@ function onFundoSelect(){
   const bp=document.getElementById('box-penultimo');if(bp){bp.classList.remove('loaded');bp.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF anterior';}
   pdfUltimo=null;pdfPenultimo=null;updateGerarBtn();
   // ── MOSTRAR BLOCOS IMEDIATAMENTE (sem precisar de IA) ──
-  // Mostrar/carregar comentários
-  const cardCom=document.getElementById('card-comentarios');
-  if(cardCom){cardCom.style.display='block';if(ticker)carregarComentarios(ticker);}
   ['card-quali','card-quanti','card-summary'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.display='block';
   });
@@ -4753,6 +4803,8 @@ async function finalizarAnalise(){
   updateKpiRow();
 }
 function reloadAnalise(ticker){
+  const btnForum=document.getElementById('btn-forum-analise');
+  if(btnForum)btnForum.style.display='block';
   const a=analyses[ticker];if(!a)return;
   document.getElementById('sel-tipo').value=a.tipo||'papel-ipca';
   document.getElementById('sel-analista').value=a.analista;
@@ -4779,10 +4831,11 @@ function renderScoreRanking(){
       <td style="text-align:center">${a.scoreQuanti?.toFixed(1)||'—'}</td>
       <td style="font-size:11px">${a.analista}</td>
       <td style="font-size:11px;color:#6b7a9a">${a.data}</td>
-      <td><button onclick="exportarPDF('${a.ticker}')"
-        style="padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">
-        ⬇ PDF
-      </button></td>
+      <td><div style="display:flex;gap:5px;align-items:center">
+        <button onclick="exportarPDF('${a.ticker}')"
+          style="padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⬇ PDF</button>
+        <button class="btn-forum" data-forum-ticker="${a.ticker}" onclick="openForum('${a.ticker}')">💬</button>
+      </div></td>
     </tr>`;
   }).join('');
   cont.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Ticker</th><th>Nome</th><th>Score</th><th>Quali</th><th>Quanti</th><th>Analista</th><th>Data</th><th>Download</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -5345,9 +5398,6 @@ function renderizarSemana(semana, fundos){
 
   // Atualizar header
   document.querySelector('.header-date').textContent=semana.semana_data;
-  document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-    if(i===4)t.textContent='✦ Análise';
-  });
 
   // Atualizar KPIs
   const kpis=document.querySelectorAll('.kpi-val');
@@ -5455,17 +5505,6 @@ function onTipoChange(){
 // ══════════════════════════════════════════════════════════════
 // ATIVIDADE — Feed de movimentações
 // ══════════════════════════════════════════════════════════════
-// Comentários globais em memória (carregados do Supabase)
-let _comentariosGlobais=[];
-async function carregarTodosComentarios(){
-  const db=getDB();if(!db)return;
-  try{
-    const {data}=await db.from('analysis_comments').select('*').order('created_at',{ascending:false}).limit(50);
-    _comentariosGlobais=data||[];
-    renderAtvVisaoGeral();
-    if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
-  }catch(e){console.warn('Erro ao carregar comentários:',e.message);}
-}
 
 function buildAtividadeItems(apenasEstaSemana=false){
   const items=[];
@@ -5497,15 +5536,14 @@ function buildAtividadeItems(apenasEstaSemana=false){
       obs:p.obs||'',det:p.det||'',status:p.status,ts});
   });
 
-  // 3. Comentários e questionamentos
-  _comentariosGlobais.forEach(c=>{
-    const ts=new Date(c.created_at||0).getTime();
+  // 3. Comentários e postagens do fórum (do cache _forumPostsGlobal)
+  (_forumPostsGlobal||[]).forEach(p=>{
+    const ts=new Date(p.created_at||0).getTime();
     if(!dentroDaSemana(ts))return;
-    items.push({tipo:c.tipo==='questionamento'?'questionamento':'comentario',
-      ticker:c.ticker,nome:analyses[c.ticker]?.nome||c.ticker,
-      seg:analyses[c.ticker]?.seg||'',
-      analista:c.autor,data:c.data_comentario||'',
-      texto:c.texto,temResposta:!!c.resposta,ts});
+    items.push({tipo:'forum-'+p.tipo,ticker:p.ticker,
+      nome:analyses[p.ticker]?.nome||p.ticker,seg:analyses[p.ticker]?.seg||'',
+      analista:p.autor,data:p.data_comentario||'',
+      texto:p.texto,temResposta:!!p.resposta,ts});
   });
 
   items.sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -5615,7 +5653,8 @@ function renderAtvItem(item){
   const tipoLabel={
     'analise':'✦ Análise finalizada','pre-reprov':'⚠ Pré-análise · Reprovado',
     'pre-monit':'⚠ Pré-análise · Monitorar','revisao':'↺ Análise revisada',
-    'comentario':'💬 Comentário','questionamento':'❓ Questionamento'
+    'forum-comentario':'💬 Fórum · Comentário','forum-questionamento':'❓ Fórum · Questionamento',
+    'forum-aprovacao':'✅ Fórum · Aprovação','forum-discordancia':'⚠ Fórum · Discordância'
   };
 
   // Score pill para análises
@@ -5637,10 +5676,10 @@ function renderAtvItem(item){
   if(isAnalise){
     descExtra=`<div class="atv-desc">Quali: <strong>${item.scoreQuali?.toFixed(1)||'—'}</strong> · Quanti: <strong>${item.scoreQuanti?.toFixed(1)||'—'}</strong></div>`;
   }
-  if(item.tipo==='comentario'||item.tipo==='questionamento'){
+  if(item.tipo?.startsWith('forum-')){
     descExtra=`<div class="atv-desc" style="font-style:italic">"${(item.texto||'').substring(0,120)}${(item.texto||'').length>120?'…':''}"</div>
-    ${item.tipo==='questionamento'&&!item.temResposta?'<div style="font-size:10px;color:var(--warning);font-weight:600;margin-top:3px">⏳ Aguardando resposta</div>':''}
-    ${item.tipo==='questionamento'&&item.temResposta?'<div style="font-size:10px;color:var(--success);font-weight:600;margin-top:3px">✓ Respondido</div>':''}`;
+    ${item.tipo==='forum-questionamento'&&!item.temResposta?'<div style="font-size:10px;color:var(--warning);font-weight:600;margin-top:3px">⏳ Aguardando resposta</div>':''}
+    ${item.tipo==='forum-questionamento'&&item.temResposta?'<div style="font-size:10px;color:var(--success);font-weight:600;margin-top:3px">✓ Respondido</div>':''}`;
   }
 
   // Botão PDF se for análise finalizada
@@ -5684,7 +5723,7 @@ function renderAtvVisaoGeral(){
     const isReprov=item.tipo==='pre-reprov';
     const isMonit=item.tipo==='pre-monit';
 
-    const iconMap={'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺','comentario':'💬','questionamento':'❓'};
+    const iconMap={'analise':'✦','pre-reprov':'🔴','pre-monit':'🟡','revisao':'↺','forum-comentario':'💬','forum-questionamento':'❓','forum-aprovacao':'✅','forum-discordancia':'⚠'};
     const tipoLabel={'analise':'Análise finalizada','pre-reprov':'Pré-análise · Reprovado','pre-monit':'Pré-análise · Monitorar','revisao':'Análise revisada'};
     const tipoColor={'analise':'var(--apex-blue)','pre-reprov':'var(--danger)','pre-monit':'var(--warning)','revisao':'#a06800'};
     const tipoBg={'analise':'var(--apex-blue-lt)','pre-reprov':'var(--danger-bg)','pre-monit':'var(--warning-bg)','revisao':'#fffff0'};
@@ -5889,104 +5928,141 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 // ══════════════════════════════════════════════════════════════
 // COMENTÁRIOS — Sistema de comentários e questionamentos
 // ══════════════════════════════════════════════════════════════
-function abrirNovoComentario(){
-  document.getElementById('form-comentario').style.display='block';
-  document.getElementById('btn-novo-comentario').style.display='none';
-}
-function fecharNovoComentario(){
-  document.getElementById('form-comentario').style.display='none';
-  document.getElementById('btn-novo-comentario').style.display='';
-  document.getElementById('com-texto').value='';
-  document.getElementById('com-analista').value='';
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ══════════════════════════════════════════════════════════════
+// FÓRUM DE DISCUSSÃO — Por fundo, com visão consolidada
+// ══════════════════════════════════════════════════════════════
+let _forumTicker = '';
+let _forumPosts  = [];
+let _pendingByTicker = {}; // cache de pendentes por ticker
+
+const FORUM_TIPO_MAP = {
+  'comentario':    {label:'💬 Comentário',   css:'ftb-comentario',   border:'comentario'},
+  'questionamento':{label:'❓ Questionamento',css:'ftb-questionamento',border:'questionamento'},
+  'aprovacao':     {label:'✅ Aprovação',     css:'ftb-aprovacao',    border:'aprovacao'},
+  'discordancia':  {label:'⚠ Discordância',  css:'ftb-discordancia', border:'discordancia'},
+};
+
+async function openForum(ticker){
+  _forumTicker = ticker;
+  const a = analyses[ticker];
+  const overlay = document.getElementById('forum-overlay');
+  if(!overlay) return;
+  document.getElementById('forum-ticker').textContent = ticker;
+  document.getElementById('forum-subtitle').textContent =
+    (a?.nome||'') + (a?.analista ? ' · Analista: '+a.analista : '');
+  // Reset tabs
+  switchForumTab('posts', document.querySelector('.forum-tab'));
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  await loadForumPosts(ticker);
 }
 
-async function salvarComentario(){
-  const ticker=currentTicker;
-  const autor=document.getElementById('com-analista').value;
-  const tipo=document.getElementById('com-tipo').value;
-  const texto=document.getElementById('com-texto').value.trim();
-  if(!autor){alert('Selecione o analista');return;}
-  if(!texto){alert('Escreva o comentário antes de publicar');return;}
-  const db=getDB();
-  if(!db){alert('Supabase não disponível');return;}
-  const hoje=new Date();
-  const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
-  const {error}=await db.from('analysis_comments').insert({
-    ticker,autor,tipo,texto,data_comentario:data,
-    created_at:new Date().toISOString()
-  });
-  if(error){alert('Erro ao salvar: '+error.message);return;}
-  fecharNovoComentario();
-  await carregarComentarios(ticker);
+function closeForum(){
+  const overlay = document.getElementById('forum-overlay');
+  if(overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function switchForumTab(tab, el){
+  document.querySelectorAll('.forum-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.forum-tab-content').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('forum-tab-'+tab)?.classList.add('active');
+}
+
+async function loadForumPosts(ticker){
+  const list = document.getElementById('forum-posts-list');
+  if(!list) return;
+  list.innerHTML = '<div class="forum-empty"><div class="spinner" style="border-color:var(--apex-mist);border-top-color:var(--apex-blue);width:24px;height:24px;margin:0 auto 8px"></div>Carregando...</div>';
+  const db = getDB();
+  if(!db){ list.innerHTML='<div class="forum-empty">Supabase não disponível</div>'; return; }
+  const {data, error} = await db.from('analysis_comments')
+    .select('*').eq('ticker', ticker).order('created_at', {ascending:true});
+  if(error){ list.innerHTML=`<div class="forum-empty" style="color:var(--danger)">Erro: ${error.message}</div>`; return; }
+  _forumPosts = data || [];
+  renderForumPosts(_forumPosts, list);
+  // Atualizar badge
+  const pending = _forumPosts.filter(p=>p.tipo==='questionamento'&&!p.resposta).length;
+  _pendingByTicker[ticker] = pending;
+  updateForumBadges();
+  // Atualizar aba consolidada se estiver aberta
+  if(document.getElementById('tab-atividade')?.classList.contains('active')) renderAtividade();
   renderAtvVisaoGeral();
 }
 
-async function carregarComentarios(ticker){
-  const lista=document.getElementById('lista-comentarios');
-  if(!lista)return;
-  const db=getDB();
-  if(!db){lista.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Supabase não disponível</div>';return;}
-  const {data:coms,error}=await db.from('analysis_comments').select('*')
-    .eq('ticker',ticker).order('created_at',{ascending:true});
-  if(error){lista.innerHTML='<div style="color:var(--danger);font-size:12px">Erro: '+error.message+'</div>';return;}
-  if(!coms||coms.length===0){
-    lista.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Nenhum comentário ainda. Seja o primeiro!</div>';
+function renderForumPosts(posts, container){
+  if(!posts.length){
+    container.innerHTML='<div class="forum-empty"><div style="font-size:28px;margin-bottom:8px">💬</div><div style="font-weight:700;color:var(--apex-navy);margin-bottom:4px">Nenhuma discussão ainda</div><p style="font-size:11px">Clique em "+ Nova postagem" para iniciar uma discussão.</p></div>';
     return;
   }
-  const analiseAnalista=analyses[ticker]?.analista||'';
-  lista.innerHTML=coms.map(c=>renderComentarioItem(c,analiseAnalista)).join('');
-}
-
-function renderComentarioItem(c,analiseAnalista){
-  const isQ=c.tipo==='questionamento';
-  const temResposta=!!c.resposta;
-  const respostaHtml=temResposta?`
-    <div class="com-resposta">
-      <div class="com-resposta-label">↳ Resposta de ${c.respondido_por||'—'} · ${c.respondido_em||''}</div>
-      <div class="com-resposta-texto">${c.resposta}</div>
-    </div>`:
-    (isQ?`<div class="com-aguardando">⏳ Aguardando resposta do analista responsável
-      <button class="btn-responder" onclick="abrirFormResposta('${c.id}','${analiseAnalista}')">Responder</button>
-    </div>
-    <div id="form-resp-${c.id}" class="form-resposta" style="display:none">
-      <div class="form-group" style="margin-bottom:8px">
-        <label class="form-label">Respondendo como</label>
-        <select class="form-select" id="resp-autor-${c.id}" style="margin-bottom:6px">
-          <option value="">— Selecione —</option>
-          <option>João V.</option><option>Lucas S.</option>
-          <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
-        </select>
+  const a = analyses[_forumTicker];
+  const responsavelAnalise = a?.analista || '';
+  container.innerHTML = posts.map(p => {
+    const tipo = FORUM_TIPO_MAP[p.tipo] || FORUM_TIPO_MAP['comentario'];
+    const temResp = !!p.resposta;
+    const respostaHtml = temResp
+      ? `<div class="forum-resposta">
+           <div class="forum-resposta-label">↳ Resposta de ${p.respondido_por||'—'} · ${p.respondido_em||''}</div>
+           <div class="forum-resposta-texto">${p.resposta}</div>
+         </div>`
+      : p.tipo==='questionamento'
+        ? `<div class="forum-pendente">
+             <span>⏳ Aguardando resposta do analista responsável</span>
+             <button class="btn-forum-responder" onclick="abrirResposta('${p.id}','${responsavelAnalise}')">Responder</button>
+           </div>
+           <div id="resp-form-${p.id}" class="forum-form-resposta" style="display:none">
+             <div class="form-group" style="margin-bottom:8px">
+               <label class="form-label">Respondendo como</label>
+               <select class="form-select" id="resp-autor-${p.id}">
+                 <option value="">— Selecione —</option>
+                 <option>João V.</option><option>Lucas S.</option>
+                 <option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
+               </select>
+             </div>
+             <textarea class="form-textarea" id="resp-texto-${p.id}" placeholder="Sua resposta..." style="min-height:60px;margin-bottom:8px"></textarea>
+             <div style="display:flex;gap:6px;justify-content:flex-end">
+               <button onclick="document.getElementById('resp-form-${p.id}').style.display='none'"
+                 style="padding:5px 12px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Cancelar</button>
+               <button onclick="enviarResposta('${p.id}')"
+                 style="padding:5px 12px;background:var(--success);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Publicar resposta</button>
+             </div>
+           </div>` : '';
+    return `<div class="forum-post ${tipo.border}">
+      <div class="forum-post-header">
+        <span class="forum-post-autor">${p.autor}</span>
+        <span class="forum-post-data">${p.data_comentario||''}</span>
+        <span class="forum-tipo-badge ${tipo.css}">${tipo.label}</span>
       </div>
-      <textarea class="form-textarea" id="resp-texto-${c.id}" placeholder="Escreva sua resposta..." style="min-height:60px;margin-bottom:8px"></textarea>
-      <div style="display:flex;gap:6px;justify-content:flex-end">
-        <button onclick="document.getElementById('form-resp-${c.id}').style.display='none'"
-          style="padding:5px 12px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Cancelar</button>
-        <button onclick="publicarResposta('${c.id}','${c.ticker}')"
-          style="padding:5px 12px;background:var(--success);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Publicar resposta</button>
-      </div>
-    </div>`:'');
-  return`<div class="com-item ${c.tipo||'comentario'}">
-    <div class="com-header">
-      <span class="com-autor">${c.autor}</span>
-      <span class="com-data">${c.data_comentario||''}</span>
-      <span class="com-tipo-badge ${isQ?'com-tipo-q':'com-tipo-c'}">${isQ?'❓ Questionamento':'💬 Comentário'}</span>
-    </div>
-    <div class="com-texto">${c.texto}</div>
-    ${respostaHtml}
-  </div>`;
+      <div class="forum-post-texto">${p.texto}</div>
+      ${respostaHtml}
+    </div>`;
+  }).join('');
 }
 
-function abrirFormResposta(id,analiseAnalista){
-  const el=document.getElementById('form-resp-'+id);
-  if(el){el.style.display='block';
-    const sel=document.getElementById('resp-autor-'+id);
-    if(sel&&analiseAnalista)sel.value=analiseAnalista;
-  }
+function abrirResposta(id, analista){
+  const el = document.getElementById('resp-form-'+id);
+  if(!el) return;
+  el.style.display = el.style.display==='none'?'block':'none';
+  const sel = document.getElementById('resp-autor-'+id);
+  if(sel && analista) sel.value = analista;
 }
 
-async function publicarResposta(id,ticker){
-  const autor=document.getElementById('resp-autor-'+id)?.value;
-  const texto=document.getElementById('resp-texto-'+id)?.value?.trim();
+async function enviarResposta(id){
+  const autor = document.getElementById('resp-autor-'+id)?.value;
+  const texto = document.getElementById('resp-texto-'+id)?.value?.trim();
   if(!autor){alert('Selecione o analista que está respondendo');return;}
   if(!texto){alert('Escreva a resposta antes de publicar');return;}
   const db=getDB();if(!db)return;
@@ -5996,10 +6072,70 @@ async function publicarResposta(id,ticker){
     resposta:texto, respondido_por:autor, respondido_em:data
   }).eq('id',id);
   if(error){alert('Erro: '+error.message);return;}
-  await carregarComentarios(ticker);
-  renderAtvVisaoGeral();
+  await loadForumPosts(_forumTicker);
 }
 
+async function publicarForumPost(){
+  const autor  = document.getElementById('forum-autor')?.value;
+  const tipo   = document.getElementById('forum-tipo')?.value;
+  const texto  = document.getElementById('forum-texto')?.value?.trim();
+  if(!autor){alert('Selecione o analista');return;}
+  if(!texto){alert('Escreva a mensagem antes de publicar');return;}
+  const db=getDB();if(!db){alert('Supabase não disponível');return;}
+  const hoje=new Date();
+  const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const {error}=await db.from('analysis_comments').insert({
+    ticker:_forumTicker, autor, tipo, texto, data_comentario:data,
+    created_at:new Date().toISOString()
+  });
+  if(error){alert('Erro ao publicar: '+error.message);return;}
+  document.getElementById('forum-texto').value='';
+  document.getElementById('forum-autor').value='';
+  switchForumTab('posts', document.querySelectorAll('.forum-tab')[0]);
+  await loadForumPosts(_forumTicker);
+}
+
+// Atualizar badges em todos os botões de fórum
+function updateForumBadges(){
+  document.querySelectorAll('[data-forum-ticker]').forEach(btn=>{
+    const t=btn.dataset.forumTicker;
+    const n=_pendingByTicker[t]||0;
+    let badge=btn.querySelector('.forum-badge');
+    if(n>0){
+      if(!badge){badge=document.createElement('span');badge.className='forum-badge';btn.appendChild(badge);}
+      badge.textContent=n;
+    }else if(badge){badge.remove();}
+  });
+}
+
+// Carregar contagem de pendentes para todos os fundos analisados
+async function carregarPendentesForum(){
+  const db=getDB();if(!db)return;
+  try{
+    const tickers=Object.keys(analyses).filter(t=>analyses[t]?.finalizado);
+    if(!tickers.length)return;
+    const {data}=await db.from('analysis_comments')
+      .select('ticker').eq('tipo','questionamento').is('resposta',null);
+    if(data){
+      data.forEach(r=>{_pendingByTicker[r.ticker]=(_pendingByTicker[r.ticker]||0)+1;});
+      updateForumBadges();
+    }
+  }catch(e){console.warn('Forum pendentes:',e.message);}
+}
+
+// Fechar com ESC
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForum();}});
+
+let _forumPostsGlobal=[];
+async function carregarForumGlobal(){
+  const db=getDB();if(!db)return;
+  try{
+    const {data}=await db.from('analysis_comments').select('*').order('created_at',{ascending:false}).limit(100);
+    _forumPostsGlobal=data||[];
+    renderAtvVisaoGeral();
+    if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
+  }catch(e){console.warn('Forum global:',e.message);}
+}
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
@@ -6010,7 +6146,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   injectPreAnaliseBadges();
   setTimeout(renderAtvVisaoGeral, 300);
   setTimeout(updateKpiRow, 400);
-  setTimeout(carregarTodosComentarios, 600);
+  setTimeout(carregarPendentesForum, 800);
+  setTimeout(carregarForumGlobal, 1000);
 });
 </script>
 </body>
