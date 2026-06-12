@@ -307,13 +307,16 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .pa-row{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #f0f4fa}
 .pa-row:last-child{border:none}
 .pa-det{font-size:10px;color:#5a6e8a;line-height:1.5;margin-top:3px}
-.api-key-banner{background:var(--warning-bg);border:1.5px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.api-key-banner input{flex:1;min-width:260px;padding:8px 12px;border:1.5px solid var(--apex-mist);border-radius:7px;font-size:12px;font-family:'Manrope',sans-serif;outline:none}
-.api-key-banner input:focus{border-color:var(--apex-blue)}
-.btn-save-key{padding:8px 18px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
-.btn-save-key:hover{background:#005fa3}
-.api-key-ok{background:var(--success-bg);border-color:#a7f3d0}
 .footer strong{color:#fff}
+#toast-container{position:fixed;top:16px;right:16px;z-index:5000;display:flex;flex-direction:column;gap:10px;max-width:360px;pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,32,96,.18);border-left:4px solid var(--apex-blue);font-size:12px;color:var(--apex-navy);font-weight:500;animation:toastIn .25s ease;line-height:1.45}
+.toast.success{border-left-color:var(--success)}.toast.error{border-left-color:var(--danger)}.toast.warning{border-left-color:var(--warning)}
+.toast-ico{font-size:15px;flex-shrink:0;margin-top:1px}
+.toast-msg{flex:1;white-space:pre-line}
+.toast-x{background:none;border:none;color:#9aa7bd;cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;line-height:1;padding:0 2px;font-family:'Manrope',sans-serif}
+.toast-x:hover{color:var(--apex-navy)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast.leaving{opacity:0;transform:translateX(20px);transition:all .25s ease}
 @media(max-width:640px){.content{padding:14px}.nav-tab{padding:11px 13px;font-size:10px}.kpi-val{font-size:22px}.header{padding:0 14px}}
 </style>
 </head>
@@ -3955,17 +3958,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <div class="tab" id="tab-analise">
   <div class="section-hdr">
     <h2>✦ Análise de Fundos</h2>
-    <p>Selecione um fundo elegível, anexe os relatórios gerenciais e gere a análise prévia com IA</p>
-  </div>
-  <div id="api-key-banner" class="api-key-banner" style="display:none">
-    <span style="font-size:18px">🔑</span>
-    <div style="flex:1">
-      <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">Chave de API Google Gemini necessária</div>
-      <div style="font-size:10px;color:#6b7a9a">Gratuita e ilimitada. Acesse aistudio.google.com → "Get API Key" → copie a chave (AIza...) e cole abaixo.</div>
-    </div>
-    <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
-    <button class="btn-save-key" onclick="saveApiKey()">Salvar chave</button>
-    <button class="btn-save-key" style="background:#6b7a9a" onclick="clearApiKey()">Remover</button>
+    <p>Selecione um fundo elegível e preencha a avaliação qualitativa e quantitativa</p>
   </div>
   <div class="card">
     <div class="card-title">1. Seleção do Fundo</div>
@@ -3991,33 +3984,6 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <div id="pa-alert" style="display:none;margin-top:10px"></div>
   <div id="fundo-status-banner" style="display:none;margin-top:10px"></div>
   </div>
-  <div class="card" id="card-pdfs" style="display:none">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSection('pdf-body')">
-      <span>2. Relatórios Gerenciais <span style="font-size:10px;font-weight:400;color:#6b7a9a;margin-left:6px">(opcional — use para gerar análise com IA)</span></span>
-      <span style="font-size:11px;color:var(--apex-blue)">▼ expandir</span>
-    </div>
-    <div id="pdf-body" style="display:none">
-    <div class="pdf-upload-area">
-      <div class="pdf-box" id="box-ultimo" onclick="document.getElementById('input-pdf-ultimo').click()">
-        <div class="pdf-box-icon">📄</div><div class="pdf-box-label">Último Relatório</div>
-        <div class="pdf-box-sub">Clique para selecionar o PDF mais recente</div>
-        <input type="file" id="input-pdf-ultimo" accept=".pdf" onchange="onPdfLoad(this,'ultimo')">
-      </div>
-      <div class="pdf-box" id="box-penultimo" onclick="document.getElementById('input-pdf-penultimo').click()">
-        <div class="pdf-box-icon">📄</div><div class="pdf-box-label">Penúltimo Relatório</div>
-        <div class="pdf-box-sub">Clique para selecionar o PDF anterior</div>
-        <input type="file" id="input-pdf-penultimo" accept=".pdf" onchange="onPdfLoad(this,'penultimo')">
-      </div>
-    </div>
-      <div class="btn-gerar-wrap">
-        <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()" disabled><span>✦</span> Gerar Análise com IA</button>
-      </div>
-    </div><!-- /pdf-body -->
-  </div>
-  <div class="card" id="card-comparativo" style="display:none;margin-top:0">
-    <div class="card-title">3. Comparativo entre Relatórios <span style="font-size:10px;font-weight:400;color:#6b7a9a">(preenchido pela IA após upload dos PDFs)</span></div>
-    <div id="comparativo-content"><div style="color:#6b7a9a;font-size:12px;font-style:italic">Aguardando geração...</div></div>
-  </div>
   <div id="draft-banner-top" class="draft-banner" style="margin-bottom:14px">
   <div class="draft-banner-title">📝 Rascunho encontrado</div>
   <div class="draft-banner-sub" id="draft-banner-top-sub">Existe um rascunho salvo. Deseja continuar?</div>
@@ -4029,7 +3995,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <div id="card-quali" style="display:none">
     <div class="score-section-hdr quali" onclick="toggleSection('quali-body')">
       <div><div class="score-section-title">Análise Qualitativa — 40%</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">7 critérios · 5,7% cada · Gemini sugere, analista valida</div></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">7 critérios · 5,7% cada · avaliação do analista</div></div>
       <div class="score-section-badge" id="badge-quali">—</div>
     </div>
     <div id="quali-body"><div id="quali-blocks"></div></div>
@@ -4054,7 +4020,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     </div>
     <button class="btn-finalizar" onclick="finalizarAnalise()">✓ Finalizar Análise</button>
     <button class="btn-secondary" onclick="exportarPDF()">⬇ Exportar PDF</button>
-    <button class="btn-secondary" id="btn-forum-analise" onclick="if(currentTicker)openForum(currentTicker);else alert('Selecione e finalize um fundo primeiro')" style="display:none">
+    <button class="btn-secondary" id="btn-forum-analise" onclick="if(currentTicker)openForum(currentTicker);else toast('Selecione e finalize um fundo primeiro','warning')" style="display:none">
       💬 Fórum de Discussão
     </button>
   </div>
@@ -4155,15 +4121,11 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 
   <!-- Configurações de Admin -->
   <div class="card" style="border-top:3px solid var(--warning)">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+    <div class="card-title">
       <span>🔐 Configurações de Admin</span>
-      <button onclick="configurarPin()"
-        style="padding:6px 16px;background:var(--warning-bg);color:var(--warning);border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
-        🔑 Configurar / Alterar PIN de Admin
-      </button>
     </div>
     <div style="font-size:11px;color:#6b7a9a;line-height:1.6;margin-top:4px">
-      PIN necessário para excluir semanas. Cada analista define o seu localmente no browser.<br>
+      Ações destrutivas (excluir análise, ocultar semana) pedem confirmação digitando uma palavra-chave antes de executar.<br>
       <span style="color:var(--danger);font-weight:600">⚠ Execute o SQL abaixo antes de usar exclusão de semanas:</span><br>
       <code style="background:#f4f8fd;padding:4px 8px;border-radius:4px;font-size:10px;color:var(--apex-blue);display:inline-block;margin-top:4px">
         ALTER TABLE semanas ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
@@ -4202,7 +4164,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   </div>
 </div>
 
-<!-- MODAL DE CONFIRMAÇÃO / PIN -->
+<!-- MODAL DE CONFIRMAÇÃO (validação por palavra-chave) -->
 <div class="pin-modal-overlay" id="confirm-overlay">
   <div class="pin-modal-box">
     <div class="pin-modal-header">
@@ -4211,10 +4173,6 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     </div>
     <div class="pin-modal-body">
       <div style="font-size:12px;color:#5a6e8a;margin-bottom:14px;line-height:1.6" id="confirm-desc">—</div>
-      <div id="confirm-pin-wrap" style="display:none;margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">PIN de administrador</div>
-        <input type="password" class="confirm-input" id="confirm-pin" placeholder="••••" maxlength="4" oninput="checkConfirmReady()">
-      </div>
       <div id="confirm-word-wrap" style="margin-bottom:18px">
         <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:4px" id="confirm-word-label">—</div>
         <input type="text" class="confirm-input" id="confirm-word" placeholder="—" oninput="checkConfirmReady()">
@@ -4296,20 +4254,61 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 </div>
 
 <script>
+'use strict';
+
+// ── TOAST / NOTIFICAÇÕES (vanilla, zero dependências) ────────
+/**
+ * Exibe uma notificação toast não-bloqueante no canto superior direito.
+ * Substitui os antigos alert() por feedback que não trava a interface.
+ * @param {string} msg Texto da notificação (suporta \n para quebras de linha).
+ * @param {'info'|'success'|'error'|'warning'} [type='info'] Tipo visual.
+ * @param {number} [ms=4000] Tempo até auto-fechar em ms; use 0 para fixar.
+ * @returns {void}
+ */
+function toast(msg, type='info', ms=4000){
+  let cont=document.getElementById('toast-container');
+  if(!cont){cont=document.createElement('div');cont.id='toast-container';document.body.appendChild(cont);}
+  const ico={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'}[type]||'ℹ️';
+  const el=document.createElement('div');
+  el.className='toast'+(type&&type!=='info'?' '+type:'');
+  el.setAttribute('role', type==='error'?'alert':'status');
+  el.innerHTML='<span class="toast-ico" aria-hidden="true"></span><span class="toast-msg"></span>'+
+    '<button class="toast-x" type="button" aria-label="Fechar notificação">✕</button>';
+  el.querySelector('.toast-ico').textContent=ico;
+  el.querySelector('.toast-msg').textContent=msg;
+  const close=()=>{el.classList.add('leaving');setTimeout(()=>el.remove(),250);};
+  el.querySelector('.toast-x').onclick=close;
+  cont.appendChild(el);
+  if(ms>0)setTimeout(close,ms);
+}
+
 // ── SUPABASE ─────────────────────────────────────────────────
 const SUPA_URL='https://ystjnkvodohjcruixiqv.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzdGpua3ZvZG9oamNydWl4aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMjUsImV4cCI6MjA5NTk4NDAyNX0.pqtJybMMp_i9p05oakWjYp1IHajhaZBd07QIfPzHdpU';
 
 // ── Cliente Supabase (SDK oficial via CDN) ───────────────────
+// Singleton: o cliente é criado uma única vez e reaproveitado em todas
+// as chamadas. _db guarda a instância; chamadas subsequentes retornam a
+// mesma referência, evitando múltiplos clientes/conexões em re-renders (B3).
 let _db=null;
+/**
+ * Retorna a instância única (singleton) do cliente Supabase.
+ * Cria o cliente na primeira chamada e o reaproveita depois.
+ * @returns {Object|null} Cliente Supabase, ou null se o SDK não carregou.
+ */
 function getDB(){
   if(_db)return _db;
-  if(typeof supabase==='undefined'){console.warn('SDK Supabase não carregou');return null;}
+  if(typeof supabase==='undefined'){console.warn('[getDB] SDK Supabase não carregou');return null;}
   _db=supabase.createClient(SUPA_URL,SUPA_KEY);
   return _db;
 }
 
-// Carregar análises do Supabase
+/**
+ * Carrega todas as análises do Supabase para o objeto global `analyses`
+ * e atualiza a UI dependente (tags, ranking, KPIs, atividade, fórum).
+ * Usa localStorage como cache de performance; o Supabase é a fonte da verdade.
+ * @returns {Promise<void>}
+ */
 async function supaLoad(){
   const db=getDB();
   const ss=document.getElementById('sync-status');
@@ -4398,7 +4397,7 @@ const QUANTI_CRITERIA=[
   {id:'n11',peso:5.0,nome:'Volatilidade 12m',desc:'Volatilidade do ativo vs IFIX',ranges:[{label:'0–3',txt:'> IFIX+1dp'},{label:'4–6',txt:'IFIX ± 1dp'},{label:'7–10',txt:'< IFIX−1dp'}],applicavel:true},
   {id:'n12',peso:5.0,nome:'LTV',desc:'Razão de garantias (fundos de tijolo)',ranges:[{label:'0–3',txt:'> 40%'},{label:'4–6',txt:'20-40%'},{label:'7–10',txt:'< 20%'}],applicavel:false,checkAplic:true}
 ];
-let pdfUltimo=null,pdfPenultimo=null,currentTicker='';
+let currentTicker='';
 let analyses=JSON.parse(localStorage.getItem('apex_fii_analyses')||'{}');
 const tableSortState={};
 function showTab(id,el){
@@ -4407,7 +4406,7 @@ function showTab(id,el){
   document.getElementById('tab-'+id)?.classList.add('active');
   el.classList.add('active');
   if(id==='fundos') injectAnalyseTags();
-  if(id==='analise'){initAnaliseFundoDropdown();checkApiKeyBanner();}
+  if(id==='analise'){initAnaliseFundoDropdown();}
   if(id==='ranking') renderScoreRanking();
   if(id==='admin') carregarListaSemanas();
   if(id==='pre'){renderPreAnalise();filterPreAnalise();}
@@ -4441,6 +4440,12 @@ function sortTable(tblId,col){
   });
   rows.forEach(r=>tbody.appendChild(r));
 }
+/**
+ * Filtra a tabela de fundos elegíveis pelos campos de busca (texto), segmento
+ * e situação de análise (pendente/analisado), mostrando/ocultando as linhas e
+ * atualizando o contador de resultados.
+ * @returns {void}
+ */
 function filterFunds(){
   const q=document.getElementById('search-input').value.toLowerCase();
   const seg=document.getElementById('seg-filter').value.toLowerCase();
@@ -4539,13 +4544,11 @@ function onFundoSelect(){
     pararAutoSaveTimer();
     setDraftStatus('','');
     ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-    ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
+    ['card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.style.display='none';
     });
     return;
   }
-  // Mostrar seção de PDF (opcional)
-  const pdfCard=document.getElementById('card-pdfs');if(pdfCard)pdfCard.style.display='block';
   // Alerta de pré-análise
   const pa=PRE_ANALISE_MAP[ticker];
   const paAlertEl=document.getElementById('pa-alert');
@@ -4569,11 +4572,7 @@ function onFundoSelect(){
     if(banner){banner.style.display='block';
       banner.innerHTML=`<div style="background:var(--success-bg);border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#155a34;font-weight:600">✓ Analisado em ${a.data} por ${a.analista} · Score: ${a.scoreTotal?.toFixed(1)||'—'}/10 &nbsp;<span style="cursor:pointer;text-decoration:underline" onclick="reloadAnalise('${ticker}')">Reabrir</span></div>`;}
   }else{if(banner)banner.style.display='none';}
-  // Reset PDFs
-  const bu=document.getElementById('box-ultimo');if(bu){bu.classList.remove('loaded');bu.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF mais recente';}
-  const bp=document.getElementById('box-penultimo');if(bp){bp.classList.remove('loaded');bp.querySelector('.pdf-box-sub').textContent='Clique para selecionar o PDF anterior';}
-  pdfUltimo=null;pdfPenultimo=null;updateGerarBtn();
-  // ── MOSTRAR BLOCOS IMEDIATAMENTE (sem precisar de IA) ──
+  // ── MOSTRAR BLOCOS DE AVALIAÇÃO ──
   ['card-quali','card-quanti','card-summary'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.display='block';
   });
@@ -4596,163 +4595,6 @@ function onFundoSelect(){
   // Iniciar timer de auto-save
   iniciarAutoSaveTimer();
 }
-function onPdfLoad(input,which){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=(e)=>{
-    const b64=e.target.result.split(',')[1];
-    if(which==='ultimo'){pdfUltimo={name:file.name,b64};const b=document.getElementById('box-ultimo');if(b){b.classList.add('loaded');b.querySelector('.pdf-box-sub').textContent='✓ '+file.name;}}
-    else{pdfPenultimo={name:file.name,b64};const b=document.getElementById('box-penultimo');if(b){b.classList.add('loaded');b.querySelector('.pdf-box-sub').textContent='✓ '+file.name;}}
-    updateGerarBtn();
-  };
-  reader.readAsDataURL(file);
-}
-function updateGerarBtn(){const btn=document.getElementById('btn-gerar');if(btn)btn.disabled=!(pdfUltimo&&pdfPenultimo&&currentTicker);}
-async function gerarAnalise(){
-  const btn=document.getElementById('btn-gerar');
-  const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Gerando análise...';}
-  ['card-comparativo','card-quali','card-quanti','card-summary'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='block';});
-  renderQuantiBlocks(tipo);renderQualiBlocksPlaceholder();setTimeout(()=>preencherDadosBTG(currentTicker,tipo),50);
-  try{
-    const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===currentTicker)||{};
-    const fd=fundDataMap[currentTicker]||{};
-    const prompt=`Você é analista sênior de FIIs da Apex Partners. Responda SOMENTE com JSON puro, sem markdown, sem explicações fora do JSON. Analise o fundo ${currentTicker} (${fund.nome}, segmento: ${fund.seg}).
-
-DADOS DISPONÍVEIS DO BTG GUIDE (já calculados):
-- DY Anualizado: ${fd.yieldPct||'N/D'} | P/VP: ${fd.pvpTxt||'N/D'} | Vol ADTV 90d: ${fd.volFmt||'N/D'} | MktCap: ${fd.mktFmt||'N/D'}
-
-RELATÓRIOS: foram fornecidos o último e o penúltimo relatório gerencial do fundo.
-
-Extraia dos relatórios e responda APENAS em JSON válido (sem texto fora do JSON, sem markdown):
-{
-  "comparativo": [{"label":"Nome do indicador","anterior":"valor","atual":"valor","trend":"up|down|neutral"}],
-  "qualitativo": [{"id":"q1","nota":7,"justificativa":"Justificativa concisa baseada nos relatórios"}],
-  "quantitativo_pdf": [{"id":"n3","valor":"valor extraído","nota":7,"justificativa":"Justificativa"}]
-}
-
-QUALITATIVO (q1-q7, notas 0-10):
-q1=Track Record gestores | q2=Governança e transparência | q3=Concentração da carteira | q4=Histórico waiver/default | q5=Localização/qualidade dos ativos | q6=Dividendos vs FFO | q7=DY vs média do mercado
-
-QUANTITATIVO DOS RELATÓRIOS (extraia apenas o que encontrar nos documentos):
-n3=Alavancagem % (0-3:>15% | 4-6:10-15% | 7-10:<10%)
-n7=Qtd cotistas (0-3:<10mil | 4-6:10-50mil | 7-10:>50mil)
-n9=Tempo de constituição em anos (0-3:1-3a | 4-6:3-5a | 7-10:>5a)
-n10=Vacância física % (0-3:>10% | 4-6:5-10% | 7-10:<5%)
-n11=Volatilidade 12m vs IFIX (0-3:alta | 4-6:média | 7-10:baixa)
-n12=LTV % apenas tijolo (0-3:>40% | 4-6:20-40% | 7-10:<20%)
-
-Para o comparativo, inclua: DY mensal, vacância, cotistas, patrimônio, distribuição e outros indicadores relevantes.
-REGRAS DO JSON: justificativas em uma linha só, sem aspas duplas, sem quebras de linha internas. Se não encontrar dado, omita o item de quantitativo_pdf.`;
-    const apiKey=localStorage.getItem('apex_gemini_key')||'';
-    if(!apiKey){checkApiKeyBanner();throw new Error('Chave de API não configurada. Insira sua chave Gemini (AIza...) no topo desta aba.');}
-    // Gemini 1.5 Flash — gratuito, lê PDFs nativamente
-    // ── Função de reparo de JSON ─────────────────────────────────
-    function repairJSON(s){
-      return s
-        .replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'')
-        .replace(/,(\s*[}\]])/g,'$1')
-        .trim();
-    }
-    // ── Validar chave ─────────────────────────────────────────────
-    const testResp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if(!testResp.ok){
-      const sc=testResp.status;
-      if(sc===400||sc===403)throw new Error('Chave de API inválida. Verifique no Google AI Studio.');
-      throw new Error('Erro de conexão com Google ('+sc+').');
-    }
-    const testData=await testResp.json();
-    const available=(testData.models||[])
-      .filter(m=>{
-        const methods=m.supportedGenerationMethods||[];
-        const nm=m.name||'';
-        return methods.includes('generateContent')&&!nm.includes('tts')&&!nm.includes('embed');
-      })
-      .map(m=>m.name.replace('models/',''));
-    console.log('Modelos disponíveis:', available);
-    const PREFS=['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-flash-latest',
-                 'gemini-2.0-flash-lite','gemini-1.5-flash-002','gemini-1.5-flash-8b',
-                 'gemini-2.5-flash','gemini-1.5-pro'];
-    const order=[
-      ...PREFS.filter(p=>available.some(a=>a===p||a.startsWith(p))),
-      ...available.filter(a=>!PREFS.some(p=>a===p||a.startsWith(p)))
-    ].filter(m=>!m.includes('tts')).slice(0,3);
-    if(order.length===0)throw new Error('Nenhum modelo disponível. Verifique se a API Generative Language está ativada em console.cloud.google.com');
-    console.log('Tentando (máx 3):', order);
-    let result=null,modelUsado='',lastErr='';
-    for(const model of order){
-      try{
-        const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const rr=await fetch(url,{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            contents:[{parts:[
-              {text:prompt},
-              {inline_data:{mime_type:'application/pdf',data:pdfPenultimo.b64}},
-              {inline_data:{mime_type:'application/pdf',data:pdfUltimo.b64}}
-            ]}],
-            generationConfig:{temperature:0.1,maxOutputTokens:4096,responseMimeType:'application/json'}
-          })
-        });
-        if(rr.status===429){lastErr='Limite atingido (429). Aguarde 30s e tente novamente.';break;}
-        if(rr.status===503){lastErr='Serviço indisponível (503)';continue;}
-        if(!rr.ok){const ee=await rr.json().catch(()=>({}));lastErr=ee?.error?.message||'status '+rr.status;continue;}
-        const dd=await rr.json();
-        if(dd.error){lastErr=dd.error.message;continue;}
-        let raw=(dd?.candidates?.[0]?.content?.parts?.[0]?.text)||'';
-        console.log('Raw ('+model+'):', raw.substring(0,400));
-        if(!raw){lastErr='Resposta vazia';continue;}
-        // Reparar JSON
-        raw=repairJSON(raw);
-        const si=raw.indexOf('{'),ei=raw.lastIndexOf('}');
-        if(si<0||ei<0){lastErr='JSON não encontrado';continue;}
-        raw=raw.substring(si,ei+1);
-        try{result=JSON.parse(raw);modelUsado=model;break;}
-        catch(pe){
-          // Tentar escapar quebras de linha dentro de strings
-          raw=raw.replace(/"((?:[^"\\]|\\.)*)"/g,(_,g)=>'"'+g.replace(/\n/g,' ').replace(/\r/g,'')+'"');
-          try{result=JSON.parse(raw);modelUsado=model;break;}
-          catch(pe2){lastErr='JSON inválido: '+pe2.message;continue;}
-        }
-      }catch(fe){lastErr=fe.message;continue;}
-    }
-    if(!result)throw new Error(lastErr||'Falha na análise. Tente novamente em 30s.');
-    console.log('✅ Análise gerada com modelo:', modelUsado);
-    const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    if(!raw){throw new Error('Resposta vazia do Gemini ('+modelUsado+'). Tente novamente.');}
-    console.log('Resposta bruta Gemini:', raw.substring(0,500));
-
-    renderComparativo(result.comparativo||[]);
-    // Preencher qualitativo
-    (result.qualitativo||[]).forEach(item=>{
-      const n=document.getElementById('quali-note-'+item.id);if(n)n.value=item.nota;
-      const j=document.getElementById('quali-just-'+item.id);if(j){j.value=item.justificativa;j.classList.add('suggested');}
-      const s=document.getElementById('quali-sug-'+item.id);if(s)s.textContent='Sugerido IA: '+item.nota;
-    });
-    // Preencher quantitativo extraído dos PDFs
-    (result.quantitativo_pdf||[]).forEach(item=>{
-      const n=document.getElementById('quanti-note-'+item.id);
-      const j=document.getElementById('quanti-just-'+item.id);
-      const s=document.getElementById('quanti-sug-'+item.id);
-      const v=document.getElementById('quanti-val-'+item.id);
-      if(n&&!n.value){n.value=item.nota;}
-      if(j&&!j.value){j.value=item.justificativa;j.classList.add('suggested');}
-      if(s)s.innerHTML=`<span style="background:#e8f0fe;color:#1a47a0;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:700">📄 PDF: ${item.nota}/10</span>`;
-      if(v&&item.valor)v.textContent='Valor: '+item.valor;
-    });
-    updateScore();
-  }catch(e){
-    const c=document.getElementById('comparativo-content');
-    if(c)c.innerHTML='<div style="color:var(--danger);font-size:12px;font-weight:600">⚠️ Erro ao conectar com a IA: '+e.message+'</div>';
-  }
-  if(btn){btn.innerHTML='<span>✦</span> Gerar Análise Prévia com IA';btn.disabled=false;}
-}
-function renderComparativo(items){
-  const cont=document.getElementById('comparativo-content');if(!cont)return;
-  if(!items.length){cont.innerHTML='<div style="color:#6b7a9a;font-size:12px">Nenhum dado comparativo extraído.</div>';return;}
-  const arrows={up:'↑',down:'↓',neutral:'→'},cls={up:'comp-up',down:'comp-down',neutral:'comp-neu'};
-  cont.innerHTML='<div class="comp-grid">'+items.map(it=>`<div class="comp-item"><div class="comp-item-label">${it.label}</div><div class="comp-item-vals"><span style="color:#6b7a9a">${it.anterior}</span><span class="${cls[it.trend]||'comp-neu'}">${arrows[it.trend]||'→'}</span><span style="font-weight:800">${it.atual}</span></div></div>`).join('')+'</div>';
-}
 function renderQualiBlocksPlaceholder(){
   const cont=document.getElementById('quali-blocks');if(!cont)return;
   cont.innerHTML=QUALI_CRITERIA.map(c=>`<div class="score-block" id="block-${c.id}">
@@ -4771,7 +4613,7 @@ function renderQualiBlocksPlaceholder(){
       <div class="score-block-right">
         <div class="score-input-wrap"><div class="score-input-label">Nota</div>
           <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()" onblur="autoSaveDraft()"></div>
-        <div id="quali-sug-${c.id}" class="score-suggested">Aguardando Gemini...</div>
+        <div id="quali-sug-${c.id}" class="score-suggested"></div>
       </div></div>
     <textarea class="form-textarea" id="quali-just-${c.id}" placeholder="Justificativa do analista..." onblur="autoSaveDraft()"></textarea>
   </div>`).join('');
@@ -4811,34 +4653,6 @@ function toggleAplic(id, type){
   if(justEl){justEl.style.opacity=isOff?'0.4':'1';}
   updateScore();
 }
-function saveApiKey(){
-  const key=document.getElementById('api-key-input')?.value?.trim();
-  if(!key||key.length<10){alert('Cole a chave completa gerada no Google AI Studio.');return;}
-  localStorage.setItem('apex_gemini_key',key);
-  checkApiKeyBanner();
-  alert('✅ Chave salva com sucesso!');
-}
-function clearApiKey(){
-  localStorage.removeItem('apex_gemini_key');
-  checkApiKeyBanner();
-}
-function checkApiKeyBanner(){
-  const banner=document.getElementById('api-key-banner');
-  if(!banner) return;
-  const key=localStorage.getItem('apex_gemini_key');
-  banner.style.display='flex';
-  if(key){
-    banner.classList.add('api-key-ok');
-    banner.querySelector('.api-key-banner input').value='';
-    banner.querySelector('.api-key-banner input').placeholder='Chave configurada ✓';
-    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave Gemini configurada ✓';
-    banner.querySelector('.api-key-banner > div > div:last-child').textContent='API Gemini gratuita pronta para gerar análises.';
-  } else {
-    banner.classList.remove('api-key-ok');
-    banner.querySelector('.api-key-banner > div > div:first-child').textContent='Chave de API Google Gemini necessária';
-    banner.querySelector('.api-key-banner > div > div:last-child').textContent='Insira sua chave para habilitar a geração automática de análises com IA.';
-  }
-}
 function updateScore(){
   let qs=0,qc=0;
   QUALI_CRITERIA.forEach(c=>{
@@ -4866,9 +4680,14 @@ function updateScore(){
     const sp=document.getElementById('sum-pct');if(sp)sp.textContent=pct.toFixed(0)+'%';
   }
 }
+/**
+ * Finaliza a análise do fundo selecionado: valida campos, calcula os scores
+ * (qualitativo 40% + quantitativo 60%), persiste no Supabase e atualiza a UI.
+ * @returns {Promise<void>}
+ */
 async function finalizarAnalise(){
   const ticker=currentTicker,analista=document.getElementById('sel-analista').value,tipo=document.getElementById('sel-tipo').value;
-  if(!ticker||!analista){alert('Selecione o fundo e o analista antes de finalizar.');return;}
+  if(!ticker||!analista){toast('Selecione o fundo e o analista antes de finalizar.', 'warning');return;}
   let qs=0,qc=0;const qScores={},qJust={};
   QUALI_CRITERIA.forEach(c=>{
     const cb=document.getElementById('aplic-'+c.id);
@@ -4899,9 +4718,9 @@ async function finalizarAnalise(){
   if(btnF){btnF.textContent='Salvando...';btnF.disabled=true;}
   try{
     await supaSave(analiseObj);
-    alert('✓ Análise de '+ticker+' finalizada e salva!\nScore Final: '+scoreTotal.toFixed(1)+'/10');
+    toast('✓ Análise de '+ticker+' finalizada e salva!\nScore Final: '+scoreTotal.toFixed(1)+'/10', 'success');
   }catch(e){
-    alert('⚠️ Análise salva localmente, mas houve erro no banco:\n'+e.message+'\n\nOs dados estão seguros no browser.');
+    toast('⚠️ Análise salva localmente, mas houve erro no banco:\n'+e.message+'\n\nOs dados estão seguros no browser.', 'warning');
   }finally{
     if(btnF){btnF.textContent='✓ Finalizar Análise';btnF.disabled=false;}
   }
@@ -4962,7 +4781,7 @@ function exportCSV(){
 }
 function exportarPDF(ticker){
   const t=ticker||currentTicker;
-  const a=analyses[t];if(!a){alert('Análise não encontrada para este fundo.');return;}
+  const a=analyses[t];if(!a){toast('Análise não encontrada para este fundo.', 'error');return;}
   const w=window.open('','_blank');
   const dataGeracao=new Date().toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'});
   const scoreColor=a.scoreTotal>=7?'#1b8a52':a.scoreTotal>=5?'#a06800':'#c0392b';
@@ -5135,6 +4954,22 @@ function exportarPDF(ticker){
 }
 // ── MAPA DE DADOS BTG POR FUNDO ───────────────────────────────
 const fundDataMap = {};
+/**
+ * Monta o mapa global `fundDataMap` (ticker → métricas) lendo as linhas já
+ * renderizadas da tabela de fundos elegíveis (#fund-body).
+ *
+ * Por que ler do DOM em vez de usar ELIGIBLE_FUNDS?
+ * ELIGIBLE_FUNDS contém apenas a lista estática {ticker, nome, seg}. Os valores
+ * numéricos da semana corrente (Vol 90d, Yield, P/VP, MktCap, Preço) vêm do
+ * Supabase e são escritos nas células da tabela por renderizarSemana(), com o
+ * valor bruto em `data-val`. Esta função extrai justamente esses números já
+ * formatados/calculados das células, evitando recalcular ou refazer a query.
+ * É a fonte usada por preencherDadosBTG() para pré-preencher a aba de Análise.
+ *
+ * Depende de a tabela já estar renderizada — por isso é chamada após o load
+ * dos dados (DOMContentLoaded e ao final de renderizarSemana).
+ * @returns {void}
+ */
 function buildFundDataMap(){
   document.querySelectorAll('#fund-body tr').forEach(r=>{
     const ticker=r.querySelector('strong')?.textContent?.trim();
@@ -5399,6 +5234,13 @@ function mostrarErroValidacao(erros){
     </button>`;
 }
 
+/**
+ * Handler do upload do BTG FII Guide (.xlsx). Lê a aba 'Stock Guide' com
+ * SheetJS, valida o arquivo, aplica os 4 critérios de elegibilidade e monta o
+ * preview da semana (sem salvar — o salvamento ocorre em adminConfirmar).
+ * @param {HTMLInputElement} input Campo de arquivo que disparou o evento.
+ * @returns {Promise<void>}
+ */
 async function onBTGUpload(input){
   const file=input.files[0];
   if(!file)return;
@@ -5481,7 +5323,7 @@ async function onBTGUpload(input){
   // Pegar data/num do formulário
   adminSemanaData=document.getElementById('admin-data').value.trim();
   adminSemanaNum=parseInt(document.getElementById('admin-num').value)||0;
-  if(!adminSemanaData){alert('Preencha a data da semana (DD/MM/AAAA) antes de processar.');adminReset();return;}
+  if(!adminSemanaData){toast('Preencha a data da semana (DD/MM/AAAA) antes de processar.', 'warning');adminReset();return;}
 
   // Exibir preview
   const prevEl=document.getElementById('admin-preview');
@@ -5525,9 +5367,14 @@ async function onBTGUpload(input){
 }
 
 // ── Confirmar e salvar no Supabase ────────────────────────────
+/**
+ * Confirma e salva a semana processada: grava a linha em `semanas` e os fundos
+ * em `fund_data` (em lotes), gera o backup JSON e atualiza o dashboard.
+ * @returns {Promise<void>}
+ */
 async function adminConfirmar(){
   const db=getDB();
-  if(!db){alert('Supabase não disponível.');return;}
+  if(!db){toast('Supabase não disponível.', 'error');return;}
   const btn=document.getElementById('admin-btn-confirm');
   btn.textContent='Salvando...';btn.disabled=true;
 
@@ -5556,7 +5403,7 @@ async function adminConfirmar(){
     // 3. Gerar e baixar backup JSON automaticamente
     gerarBackupJSON(adminSemanaData, adminSemanaNum, adminFundos);
 
-    alert(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total\n\n📥 Backup JSON gerado automaticamente na pasta Downloads.`);
+    toast(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total\n\n📥 Backup JSON gerado automaticamente na pasta Downloads.`, 'success');
 
     // 4. Atualizar a página com os novos dados
     await carregarESemanaAtual();
@@ -5565,7 +5412,7 @@ async function adminConfirmar(){
     await carregarListaSemanas();
 
   }catch(e){
-    alert('❌ Erro ao salvar: '+e.message);
+    toast('❌ Erro ao salvar: '+e.message, 'error');
   }finally{
     btn.textContent='✓ Confirmar e Salvar';btn.disabled=false;
   }
@@ -5729,6 +5576,11 @@ async function carregarListaSemanas(){
 }
 
 // ── Carregar e renderizar semana mais recente ─────────────────
+/**
+ * Carrega do Supabase a semana ativa mais recente e seus fundos, e dispara a
+ * renderização do dashboard (KPIs, tabelas, segmentos).
+ * @returns {Promise<void>}
+ */
 async function carregarESemanaAtual(){
   const db=getDB();if(!db)return;
   const {data:semanas}=await db.from('semanas').select('*').order('created_at',{ascending:false}).limit(1);
@@ -5799,7 +5651,7 @@ function renderizarSemana(semana, fundos){
     tbody.innerHTML=el.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>{
       const dyC=f.dy_anual>=0.12?'var(--success)':f.dy_anual>=0.09?'var(--warning)':'var(--danger)';
       const pvpC=f.pvp_atual<0.95?'var(--success)':f.pvp_atual<1.05?'var(--warning)':'#6b7a9a';
-      const segChipHtml=segChipInline(f.segmento);
+      const segChipHtml=segChip(f.segmento);
       return`<tr>
         <td><strong style="color:var(--apex-blue)">${f.ticker}</strong></td>
         <td style="max-width:220px;white-space:normal">${f.nome||''}</td>
@@ -5832,8 +5684,16 @@ function renderizarSemana(semana, fundos){
   console.log('✅ Dashboard atualizado com dados de '+semana.semana_data);
 }
 
-// helper inline para segmento chip
-function segChipInline(seg){
+// helper para o "chip" colorido de segmento
+/**
+ * Renderiza o chip colorido de um segmento de FII.
+ * Unifica as antigas segChipInline() e segChipMini() (A2) numa só função,
+ * corrigindo de quebra o mapa incompleto da versão "mini".
+ * @param {string} seg Nome do segmento (ex.: 'Recebível').
+ * @param {'normal'|'mini'} [size='normal'] 'normal' usa a classe .seg-chip; 'mini' usa estilo compacto inline.
+ * @returns {string} HTML do chip.
+ */
+function segChip(seg, size='normal'){
   const MAP={
     'Recebível':'var(--seg-rec-bg),var(--seg-rec-c)','Galpão Logístico':'var(--seg-gal-bg),var(--seg-gal-c)',
     'Shopping Center':'var(--seg-sho-bg),var(--seg-sho-c)','Laje Corporativa':'var(--seg-laj-bg),var(--seg-laj-c)',
@@ -5845,6 +5705,8 @@ function segChipInline(seg){
     'Educacional':'var(--seg-edu-bg),var(--seg-edu-c)','Outros':'var(--seg-out-bg),var(--seg-out-c)'
   };
   const [bg,c]=(MAP[seg]||'var(--seg-out-bg),var(--seg-out-c)').split(',');
+  if(size==='mini')
+    return`<span style="background:${bg};color:${c};padding:1px 7px;border-radius:8px;font-size:9px;font-weight:600;white-space:nowrap">${seg||'—'}</span>`;
   return`<span class="seg-chip" style="background:${bg};color:${c}">${seg||'—'}</span>`;
 }
 
@@ -6167,18 +6029,6 @@ function openModal(tipo){
   const d=getKpiData();
   let items=[], title='', subtitle='', renderFn=null;
 
-  const segChipMini=(seg)=>{
-    const MAP={
-      'Recebível':'var(--seg-rec-bg),var(--seg-rec-c)','Galpão Logístico':'var(--seg-gal-bg),var(--seg-gal-c)',
-      'Shopping Center':'var(--seg-sho-bg),var(--seg-sho-c)','Laje Corporativa':'var(--seg-laj-bg),var(--seg-laj-c)',
-      'Fundo de Fundos':'var(--seg-fof-bg),var(--seg-fof-c)','FI-Infra':'var(--seg-fii-bg),var(--seg-fii-c)',
-      'FIAgro - FII':'var(--seg-fia-bg),var(--seg-fia-c)','Hedge Fund':'var(--seg-hed-bg),var(--seg-hed-c)',
-      'Renda Urbana':'var(--seg-ren-bg),var(--seg-ren-c)','Híbrido':'var(--seg-hib-bg),var(--seg-hib-c)',
-    };
-    const [bg,c]=(MAP[seg]||'var(--seg-out-bg),var(--seg-out-c)').split(',');
-    return`<span style="background:${bg};color:${c};padding:1px 7px;border-radius:8px;font-size:9px;font-weight:600;white-space:nowrap">${seg||'—'}</span>`;
-  };
-
   if(tipo==='elegiveis'){
     title='Fundos Elegíveis'; subtitle='Todos os fundos que passam nos 4 critérios BTG Guide';
     // Montar de ELIGIBLE_FUNDS
@@ -6186,28 +6036,28 @@ function openModal(tipo){
     renderFn=(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
       <span class="modal-item-ticker">${item.ticker}</span>
       <span class="modal-item-nome">${item.nome}</span>
-      ${segChipMini(item.seg)}
+      ${segChip(item.seg,'mini')}
     </div>`;
   }
   else if(tipo==='analisados'){
     title='Fundos Analisados'; subtitle='Todos os fundos com análise finalizada';
     items=d.analisados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
-    renderFn=itemScoreFn(segChipMini,'var(--apex-blue)','#EBF4FB');
+    renderFn=itemScoreFn('var(--apex-blue)','#EBF4FB');
   }
   else if(tipo==='aprovados'){
     title='Fundos Aprovados'; subtitle='Score ≥ 6,0 — Recomendados para investimento';
     items=d.aprovados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
-    renderFn=itemScoreFn(segChipMini,'var(--success)','var(--success-bg)');
+    renderFn=itemScoreFn('var(--success)','var(--success-bg)');
   }
   else if(tipo==='em-avaliacao'){
     title='Fundos Em Avaliação'; subtitle='Score entre 4,0 e 5,9 — Requerem análise adicional';
     items=d.emAval.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
-    renderFn=itemScoreFn(segChipMini,'var(--warning)','var(--warning-bg)');
+    renderFn=itemScoreFn('var(--warning)','var(--warning-bg)');
   }
   else if(tipo==='reprovados'){
     title='Fundos Reprovados'; subtitle='Score < 4,0 — Não recomendados no momento';
     items=d.reprovados.map(a=>({ticker:a.ticker,nome:a.nome,seg:a.seg,score:a.scoreTotal,analista:a.analista,data:a.data}));
-    renderFn=itemScoreFn(segChipMini,'var(--danger)','var(--danger-bg)');
+    renderFn=itemScoreFn('var(--danger)','var(--danger-bg)');
   }
   else if(tipo==='pendentes'){
     title='Análise Pendente'; subtitle='Fundos elegíveis que ainda não foram analisados';
@@ -6216,7 +6066,7 @@ function openModal(tipo){
     renderFn=(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
       <span class="modal-item-ticker">${item.ticker}</span>
       <span class="modal-item-nome">${item.nome}</span>
-      ${segChipMini(item.seg)}
+      ${segChip(item.seg,'mini')}
       <span style="font-size:9px;font-weight:700;padding:2px 8px;background:#fef9ec;color:#a06800;border-radius:4px;white-space:nowrap">🟡 Iniciar análise</span>
     </div>`;
   }
@@ -6228,7 +6078,7 @@ function openModal(tipo){
       return`<div class="modal-item">
         <span class="modal-item-ticker">${item.ticker}</span>
         <span class="modal-item-nome">${item.nome}</span>
-        ${segChipMini(item.seg)}
+        ${segChip(item.seg,'mini')}
         <span style="font-size:9px;font-weight:700;padding:2px 8px;background:${isReprov?'#fdecea':'#fef9ec'};color:${isReprov?'var(--danger)':'var(--warning)'};border-radius:4px;white-space:nowrap">${isReprov?'🔴':'🟡'} ${item.status}</span>
       </div>`;
     };
@@ -6246,11 +6096,11 @@ function openModal(tipo){
   overlay._renderFn=renderFn||defaultRenderFn;
 }
 
-function itemScoreFn(segChipMini,col,bg){
+function itemScoreFn(col,bg){
   return(item)=>`<div class="modal-item" onclick="openAnalise('${item.ticker}')">
     <span class="modal-item-ticker">${item.ticker}</span>
     <span class="modal-item-nome">${item.nome}</span>
-    ${segChipMini(item.seg)}
+    ${segChip(item.seg,'mini')}
     <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:800;background:${bg};color:${col};white-space:nowrap">${item.score?.toFixed(1)||'—'}/10</span>
     <span style="font-size:10px;color:#6b7a9a;white-space:nowrap">${item.analista||''}</span>
     ${item.score!=null?`<button onclick="event.stopPropagation();exportarPDF('${item.ticker}')" style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">⬇</button>`:''}
@@ -6319,6 +6169,11 @@ const FORUM_TIPO_MAP = {
   'discordancia':  {label:'⚠ Discordância',  css:'ftb-discordancia', border:'discordancia'},
 };
 
+/**
+ * Abre o painel do fórum de discussão para um fundo e carrega seus posts.
+ * @param {string} ticker Ticker do fundo (ex.: 'KNCR11').
+ * @returns {Promise<void>}
+ */
 async function openForum(ticker){
   _forumTicker = ticker;
   const a = analyses[ticker];
@@ -6427,15 +6282,15 @@ function abrirResposta(id, analista){
 async function enviarResposta(id){
   const autor = document.getElementById('resp-autor-'+id)?.value;
   const texto = document.getElementById('resp-texto-'+id)?.value?.trim();
-  if(!autor){alert('Selecione o analista que está respondendo');return;}
-  if(!texto){alert('Escreva a resposta antes de publicar');return;}
+  if(!autor){toast('Selecione o analista que está respondendo', 'warning');return;}
+  if(!texto){toast('Escreva a resposta antes de publicar', 'warning');return;}
   const db=getDB();if(!db)return;
   const hoje=new Date();
   const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
   const {error}=await db.from('analysis_comments').update({
     resposta:texto, respondido_por:autor, respondido_em:data
   }).eq('id',id);
-  if(error){alert('Erro: '+error.message);return;}
+  if(error){toast('Erro: '+error.message, 'error');return;}
   await loadForumPosts(_forumTicker);
 }
 
@@ -6443,16 +6298,16 @@ async function publicarForumPost(){
   const autor  = document.getElementById('forum-autor')?.value;
   const tipo   = document.getElementById('forum-tipo')?.value;
   const texto  = document.getElementById('forum-texto')?.value?.trim();
-  if(!autor){alert('Selecione o analista');return;}
-  if(!texto){alert('Escreva a mensagem antes de publicar');return;}
-  const db=getDB();if(!db){alert('Supabase não disponível');return;}
+  if(!autor){toast('Selecione o analista', 'warning');return;}
+  if(!texto){toast('Escreva a mensagem antes de publicar', 'warning');return;}
+  const db=getDB();if(!db){toast('Supabase não disponível', 'error');return;}
   const hoje=new Date();
   const data=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
   const {error}=await db.from('analysis_comments').insert({
     ticker:_forumTicker, autor, tipo, texto, data_comentario:data,
     created_at:new Date().toISOString()
   });
-  if(error){alert('Erro ao publicar: '+error.message);return;}
+  if(error){toast('Erro ao publicar: '+error.message, 'error');return;}
   document.getElementById('forum-texto').value='';
   document.getElementById('forum-autor').value='';
   switchForumTab('posts', document.querySelectorAll('.forum-tab')[0]);
@@ -6504,27 +6359,29 @@ async function carregarForumGlobal(){
 // CRUD — Excluir análise · Excluir/editar semana
 // ══════════════════════════════════════════════════════════════
 
-// ── PIN de Admin (localStorage) ──────────────────────────────
-const ADMIN_PIN_KEY = 'apex_admin_pin';
-function getAdminPin(){ return localStorage.getItem(ADMIN_PIN_KEY)||''; }
-function setAdminPin(pin){ localStorage.setItem(ADMIN_PIN_KEY, pin); }
-
 // ── Modal de confirmação genérico ────────────────────────────
 let _confirmAction = null;
 let _confirmExpected = '';
-let _confirmNeedsPin = false;
 
-function openConfirmModal({title, desc, wordLabel, expectedWord, needsPin=false, onConfirm}){
+/**
+ * Abre o modal de confirmação para ações destrutivas. O usuário precisa
+ * digitar uma palavra-chave (ex.: o ticker ou a data) para habilitar o botão.
+ * @param {Object} opts Opções da confirmação.
+ * @param {string} opts.title Título do modal.
+ * @param {string} opts.desc Descrição da ação e suas consequências.
+ * @param {string} opts.wordLabel Rótulo do campo de confirmação.
+ * @param {string} opts.expectedWord Palavra que o usuário deve digitar para confirmar.
+ * @param {Function} opts.onConfirm Callback (sync ou async) executado ao confirmar.
+ * @returns {void}
+ */
+function openConfirmModal({title, desc, wordLabel, expectedWord, onConfirm}){
   _confirmAction   = onConfirm;
   _confirmExpected = expectedWord.toUpperCase();
-  _confirmNeedsPin = needsPin;
   document.getElementById('confirm-title').textContent   = title;
   document.getElementById('confirm-desc').textContent    = desc;
   document.getElementById('confirm-word-label').textContent = wordLabel;
   document.getElementById('confirm-word').value          = '';
   document.getElementById('confirm-word').placeholder    = expectedWord;
-  document.getElementById('confirm-pin').value           = '';
-  document.getElementById('confirm-pin-wrap').style.display = needsPin ? 'block' : 'none';
   const btn = document.getElementById('confirm-ok-btn');
   btn.disabled = true;
   btn.style.background = '#ccc';
@@ -6541,35 +6398,20 @@ function closeConfirmModal(){
 function checkConfirmReady(){
   const inputEl = document.getElementById('confirm-word');
   const word    = (inputEl?.value||'').toUpperCase().trim();
-  const pin     = document.getElementById('confirm-pin')?.value||'';
-  const wordOk  = word === _confirmExpected.toUpperCase().trim();
-  const pinOk   = !_confirmNeedsPin || pin === getAdminPin();
-  const ok      = wordOk && pinOk;
+  const ok      = word === _confirmExpected.toUpperCase().trim();
   const btn     = document.getElementById('confirm-ok-btn');
   if(!btn) return;
   btn.disabled        = !ok;
-  btn.style.background= ok ? 'var(--danger)' : '#ccc';
+  btn.style.background = ok ? 'var(--danger)' : '#ccc';
   btn.style.cursor    = ok ? 'pointer' : 'not-allowed';
-  if(inputEl) inputEl.classList.toggle('danger', word.length>0 && !wordOk);
+  if(inputEl) inputEl.classList.toggle('danger', word.length>0 && !ok);
 }
 
 async function executeConfirmAction(){
   if(!_confirmAction||typeof _confirmAction!=='function') return;
-  const action = _confirmAction; // salvar antes de fechar (closeModal zera _confirmAction)
+  const action = _confirmAction; // salvar antes de fechar (closeConfirmModal zera _confirmAction)
   closeConfirmModal();
   await action();
-}
-
-// ── Configurar PIN de Admin ───────────────────────────────────
-function configurarPin(){
-  const atual = getAdminPin();
-  const novo  = prompt(atual
-    ? 'PIN atual configurado. Digite o novo PIN de 4 dígitos (ou cancele para manter):'
-    : 'Defina um PIN de 4 dígitos para operações de administrador:');
-  if(!novo) return;
-  if(!/^\d{4}$/.test(novo)){ alert('O PIN deve ter exatamente 4 dígitos numéricos.'); return; }
-  setAdminPin(novo);
-  alert('✅ PIN de admin configurado com sucesso!');
 }
 
 // ── EXCLUIR ANÁLISE ───────────────────────────────────────────
@@ -6583,14 +6425,13 @@ function confirmarExcluirAnalise(ticker){
     desc:'Excluir permanentemente a análise de '+ticker+' ('+nome+'), feita por '+analista+' em '+data+'. Comentários do fórum serão preservados. Esta ação não pode ser desfeita.',
     wordLabel:'Digite o ticker '+ticker+' para confirmar:',
     expectedWord:ticker,
-    needsPin:false,
     onConfirm:()=>excluirAnalise(ticker)
   });
 }
 
 async function excluirAnalise(ticker){
   const db = getDB();
-  if(!db){ alert('Supabase não disponível.'); return; }
+  if(!db){ toast('Supabase não disponível.', 'error'); return; }
   try{
     // 1. Deletar do Supabase
     const {error, data} = await db
@@ -6600,7 +6441,7 @@ async function excluirAnalise(ticker){
       .select(); // retorna o que foi deletado para confirmar
     if(error){
       console.error('Erro Supabase ao excluir:', error);
-      alert('Erro ao excluir do banco: ' + error.message);
+      toast('Erro ao excluir do banco: ' + error.message, 'error');
       return;
     }
     console.log('Supabase delete result:', data);
@@ -6614,19 +6455,15 @@ async function excluirAnalise(ticker){
     injectAnalyseTags();
     updateKpiRow();
     renderAtvVisaoGeral();
-    alert('Análise de ' + ticker + ' excluída com sucesso.');
+    toast('Análise de ' + ticker + ' excluída com sucesso.', 'success');
   }catch(e){
     console.error('Exceção em excluirAnalise:', e);
-    alert('Erro inesperado: ' + e.message);
+    toast('Erro inesperado: ' + e.message, 'error');
   }
 }
 
 // ── EXCLUIR SEMANA (soft delete) ──────────────────────────────
 function confirmarExcluirSemana(data){
-  if(!getAdminPin()){
-    alert('Nenhum PIN configurado. Va em Admin e clique em Configurar PIN antes de excluir semanas.');
-    return;
-  }
   openConfirmModal({
     title:        '🗑 Excluir Semana',
     desc:         `Você está prestes a ocultar a semana ${data} do dashboard.
@@ -6634,31 +6471,30 @@ function confirmarExcluirSemana(data){
 Os dados de fundos do BTG Guide desta semana serão ocultados. As análises de fundos serão preservadas. A semana pode ser restaurada depois pela aba Admin.`,
     wordLabel:    `Digite a data "${data}" para confirmar:`,
     expectedWord: data,
-    needsPin:     true,
     onConfirm:    ()=>excluirSemana(data)
   });
 }
 
 async function excluirSemana(data){
   const db = getDB();
-  if(!db){ alert('Supabase não disponível.'); return; }
+  if(!db){ toast('Supabase não disponível.', 'error'); return; }
   const {error} = await db.from('semanas')
     .update({deleted_at: new Date().toISOString()})
     .eq('semana_data', data);
-  if(error){ alert('Erro ao excluir semana: '+error.message); return; }
-  alert(`✅ Semana ${data} ocultada do dashboard. Você pode restaurá-la a qualquer momento.`);
+  if(error){ toast('Erro ao excluir semana: '+error.message, 'error'); return; }
+  toast(`✅ Semana ${data} ocultada do dashboard. Você pode restaurá-la a qualquer momento.`, 'success');
   await carregarListaSemanas();
   await carregarESemanaAtual();
 }
 
 async function restaurarSemana(data){
   const db = getDB();
-  if(!db){ alert('Supabase não disponível.'); return; }
+  if(!db){ toast('Supabase não disponível.', 'error'); return; }
   const {error} = await db.from('semanas')
     .update({deleted_at: null})
     .eq('semana_data', data);
-  if(error){ alert('Erro ao restaurar: '+error.message); return; }
-  alert(`✅ Semana ${data} restaurada com sucesso!`);
+  if(error){ toast('Erro ao restaurar: '+error.message, 'error'); return; }
+  toast(`✅ Semana ${data} restaurada com sucesso!`, 'success');
   await carregarListaSemanas();
   await carregarESemanaAtual();
 }
@@ -6687,18 +6523,18 @@ async function salvarEdicaoSemana(dataOriginal, rowId){
   const novaData = document.getElementById('edit-data-'+rowId)?.value?.trim();
   const novoNum  = parseInt(document.getElementById('edit-num-'+rowId)?.value)||0;
   if(!novaData || !/^\d{2}\/\d{2}\/\d{4}$/.test(novaData)){
-    alert('Data inválida. Use o formato DD/MM/AAAA.');return;
+    toast('Data inválida. Use o formato DD/MM/AAAA.', 'warning');return;
   }
   const db=getDB();if(!db)return;
   const updates = {semana_data: novaData, num_semana: novoNum};
   // Atualizar semana
   const {error:eS} = await db.from('semanas').update(updates).eq('semana_data', dataOriginal);
-  if(eS){ alert('Erro ao salvar: '+eS.message); return; }
+  if(eS){ toast('Erro ao salvar: '+eS.message, 'error'); return; }
   // Atualizar fund_data se a data mudou
   if(novaData !== dataOriginal){
     await db.from('fund_data').update({semana_data: novaData}).eq('semana_data', dataOriginal);
   }
-  alert(`✅ Semana atualizada: ${novaData} (#${novoNum})`);
+  toast(`✅ Semana atualizada: ${novaData} (#${novoNum})`, 'success');
   await carregarListaSemanas();
   await carregarESemanaAtual();
 }
@@ -6783,6 +6619,12 @@ function setDraftStatus(msg, tipo=''){
 }
 
 // ── Salvar rascunho no Supabase ───────────────────────────────
+/**
+ * Salva no Supabase o rascunho da análise em andamento (notas/justificativas
+ * ainda não finalizadas) para o ticker + analista correntes, atualizando o
+ * indicador de status do auto-save.
+ * @returns {Promise<void>}
+ */
 async function salvarRascunho(){
   const estado=coletarEstadoAnalise();
   if(!estado) return;
@@ -6909,20 +6751,146 @@ function pararAutoSaveTimer(){
   if(_draftAutoSaveId){clearInterval(_draftAutoSaveId);_draftAutoSaveId=null;}
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // 1. Render inicial com base no HTML estático já presente na página
   buildFundDataMap();
   injectAnalyseTags();
-  supaLoad();                   // carregar análises
-  carregarESemanaAtual();       // carregar dados da semana mais recente
-  // Carregar lista de semanas se estiver na aba admin
-  setTimeout(carregarListaSemanas, 500);
-  setTimeout(atualizarHeaderSemana, 200);
   injectPreAnaliseBadges();
-  setTimeout(renderAtvVisaoGeral, 300);
-  setTimeout(updateKpiRow, 400);
-  setTimeout(carregarPendentesForum, 800);
-  setTimeout(carregarForumGlobal, 1000);
+
+  // 2. Carregar dados do Supabase. Usamos await em vez de setTimeout escalonados
+  //    para garantir que os badges/KPIs só sejam (re)injetados quando os dados
+  //    realmente estiverem disponíveis (A4). allSettled: uma falha não bloqueia a outra.
+  await Promise.allSettled([
+    supaLoad(),             // análises (já reinjeta tags/ranking/KPIs ao final)
+    carregarESemanaAtual()  // semana mais recente → renderizarSemana reinjeta tags e badges
+  ]);
+
+  // 3. Pós-carga (dados já presentes): atualizar a UI dependente uma única vez.
+  //    injectPreAnaliseBadges é idempotente (ignora linhas que já têm badge).
+  injectPreAnaliseBadges();
+  updateKpiRow();
+  renderAtvVisaoGeral();
+  await atualizarHeaderSemana();
+  await carregarListaSemanas();
+  await carregarPendentesForum();
+  await carregarForumGlobal();
 });
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SQL MIGRATIONS — Apex FII Universe
+     Rode no Supabase Dashboard → SQL Editor. Nada aqui roda no navegador;
+     é apenas documentação executável. Aplicar uma única vez por projeto.
+     ════════════════════════════════════════════════════════════════════
+
+-- ────────────────────────────────────────────────────────────────────
+-- 0) COLUNA deleted_at (soft delete de semanas) — necessária p/ excluir/restaurar
+-- ────────────────────────────────────────────────────────────────────
+ALTER TABLE semanas ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 1) VIEW semanas_ativas (E2) — filtra deleted_at no servidor, não no front
+--    O código passará a ler desta view em vez de filtrar manualmente.
+-- ────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE VIEW semanas_ativas AS
+  SELECT * FROM semanas WHERE deleted_at IS NULL;
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 2) ÍNDICES (E1) — aceleram as queries mais frequentes do dashboard
+-- ────────────────────────────────────────────────────────────────────
+-- fund_data é a tabela mais consultada (por semana, por elegibilidade, por ticker)
+CREATE INDEX IF NOT EXISTS idx_fund_data_semana_ticker   ON fund_data (semana_data, ticker);
+CREATE INDEX IF NOT EXISTS idx_fund_data_semana_elegivel ON fund_data (semana_data, elegivel);
+CREATE INDEX IF NOT EXISTS idx_fund_data_ticker          ON fund_data (ticker);
+
+-- analysis_comments: listagem do fórum por fundo e busca de questionamentos pendentes
+CREATE INDEX IF NOT EXISTS idx_comments_ticker_created   ON analysis_comments (ticker, created_at);
+CREATE INDEX IF NOT EXISTS idx_comments_pendentes        ON analysis_comments (tipo) WHERE resposta IS NULL;
+
+-- semanas: a maioria das queries só quer as ativas (índice parcial enxuto)
+CREATE INDEX IF NOT EXISTS idx_semanas_ativas            ON semanas (created_at) WHERE deleted_at IS NULL;
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 3) RLS — Row Level Security (B2)
+--    A anon key é pública por design; a proteção real é a RLS.
+--    Aplicar em Dashboard → Authentication → Policies (ou via SQL abaixo).
+--    Premissa: o app usa apenas a anon key (role 'anon'); operações de
+--    escrita administrativa privilegiada devem usar a service_role key
+--    (que ignora RLS e NUNCA deve ir para o front-end).
+--
+--    ATENÇÃO: como hoje o app insere/edita usando a anon key (sem login),
+--    habilitar INSERT/UPDATE só para service_role QUEBRA o upload do BTG e a
+--    criação de análises pelo front. Duas opções:
+--      (a) Recomendado a médio prazo: adicionar Supabase Auth (login dos
+--          5 analistas) e trocar as políticas de "anon" por "authenticated".
+--      (b) Curto prazo (manter sem login): liberar as escritas que o app
+--          realmente faz para 'anon', como abaixo, mantendo DELETE restrito.
+-- ────────────────────────────────────────────────────────────────────
+
+ALTER TABLE semanas            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fund_data          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analyses           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analysis_comments  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analysis_drafts    ENABLE ROW LEVEL SECURITY;
+
+-- semanas: leitura pública; escrita pelo app (anon) exceto DELETE físico
+CREATE POLICY semanas_select       ON semanas           FOR SELECT TO anon USING (true);
+CREATE POLICY semanas_insert       ON semanas           FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY semanas_update       ON semanas           FOR UPDATE TO anon USING (true) WITH CHECK (true);
+-- (DELETE físico fica só para service_role — o app usa soft delete via UPDATE deleted_at)
+
+-- fund_data: leitura pública; insert/update pelo app (upload BTG)
+CREATE POLICY fund_data_select     ON fund_data         FOR SELECT TO anon USING (true);
+CREATE POLICY fund_data_insert     ON fund_data         FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY fund_data_update     ON fund_data         FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+-- analyses: analistas leem e criam/atualizam; DELETE só service_role
+CREATE POLICY analyses_select      ON analyses          FOR SELECT TO anon USING (true);
+CREATE POLICY analyses_insert      ON analyses          FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY analyses_update      ON analyses          FOR UPDATE TO anon USING (true) WITH CHECK (true);
+-- (sem policy de DELETE para anon → exclusão de análise exige service_role)
+
+-- analysis_comments: leitura e criação públicas; update p/ resposta
+CREATE POLICY comments_select      ON analysis_comments FOR SELECT TO anon USING (true);
+CREATE POLICY comments_insert      ON analysis_comments FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY comments_update      ON analysis_comments FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+-- analysis_drafts: rascunhos por analista — leitura/escrita pelo app
+CREATE POLICY drafts_all           ON analysis_drafts   FOR ALL    TO anon USING (true) WITH CHECK (true);
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 4) entraram / sairam — proposta dual (E3)
+--    Hoje são gravados como JSON.stringify(array) em colunas TEXT.
+--
+--    OPÇÃO A — Converter para JSONB nativo (mínima mudança):
+--      ALTER TABLE semanas ALTER COLUMN entraram TYPE JSONB USING entraram::jsonb;
+--      ALTER TABLE semanas ALTER COLUMN sairam   TYPE JSONB USING sairam::jsonb;
+--      Prós: 1 linha por semana; consultável com operadores JSONB; baixo esforço.
+--      Contras: difícil cruzar movimentações entre semanas; sem integridade por ticker.
+--
+--    OPÇÃO B — Tabela normalizada de movimentações:
+--      CREATE TABLE movimentacoes (
+--        id          BIGSERIAL PRIMARY KEY,
+--        semana_data TEXT NOT NULL,
+--        ticker      TEXT NOT NULL,
+--        tipo        TEXT NOT NULL CHECK (tipo IN ('entrou','saiu')),
+--        criterio    TEXT,           -- só p/ saídas: Volume|Yield|P/VP|MktCap
+--        motivo      TEXT,
+--        created_at  TIMESTAMPTZ DEFAULT now()
+--      );
+--      CREATE INDEX idx_mov_semana ON movimentacoes (semana_data);
+--      CREATE INDEX idx_mov_ticker ON movimentacoes (ticker);
+--      Prós: histórico por ticker ("quantas vezes X entrou/saiu"); relatórios ricos.
+--      Contras: mais código (gravar N linhas por semana); migração dos dados atuais.
+--
+--    RECOMENDAÇÃO: Opção A agora (rápida, sem reescrever o pipeline) e migrar para
+--    a Opção B só se/quando surgir a necessidade de análise histórica de movimentações.
+--    Como o front lê com JSON.parse(), a Opção A é compatível sem mudar o JS.
+-- ════════════════════════════════════════════════════════════════════ -->
+
 </body>
 </html>
