@@ -6503,9 +6503,10 @@ function checkConfirmReady(){
 }
 
 async function executeConfirmAction(){
-  if(!_confirmAction) return;
+  if(!_confirmAction||typeof _confirmAction!=='function') return;
+  const action = _confirmAction; // salvar antes de fechar (closeModal zera _confirmAction)
   closeConfirmModal();
-  await _confirmAction();
+  await action();
 }
 
 // ── Configurar PIN de Admin ───────────────────────────────────
