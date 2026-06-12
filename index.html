@@ -4301,6 +4301,8 @@ async function supaLoad(){
     const {data:rows,error}=await db.from('analyses').select('*');
     if(error)throw new Error(error.message);
     if(!rows||rows.length===0){if(ss)ss.innerHTML='✅ Banco vazio — pronto para uso';return;}
+    // Limpar antes de repopular — garante que exclusões surtam efeito
+    Object.keys(analyses).forEach(k=>delete analyses[k]);
     rows.forEach(row=>{
       analyses[row.ticker]={
         ticker:row.ticker,nome:row.nome,seg:row.segmento,
@@ -6479,16 +6481,18 @@ function closeConfirmModal(){
 }
 
 function checkConfirmReady(){
-  const word = document.getElementById('confirm-word').value.toUpperCase().trim();
-  const pin  = document.getElementById('confirm-pin').value;
-  const wordOk = word === _confirmExpected;
-  const pinOk  = !_confirmNeedsPin || pin === getAdminPin();
-  const ok = wordOk && pinOk;
-  const btn = document.getElementById('confirm-ok-btn');
-  btn.disabled = !ok;
-  btn.style.background = ok ? 'var(--danger)' : '#ccc';
-  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
-  document.getElementById('confirm-word').classList.toggle('danger', word.length>0 && !wordOk);
+  const inputEl = document.getElementById('confirm-word');
+  const word    = (inputEl?.value||'').toUpperCase().trim();
+  const pin     = document.getElementById('confirm-pin')?.value||'';
+  const wordOk  = word === _confirmExpected.toUpperCase().trim();
+  const pinOk   = !_confirmNeedsPin || pin === getAdminPin();
+  const ok      = wordOk && pinOk;
+  const btn     = document.getElementById('confirm-ok-btn');
+  if(!btn) return;
+  btn.disabled        = !ok;
+  btn.style.background= ok ? 'var(--danger)' : '#ccc';
+  btn.style.cursor    = ok ? 'pointer' : 'not-allowed';
+  if(inputEl) inputEl.classList.toggle('danger', word.length>0 && !wordOk);
 }
 
 async function executeConfirmAction(){
@@ -6528,18 +6532,34 @@ function confirmarExcluirAnalise(ticker){
 async function excluirAnalise(ticker){
   const db = getDB();
   if(!db){ alert('Supabase não disponível.'); return; }
-  // 1. Remover do Supabase
-  const {error} = await db.from('analyses').delete().eq('ticker', ticker);
-  if(error){ alert('Erro ao excluir: '+error.message); return; }
-  // 2. Remover do cache local
-  delete analyses[ticker];
-  localStorage.setItem('apex_fii_analyses', JSON.stringify(analyses));
-  // 3. Atualizar UI
-  injectAnalyseTags();
-  renderScoreRanking();
-  updateKpiRow();
-  renderAtvVisaoGeral();
-  alert(`✅ Análise de ${ticker} excluída. Os comentários do fórum foram preservados.`);
+  try{
+    // 1. Deletar do Supabase
+    const {error, data} = await db
+      .from('analyses')
+      .delete()
+      .eq('ticker', ticker)
+      .select(); // retorna o que foi deletado para confirmar
+    if(error){
+      console.error('Erro Supabase ao excluir:', error);
+      alert('Erro ao excluir do banco: ' + error.message);
+      return;
+    }
+    console.log('Supabase delete result:', data);
+    // 2. Limpar localmente
+    delete analyses[ticker];
+    localStorage.setItem('apex_fii_analyses', JSON.stringify(analyses));
+    // 3. Forçar re-sync para garantir consistência
+    await supaLoad();
+    // 4. Atualizar UI
+    renderScoreRanking();
+    injectAnalyseTags();
+    updateKpiRow();
+    renderAtvVisaoGeral();
+    alert('Análise de ' + ticker + ' excluída com sucesso.');
+  }catch(e){
+    console.error('Exceção em excluirAnalise:', e);
+    alert('Erro inesperado: ' + e.message);
+  }
 }
 
 // ── EXCLUIR SEMANA (soft delete) ──────────────────────────────
