@@ -312,8 +312,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <div class="header">
   <div style="display:flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" width="140" height="26" viewBox="0 0 1650.05 313.2" aria-label="Apex Partners"><defs><clipPath id="cpL"><path transform="matrix(1,0,0,-1,0,313.2)" d="M0 313.2H1650.053V0H0Z"/></clipPath></defs><path transform="matrix(1,0,0,-1,0,313.2)" d="M256.136 296.6H16.135987V16.600007H256.136Z" fill="#0078d2"/><path transform="matrix(1,0,0,-1,136.1357,86.59981)" d="M0 0-80-70 0-140 80-70Z" fill="#fff"/><path transform="matrix(1,0,0,-1,644.8252,161.5935)" d="M0 0H48.953V13.052H0V55.279H65.691V67.98H-35.042V-59.913H68.829V-47.213H0Z" fill="#fff"/><g clip-path="url(#cpL)"><path transform="matrix(1,0,0,-1,519.187,165.71282)" d="M0 0C-11.296 0-14.016 1.03-14.016 1.03V61.649H2.333C24.997 61.649 33.861 47.779 33.861 29.459 33.861 11.138 21.907 0 0 0M15.587 72.099H-49.058V-55.794H-14.016V-11.152H18.933C49.896-11.152 67.679 4.111 67.679 30.512 67.679 52.822 56.32 72.099 15.587 72.099" fill="#fff"/><path transform="matrix(1,0,0,-1,855.2474,221.50632)" d="M0 0-50.713 73.836-9.519 127.892H-27.867L-59.411 86.5-87.84 127.892H-125.328L-79.128 60.625-125.328 0H-106.981L-70.431 47.962-37.49 0Z" fill="#fff"/><path transform="matrix(1,0,0,-1,353.2971,171.10532)" d="M0 0 17.994 42.702 35.715 0ZM38.74 77.491H18.604L-35.815-50.401H-21.238L-5.209-12.363H40.845L56.667-50.401H93.269Z" fill="#fff"/></g></svg></div>
   <div class="header-right">
-    <div class="header-date">02/06/2026</div>
-    <div>FII Universe · Uso Interno · Semana 16 de 21</div>
+    <div class="header-date" id="header-date">—</div>
+    <div id="header-semana">FII Universe · Uso Interno · Carregando...</div>
     <div id="sync-status" style="font-size:9px;margin-top:2px;color:#a0c4f0">⟳ Sincronizando...</div>
   </div>
 </div>
@@ -4328,6 +4328,7 @@ async function supaLoad(){
     renderAtvVisaoGeral();
     updateKpiRow();
     carregarForumGlobal();
+    atualizarHeaderSemana();
   }catch(e){
     console.warn('Supabase load falhou:',e.message);
     if(ss)ss.innerHTML='⚠️ Offline — '+e.message.substring(0,50);
@@ -5523,6 +5524,7 @@ async function adminConfirmar(){
 
     // 4. Atualizar a página com os novos dados
     await carregarESemanaAtual();
+    await atualizarHeaderSemana();
     adminReset();
     await carregarListaSemanas();
 
@@ -5710,7 +5712,8 @@ function renderizarSemana(semana, fundos){
   const sairam=JSON.parse(semana.sairam||'[]');
 
   // Atualizar header
-  document.querySelector('.header-date').textContent=semana.semana_data;
+  const hDate = document.getElementById('header-date');
+  if(hDate) hDate.textContent = semana.semana_data||'—';
 
   // Atualizar KPIs
   const kpis=document.querySelectorAll('.kpi-val');
@@ -6652,6 +6655,37 @@ async function salvarEdicaoSemana(dataOriginal, rowId){
   await carregarESemanaAtual();
 }
 
+// Atualizar header com dados reais do Supabase
+async function atualizarHeaderSemana(){
+  const db=getDB();
+  if(!db) return;
+  try{
+    // Buscar todas as semanas ativas (não deletadas) ordenadas por num_semana
+    const {data:semanas,error}=await db
+      .from('semanas')
+      .select('semana_data,num_semana,created_at')
+      .is('deleted_at',null)
+      .order('created_at',{ascending:false});
+
+    if(error||!semanas||semanas.length===0) return;
+
+    const latest     = semanas[0];               // semana mais recente
+    const totalSems  = semanas.length;            // total de semanas ativas
+    const numSemana  = latest.num_semana||totalSems;
+    const dataUltima = latest.semana_data||'—';
+
+    // Atualizar header
+    const hDate = document.getElementById('header-date');
+    const hSem  = document.getElementById('header-semana');
+    if(hDate) hDate.textContent = dataUltima;
+    if(hSem)  hSem.textContent  = 'FII Universe · Uso Interno · Semana '+numSemana+' de '+totalSems;
+
+    console.log('Header atualizado: Semana '+numSemana+' de '+totalSems+' ('+dataUltima+')');
+  }catch(e){
+    console.warn('Erro ao atualizar header:', e.message);
+  }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   buildFundDataMap();
   injectAnalyseTags();
@@ -6659,6 +6693,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   carregarESemanaAtual();       // carregar dados da semana mais recente
   // Carregar lista de semanas se estiver na aba admin
   setTimeout(carregarListaSemanas, 500);
+  setTimeout(atualizarHeaderSemana, 200);
   injectPreAnaliseBadges();
   setTimeout(renderAtvVisaoGeral, 300);
   setTimeout(updateKpiRow, 400);
