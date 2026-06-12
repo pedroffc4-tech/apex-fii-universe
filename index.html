@@ -288,6 +288,16 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .semana-deletada .btn-restaurar{opacity:1;text-decoration:none}
 .edit-inline{display:flex;gap:6px;align-items:center}
 .edit-inline input{padding:5px 8px;border:1.5px solid var(--apex-blue);border-radius:6px;font-size:11px;font-family:'Manrope',sans-serif;font-weight:700;outline:none;width:100px}
+.draft-status{text-align:center;padding:8px 0;font-size:10px;color:#a0c4f0;min-height:20px;transition:all .3s}
+.draft-status.saved{color:#6ee7b7;font-weight:600}
+.draft-status.saving{color:#fde68a}
+.draft-status.error{color:#fca5a5}
+.btn-discard-draft{width:100%;padding:9px;background:rgba(255,255,255,.06);color:#fca5a5;border:1px solid rgba(252,165,165,.3);border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .2s;margin-top:6px}
+.btn-discard-draft:hover{background:rgba(239,68,68,.15);border-color:#f87171}
+.draft-banner{background:var(--warning-bg);border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:none}
+.draft-banner-title{font-size:12px;font-weight:700;color:var(--apex-navy);margin-bottom:6px}
+.draft-banner-sub{font-size:11px;color:#6b7a9a;margin-bottom:10px}
+.draft-banner-btns{display:flex;gap:8px}
 .footer{background:var(--apex-navy);color:#a0c4f0;text-align:center;padding:16px;font-size:10px;margin-top:28px;font-weight:500}
 .badge-reprov{display:inline-flex;align-items:center;gap:3px;background:#fdecea;color:#c0392b;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #f5c6c6;white-space:nowrap;cursor:help}
 .badge-monit{display:inline-flex;align-items:center;gap:3px;background:#fef9ec;color:#a06800;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;white-space:nowrap;cursor:help}
@@ -3973,7 +3983,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
           <option value="hedge">Hedge Fund</option>
         </select></div>
       <div class="form-group"><label class="form-label">Analista Responsável</label>
-        <select class="form-select" id="sel-analista">
+        <select class="form-select" id="sel-analista" onchange="onAnalistaChange()">
           <option value="">— Selecione —</option>
           <option>João V.</option><option>Lucas S.</option><option>Pedro C.</option><option>Pedro F.</option><option>Rafael P.</option>
         </select></div>
@@ -4008,7 +4018,15 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <div class="card-title">3. Comparativo entre Relatórios <span style="font-size:10px;font-weight:400;color:#6b7a9a">(preenchido pela IA após upload dos PDFs)</span></div>
     <div id="comparativo-content"><div style="color:#6b7a9a;font-size:12px;font-style:italic">Aguardando geração...</div></div>
   </div>
-  <div id="card-quali" style="display:none">
+  <div id="draft-banner-top" class="draft-banner" style="margin-bottom:14px">
+  <div class="draft-banner-title">📝 Rascunho encontrado</div>
+  <div class="draft-banner-sub" id="draft-banner-top-sub">Existe um rascunho salvo. Deseja continuar?</div>
+  <div class="draft-banner-btns">
+    <button onclick="carregarRascunho()" style="flex:1;padding:8px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">↩ Continuar rascunho</button>
+    <button onclick="ignorarRascunho()" style="flex:1;padding:8px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Começar do zero</button>
+  </div>
+</div>
+<div id="card-quali" style="display:none">
     <div class="score-section-hdr quali" onclick="toggleSection('quali-body')">
       <div><div class="score-section-title">Análise Qualitativa — 40%</div>
         <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">7 critérios · 5,7% cada · Gemini sugere, analista valida</div></div>
@@ -4518,6 +4536,9 @@ function onFundoSelect(){
   const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
   currentTicker=ticker;
   if(!ticker){
+    pararAutoSaveTimer();
+    setDraftStatus('','');
+    ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
     ['card-pdfs','card-quali','card-quanti','card-summary','pa-alert','fundo-status-banner'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.style.display='none';
     });
@@ -4556,12 +4577,24 @@ function onFundoSelect(){
   ['card-quali','card-quanti','card-summary'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.display='block';
   });
-  if(a?.finalizado){reloadAnalise(ticker);}
-  else{
+  // Esconder banners e status de rascunho
+  ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  setDraftStatus('','');
+  const btnD=document.getElementById('btn-discard-draft');if(btnD)btnD.style.display='none';
+  _draftRascunho=null;
+
+  if(a?.finalizado){
+    reloadAnalise(ticker);
+  }else{
     renderQuantiBlocks(tipo);
     renderQualiBlocksPlaceholder();
     setTimeout(()=>preencherDadosBTG(ticker,tipo),50);
+    // Verificar rascunho após renderizar os blocos
+    const analista=document.getElementById('sel-analista')?.value||'';
+    if(analista) setTimeout(()=>verificarRascunho(ticker,analista),200);
   }
+  // Iniciar timer de auto-save
+  iniciarAutoSaveTimer();
 }
 function onPdfLoad(input,which){
   const file=input.files[0];if(!file)return;
@@ -4737,10 +4770,10 @@ function renderQualiBlocksPlaceholder(){
         </div></div>
       <div class="score-block-right">
         <div class="score-input-wrap"><div class="score-input-label">Nota</div>
-          <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
+          <input type="number" class="score-num" id="quali-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()" onblur="autoSaveDraft()"></div>
         <div id="quali-sug-${c.id}" class="score-suggested">Aguardando Gemini...</div>
       </div></div>
-    <textarea class="form-textarea" id="quali-just-${c.id}" placeholder="Justificativa do analista..."></textarea>
+    <textarea class="form-textarea" id="quali-just-${c.id}" placeholder="Justificativa do analista..." onblur="autoSaveDraft()"></textarea>
   </div>`).join('');
 }
 function renderQuantiBlocks(tipo){
@@ -4761,9 +4794,9 @@ function renderQuantiBlocks(tipo){
             ${ranges.map((r,i)=>`<span class="range-pill ${i===0?'r-low':i===1?'r-mid':'r-high'}">${r.label}: ${r.txt}</span>`).join('')}
           </div></div>
         <div class="score-block-right"><div class="score-input-wrap"><div class="score-input-label">Nota</div>
-          <input type="number" class="score-num" id="quanti-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()"></div>
+          <input type="number" class="score-num" id="quanti-note-${c.id}" min="0" max="10" step="0.5" placeholder="—" oninput="updateScore()" onblur="autoSaveDraft()"></div>
         </div></div>
-      <textarea class="form-textarea" id="quanti-just-${c.id}" placeholder="Justificativa do analista..."></textarea>
+      <textarea class="form-textarea" id="quanti-just-${c.id}" placeholder="Justificativa do analista..." onblur="autoSaveDraft()"></textarea>
     </div>`;
   }).join('');
 }
@@ -4876,6 +4909,9 @@ async function finalizarAnalise(){
   if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
   renderAtvVisaoGeral();
   updateKpiRow();
+  // Limpar rascunho após finalizar
+  await limparRascunhoAoFinalizar(ticker, analista);
+  pararAutoSaveTimer();
 }
 function reloadAnalise(ticker){
   const btnForum=document.getElementById('btn-forum-analise');
@@ -5812,6 +5848,18 @@ function segChipInline(seg){
   return`<span class="seg-chip" style="background:${bg};color:${c}">${seg||'—'}</span>`;
 }
 
+function onAnalistaChange(){
+  const ticker  = currentTicker;
+  const analista= document.getElementById('sel-analista')?.value||'';
+  if(!ticker||!analista) return;
+  ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  setDraftStatus('','');
+  _draftRascunho=null;
+  // Só verificar rascunho se não houver análise finalizada
+  if(!analyses[ticker]?.finalizado){
+    setTimeout(()=>verificarRascunho(ticker,analista),200);
+  }
+}
 function onTipoChange(){
   if(!currentTicker)return;
   const tipo=document.getElementById('sel-tipo').value||'papel-ipca';
@@ -6684,6 +6732,181 @@ async function atualizarHeaderSemana(){
   }catch(e){
     console.warn('Erro ao atualizar header:', e.message);
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTO-SAVE — Rascunho por fundo por analista no Supabase
+// ══════════════════════════════════════════════════════════════
+let _draftRascunho   = null;   // rascunho carregado do banco
+let _draftAutoSaveId = null;   // timer do setInterval (30s)
+let _draftBlurTimer  = null;   // timer do blur debounce
+
+// ── Coletar estado atual da análise ──────────────────────────
+function coletarEstadoAnalise(){
+  const ticker   = currentTicker;
+  const analista = document.getElementById('sel-analista')?.value||'';
+  const tipo     = document.getElementById('sel-tipo')?.value||'';
+  if(!ticker||!analista) return null;
+
+  const qs={}, qj={}, ns={}, nj={};
+  QUALI_CRITERIA.forEach(c=>{
+    const v=document.getElementById('quali-note-'+c.id)?.value;
+    const j=document.getElementById('quali-just-'+c.id)?.value||'';
+    if(v!==undefined&&v!=='') qs[c.id]=parseFloat(v);
+    if(j) qj[c.id]=j;
+  });
+  QUANTI_CRITERIA.forEach(c=>{
+    const v=document.getElementById('quanti-note-'+c.id)?.value;
+    const j=document.getElementById('quanti-just-'+c.id)?.value||'';
+    if(v!==undefined&&v!=='') ns[c.id]=parseFloat(v);
+    if(j) nj[c.id]=j;
+  });
+
+  const temDados=Object.keys(qs).length>0||Object.keys(ns).length>0||
+                 Object.keys(qj).length>0||Object.keys(nj).length>0;
+  if(!temDados) return null;
+
+  return {ticker,analista,tipo,
+    quali_scores:qs,quali_just:qj,
+    quanti_scores:ns,quanti_just:nj,
+    updated_at:new Date().toISOString()};
+}
+
+// ── Mostrar status do rascunho ────────────────────────────────
+function setDraftStatus(msg, tipo=''){
+  ['draft-status','draft-status-bottom'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.textContent=msg;
+    el.className='draft-status'+(tipo?' '+tipo:'');
+  });
+}
+
+// ── Salvar rascunho no Supabase ───────────────────────────────
+async function salvarRascunho(){
+  const estado=coletarEstadoAnalise();
+  if(!estado) return;
+  const db=getDB();if(!db)return;
+  setDraftStatus('⟳ Salvando rascunho...','saving');
+  try{
+    const {error}=await db.from('analysis_drafts').upsert(estado,{onConflict:'ticker,analista'});
+    if(error) throw error;
+    const agora=new Date();
+    const hora=String(agora.getHours()).padStart(2,'0')+':'+String(agora.getMinutes()).padStart(2,'0');
+    setDraftStatus('✓ Rascunho salvo às '+hora,'saved');
+    // Mostrar botão descartar
+    const btn=document.getElementById('btn-discard-draft');
+    if(btn)btn.style.display='block';
+    // Esconder banners de rascunho (já carregou)
+    ['draft-banner','draft-banner-top'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.style.display='none';
+    });
+  }catch(e){
+    setDraftStatus('⚠ Erro ao salvar rascunho','error');
+    console.warn('Draft save error:',e.message);
+  }
+}
+
+// ── Trigger ao sair de um campo (blur) ───────────────────────
+function autoSaveDraft(){
+  // Pequeno delay para garantir que o valor foi capturado
+  clearTimeout(_draftBlurTimer);
+  _draftBlurTimer=setTimeout(()=>salvarRascunho(),300);
+}
+
+// ── Verificar e oferecer rascunho ao selecionar fundo ─────────
+async function verificarRascunho(ticker, analista){
+  if(!ticker||!analista) return;
+  const db=getDB();if(!db)return;
+  try{
+    const {data,error}=await db.from('analysis_drafts')
+      .select('*').eq('ticker',ticker).eq('analista',analista).single();
+    if(error||!data) return; // sem rascunho
+    // Rascunho encontrado — guardar e mostrar banner
+    _draftRascunho=data;
+    const quando=new Date(data.updated_at);
+    const fmt=quando.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const msg='Salvo em '+fmt+' com '+(Object.keys(data.quali_scores||{}).length+Object.keys(data.quanti_scores||{}).length)+' campos preenchidos.';
+    ['draft-banner-sub','draft-banner-top-sub'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.textContent=msg;
+    });
+    ['draft-banner','draft-banner-top'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.style.display='block';
+    });
+  }catch(e){
+    console.warn('verificarRascunho:',e.message);
+  }
+}
+
+// ── Carregar rascunho nos campos ──────────────────────────────
+function carregarRascunho(){
+  if(!_draftRascunho) return;
+  const d=_draftRascunho;
+  // Preencher qualitativo
+  QUALI_CRITERIA.forEach(c=>{
+    const v=d.quali_scores?.[c.id];
+    const j=d.quali_just?.[c.id];
+    if(v!=null){const el=document.getElementById('quali-note-'+c.id);if(el)el.value=v;}
+    if(j){const el=document.getElementById('quali-just-'+c.id);if(el){el.value=j;el.classList.add('suggested');}}
+  });
+  // Preencher quantitativo
+  QUANTI_CRITERIA.forEach(c=>{
+    const v=d.quanti_scores?.[c.id];
+    const j=d.quanti_just?.[c.id];
+    if(v!=null){const el=document.getElementById('quanti-note-'+c.id);if(el&&!el.disabled)el.value=v;}
+    if(j){const el=document.getElementById('quanti-just-'+c.id);if(el)el.value=j;}
+  });
+  updateScore();
+  // Esconder banners e mostrar status
+  ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  setDraftStatus('↩ Rascunho carregado','saved');
+  const btn=document.getElementById('btn-discard-draft');if(btn)btn.style.display='block';
+  _draftRascunho=null;
+}
+
+// ── Ignorar rascunho (começar do zero, mas manter no banco) ───
+function ignorarRascunho(){
+  ['draft-banner','draft-banner-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  setDraftStatus('','');
+  _draftRascunho=null;
+}
+
+// ── Descartar rascunho permanentemente ───────────────────────
+async function descartarRascunho(){
+  if(!confirm('Descartar o rascunho de '+currentTicker+'? Esta ação não pode ser desfeita.')) return;
+  const analista=document.getElementById('sel-analista')?.value||'';
+  const db=getDB();if(!db)return;
+  try{
+    await db.from('analysis_drafts').delete()
+      .eq('ticker',currentTicker).eq('analista',analista);
+    setDraftStatus('Rascunho descartado','');
+    const btn=document.getElementById('btn-discard-draft');if(btn)btn.style.display='none';
+    _draftRascunho=null;
+  }catch(e){setDraftStatus('Erro ao descartar','error');}
+}
+
+// ── Limpar rascunho ao finalizar ──────────────────────────────
+async function limparRascunhoAoFinalizar(ticker, analista){
+  const db=getDB();if(!db)return;
+  try{
+    await db.from('analysis_drafts').delete()
+      .eq('ticker',ticker).eq('analista',analista);
+    setDraftStatus('','');
+    const btn=document.getElementById('btn-discard-draft');if(btn)btn.style.display='none';
+  }catch(e){console.warn('Erro ao limpar rascunho:',e.message);}
+}
+
+// ── Iniciar/parar timer de 30s ────────────────────────────────
+function iniciarAutoSaveTimer(){
+  pararAutoSaveTimer();
+  _draftAutoSaveId=setInterval(()=>{
+    if(currentTicker&&document.getElementById('sel-analista')?.value){
+      salvarRascunho();
+    }
+  },30000);
+}
+function pararAutoSaveTimer(){
+  if(_draftAutoSaveId){clearInterval(_draftAutoSaveId);_draftAutoSaveId=null;}
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
