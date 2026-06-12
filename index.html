@@ -4204,7 +4204,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <div style="display:flex;gap:8px">
         <button onclick="closeConfirmModal()" style="flex:1;padding:10px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Cancelar</button>
         <button id="confirm-ok-btn" onclick="executeConfirmAction()" disabled
-          style="flex:1;padding:10px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'Manrope',sans-serif;transition:all .2s" id="confirm-ok-btn">
+          style="flex:1;padding:10px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:not-allowed;font-family:'Manrope',sans-serif;transition:all .2s" >
           Confirmar exclusão
         </button>
       </div>
@@ -6511,17 +6511,17 @@ function configurarPin(){
 
 // ── EXCLUIR ANÁLISE ───────────────────────────────────────────
 function confirmarExcluirAnalise(ticker){
-  const a = analyses[ticker];
-  if(!a){ alert('Análise não encontrada.'); return; }
+  const a=analyses[ticker];
+  const nome=(a&&a.nome)||ticker;
+  const analista=(a&&a.analista)||'—';
+  const data=(a&&a.data)||'—';
   openConfirmModal({
-    title:        '🗑 Excluir Análise',
-    desc:         `Você está prestes a excluir permanentemente a análise de ${ticker} (${a.nome||''}), feita por ${a.analista||'—'} em ${a.data||'—'}.
-
-Os comentários do fórum serão preservados. Esta ação não pode ser desfeita.`,
-    wordLabel:    `Digite o ticker "${ticker}" para confirmar:`,
-    expectedWord: ticker,
-    needsPin:     false,
-    onConfirm:    ()=>excluirAnalise(ticker)
+    title:'Excluir Análise — '+ticker,
+    desc:'Excluir permanentemente a análise de '+ticker+' ('+nome+'), feita por '+analista+' em '+data+'. Comentários do fórum serão preservados. Esta ação não pode ser desfeita.',
+    wordLabel:'Digite o ticker '+ticker+' para confirmar:',
+    expectedWord:ticker,
+    needsPin:false,
+    onConfirm:()=>excluirAnalise(ticker)
   });
 }
 
