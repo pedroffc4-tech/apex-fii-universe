@@ -4300,9 +4300,16 @@ async function supaLoad(){
     if(ss)ss.innerHTML='⟳ Sincronizando...';
     const {data:rows,error}=await db.from('analyses').select('*');
     if(error)throw new Error(error.message);
-    if(!rows||rows.length===0){if(ss)ss.innerHTML='✅ Banco vazio — pronto para uso';return;}
-    // Limpar antes de repopular — garante que exclusões surtam efeito
+    // Limpar SEMPRE — antes de verificar se há linhas
     Object.keys(analyses).forEach(k=>delete analyses[k]);
+    localStorage.setItem('apex_fii_analyses','{}');
+    if(!rows||rows.length===0){
+      if(ss)ss.innerHTML='✅ Banco vazio — pronto para uso';
+      injectAnalyseTags();
+      renderScoreRanking();
+      updateKpiRow();
+      return;
+    }
     rows.forEach(row=>{
       analyses[row.ticker]={
         ticker:row.ticker,nome:row.nome,seg:row.segmento,
