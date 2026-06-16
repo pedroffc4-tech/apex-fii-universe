@@ -286,6 +286,35 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .btn-download{padding:4px 10px;background:#e8f5e1;color:#2d5a00;border:1px solid #c3e6a8;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
 .btn-download:hover{background:#2d5a00;color:#fff}
 .btn-download.disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:default;pointer-events:none}
+/* ── Por Segmento ── */
+.seg-toggle{padding:5px 12px;background:#f0f4fa;color:#5a6e8a;border:1.5px solid var(--apex-mist);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s}
+.seg-toggle:hover{background:var(--apex-blue-lt);color:var(--apex-blue);border-color:var(--apex-blue)}
+.seg-toggle.active{background:var(--apex-blue);color:#fff;border-color:var(--apex-blue)}
+.seg-bar-row{margin-bottom:8px;border-radius:8px;overflow:hidden;transition:all .2s}
+.seg-bar-header{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-radius:8px;transition:background .15s}
+.seg-bar-header:hover{background:var(--apex-blue-lt)}
+.seg-bar-chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:8px;white-space:nowrap;flex-shrink:0;min-width:130px}
+.seg-bar-track{flex:1;height:8px;background:var(--apex-mist);border-radius:4px;overflow:hidden;position:relative}
+.seg-bar-fill{height:8px;border-radius:4px;transition:width .5s ease}
+.seg-bar-val{font-size:11px;font-weight:700;color:var(--apex-navy);white-space:nowrap;min-width:60px;text-align:right}
+.seg-bar-trend{font-size:10px;font-weight:700;white-space:nowrap;min-width:36px;text-align:right}
+.trend-up{color:var(--success)}.trend-dn{color:var(--danger)}.trend-neu{color:#aaa}
+.seg-expand-body{display:none;padding:8px 10px 12px;background:#f8faff;border-radius:0 0 8px 8px;border-top:1px solid var(--apex-mist)}
+.seg-expand-body.open{display:block}
+.seg-ticker-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.seg-ticker-pill{background:#fff;border:1px solid var(--apex-mist);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--apex-navy);cursor:pointer;transition:all .15s}
+.seg-ticker-pill:hover{background:var(--apex-blue);color:#fff;border-color:var(--apex-blue)}
+/* ranking cruzado */
+.rank-cruzado-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f4fa}
+.rank-cruzado-item:last-child{border:none}
+.rank-cruzado-label{font-size:10px;color:#6b7a9a;text-transform:uppercase;letter-spacing:.4px;font-weight:600;min-width:80px}
+.rank-cruzado-winner{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--apex-navy)}
+/* radar checkboxes */
+.radar-cb-row{display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;user-select:none}
+.radar-cb-swatch{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.radar-axis-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.radar-axis-select{padding:4px 6px;border:1.5px solid var(--apex-mist);border-radius:6px;font-size:10px;font-family:'Manrope',sans-serif;color:var(--apex-navy);background:#fff;outline:none;flex:1}
+.radar-axis-select:focus{border-color:var(--apex-blue)}
 .retro-progress{margin-top:12px;display:none}
 .retro-bar-wrap{background:#eef2fa;border-radius:6px;height:8px;overflow:hidden;margin:6px 0}
 .retro-bar-fill{background:var(--success);height:100%;width:0%;transition:width .3s ease;border-radius:6px}
@@ -544,354 +573,96 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <!-- ══ SEGMENTOS ══ -->
 <div class="tab" id="tab-segmentos">
   <div class="section-hdr">
-    <h2>Análise por Segmento</h2>
-    <p>Médias calculadas sobre os 127 fundos elegíveis · Referência: 02/06/2026</p>
+    <h2 id="seg-hdr-title">Análise por Segmento</h2>
+    <p id="seg-hdr-sub">Carregando dados...</p>
   </div>
-  <div class="two-col">
+
+  <!-- ── SEÇÃO 1: Barras com toggle + expansão ─────────────────── -->
+  <div class="card" style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div class="card-title" style="margin:0;padding:0;border:none">Fundos elegíveis por segmento</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="seg-bar-toggles">
+        <button class="seg-toggle active" onclick="setSegBarMetric('count',this)">Qtd fundos</button>
+        <button class="seg-toggle" onclick="setSegBarMetric('dy',this)">DY médio</button>
+        <button class="seg-toggle" onclick="setSegBarMetric('vol',this)">Vol médio</button>
+        <button class="seg-toggle" onclick="setSegBarMetric('pvp',this)">P/VP médio</button>
+        <button class="seg-toggle" onclick="setSegBarMetric('mkt',this)">MktCap médio</button>
+      </div>
+    </div>
+    <div id="seg-bars-container">
+      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
+    </div>
+  </div>
+
+  <!-- ── SEÇÃO 2: Ranking cruzado + Tabela de indicadores ─────── -->
+  <div class="two-col" style="margin-bottom:18px">
     <div class="card">
-      <div class="card-title">Fundos elegíveis por segmento</div>
-      <div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Recebível</span><span style="font-weight:700;color:var(--apex-blue)">37</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:100%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Galpão Logístico</span><span style="font-weight:700;color:var(--apex-blue)">13</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:35%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Laje Corporativa</span><span style="font-weight:700;color:var(--apex-blue)">13</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:35%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>FIAgro - FII</span><span style="font-weight:700;color:var(--apex-blue)">11</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:30%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Shopping Center</span><span style="font-weight:700;color:var(--apex-blue)">10</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:27%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>FI-Infra</span><span style="font-weight:700;color:var(--apex-blue)">9</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:24%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Hedge Fund</span><span style="font-weight:700;color:var(--apex-blue)">8</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:22%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Fundo de Fundos</span><span style="font-weight:700;color:var(--apex-blue)">8</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:22%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Híbrido</span><span style="font-weight:700;color:var(--apex-blue)">5</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:14%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Renda Urbana</span><span style="font-weight:700;color:var(--apex-blue)">4</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:11%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Agronegócio</span><span style="font-weight:700;color:var(--apex-blue)">3</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:8%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Desenvolvimento</span><span style="font-weight:700;color:var(--apex-blue)">2</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:5%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Agência Bancária</span><span style="font-weight:700;color:var(--apex-blue)">1</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:3%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Educacional</span><span style="font-weight:700;color:var(--apex-blue)">1</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:3%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Hotel</span><span style="font-weight:700;color:var(--apex-blue)">1</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:3%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
-<div style="margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--apex-navy);margin-bottom:3px">
-    <span>Outros</span><span style="font-weight:700;color:var(--apex-blue)">1</span>
-  </div>
-  <div style="height:7px;background:var(--apex-mist);border-radius:4px;overflow:hidden">
-    <div style="width:3%;height:7px;background:linear-gradient(90deg,var(--apex-blue),var(--apex-navy));border-radius:4px"></div>
-  </div>
-</div>
+      <div class="card-title">🏆 Ranking cruzado por métrica</div>
+      <div id="seg-ranking-cruzado">
+        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
+      </div>
     </div>
     <div class="card">
-      <div class="card-title">Indicadores médios por segmento</div>
+      <div class="card-title">Indicadores médios — tabela completa</div>
       <div class="tbl-wrap" style="border:none">
         <table id="tbl-seg">
           <thead><tr>
             <th onclick="sortTable('tbl-seg',0)">Segmento<span class="sort-arrow">⇅</span></th>
             <th onclick="sortTable('tbl-seg',1)">Qtd<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',2)">Vol 90d Médio<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',3)">MktCap Médio<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',4)">P/VP<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',5)">DY LTM<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',6)">DY Anual<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',7)">Ret. Mês<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',8)">Ret. Ano<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',9)">Ret. LTM<span class="sort-arrow">⇅</span></th>
+            <th onclick="sortTable('tbl-seg',2)" data-val>DY Anual<span class="sort-arrow">⇅</span></th>
+            <th onclick="sortTable('tbl-seg',3)" data-val>P/VP<span class="sort-arrow">⇅</span></th>
+            <th onclick="sortTable('tbl-seg',4)" data-val>Vol Médio<span class="sort-arrow">⇅</span></th>
+            <th onclick="sortTable('tbl-seg',5)" data-val>Ret. Mês<span class="sort-arrow">⇅</span></th>
+            <th onclick="sortTable('tbl-seg',6)" data-val>Ret. Ano<span class="sort-arrow">⇅</span></th>
           </tr></thead>
-          <tbody><tr>
-  <td><strong>Recebível</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">37</td>
-  <td>R$ 3,389,276</td>
-  <td>R$ 1484.2M</td>
-  <td style="font-weight:700">0.8644x</td>
-  <td style="color:var(--success);font-weight:600">15.13%</td>
-  <td style="color:var(--success);font-weight:600">14.61%</td>
-  <td style="color:var(--danger);font-weight:600">-0.38%</td>
-  <td style="color:var(--success);font-weight:600">3.43%</td>
-  <td style="color:var(--success);font-weight:600">9.97%</td>
-</tr>
-<tr>
-  <td><strong>Galpão Logístico</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">13</td>
-  <td>R$ 5,011,687</td>
-  <td>R$ 2171.2M</td>
-  <td style="font-weight:700">0.8851x</td>
-  <td style="color:var(--warning);font-weight:600">11.11%</td>
-  <td style="color:var(--warning);font-weight:600">11.14%</td>
-  <td style="color:var(--danger);font-weight:600">-0.94%</td>
-  <td style="color:var(--danger);font-weight:600">-2.32%</td>
-  <td style="color:var(--success);font-weight:600">11.89%</td>
-</tr>
-<tr>
-  <td><strong>Laje Corporativa</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">13</td>
-  <td>R$ 1,350,217</td>
-  <td>R$ 627.3M</td>
-  <td style="font-weight:700">0.6676x</td>
-  <td style="color:var(--success);font-weight:600">13.77%</td>
-  <td style="color:var(--success);font-weight:600">12.50%</td>
-  <td style="color:var(--danger);font-weight:600">-0.73%</td>
-  <td style="color:var(--danger);font-weight:600">-1.86%</td>
-  <td style="color:var(--success);font-weight:600">9.80%</td>
-</tr>
-<tr>
-  <td><strong>FIAgro - FII</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">11</td>
-  <td>R$ 1,629,825</td>
-  <td>R$ 666.1M</td>
-  <td style="font-weight:700">0.8817x</td>
-  <td style="color:var(--success);font-weight:600">16.91%</td>
-  <td style="color:var(--success);font-weight:600">15.58%</td>
-  <td style="color:var(--danger);font-weight:600">-0.16%</td>
-  <td style="color:var(--success);font-weight:600">4.43%</td>
-  <td style="color:var(--success);font-weight:600">19.03%</td>
-</tr>
-<tr>
-  <td><strong>Shopping Center</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">10</td>
-  <td>R$ 5,640,809</td>
-  <td>R$ 2007.9M</td>
-  <td style="font-weight:700">0.8316x</td>
-  <td style="color:var(--success);font-weight:600">12.44%</td>
-  <td style="color:var(--warning);font-weight:600">10.97%</td>
-  <td style="color:var(--danger);font-weight:600">-0.07%</td>
-  <td style="color:var(--success);font-weight:600">1.68%</td>
-  <td style="color:var(--success);font-weight:600">13.60%</td>
-</tr>
-<tr>
-  <td><strong>FI-Infra</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">9</td>
-  <td>R$ 2,545,428</td>
-  <td>R$ 1335.2M</td>
-  <td style="font-weight:700">0.9593x</td>
-  <td style="color:var(--success);font-weight:600">15.99%</td>
-  <td style="color:var(--success);font-weight:600">14.80%</td>
-  <td style="color:var(--danger);font-weight:600">-0.18%</td>
-  <td style="color:var(--success);font-weight:600">3.98%</td>
-  <td style="color:var(--success);font-weight:600">18.47%</td>
-</tr>
-<tr>
-  <td><strong>Hedge Fund</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">8</td>
-  <td>R$ 4,314,409</td>
-  <td>R$ 1431.8M</td>
-  <td style="font-weight:700">0.8582x</td>
-  <td style="color:var(--success);font-weight:600">13.89%</td>
-  <td style="color:var(--success);font-weight:600">13.03%</td>
-  <td style="color:var(--danger);font-weight:600">-0.82%</td>
-  <td style="color:var(--success);font-weight:600">2.99%</td>
-  <td style="color:var(--success);font-weight:600">13.24%</td>
-</tr>
-<tr>
-  <td><strong>Fundo de Fundos</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">8</td>
-  <td>R$ 1,062,851</td>
-  <td>R$ 531.5M</td>
-  <td style="font-weight:700">0.8696x</td>
-  <td style="color:var(--success);font-weight:600">12.95%</td>
-  <td style="color:var(--success);font-weight:600">12.45%</td>
-  <td style="color:var(--danger);font-weight:600">-0.23%</td>
-  <td style="color:var(--success);font-weight:600">5.05%</td>
-  <td style="color:var(--success);font-weight:600">15.71%</td>
-</tr>
-<tr>
-  <td><strong>Híbrido</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">5</td>
-  <td>R$ 4,166,289</td>
-  <td>R$ 1587.4M</td>
-  <td style="font-weight:700">0.8970x</td>
-  <td style="color:var(--warning);font-weight:600">11.05%</td>
-  <td style="color:var(--success);font-weight:600">12.09%</td>
-  <td style="color:var(--danger);font-weight:600">-0.48%</td>
-  <td style="color:var(--success);font-weight:600">0.62%</td>
-  <td style="color:var(--success);font-weight:600">11.98%</td>
-</tr>
-<tr>
-  <td><strong>Renda Urbana</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">4</td>
-  <td>R$ 10,800,941</td>
-  <td>R$ 3126.4M</td>
-  <td style="font-weight:700">0.9202x</td>
-  <td style="color:var(--success);font-weight:600">12.48%</td>
-  <td style="color:var(--warning);font-weight:600">11.17%</td>
-  <td style="color:var(--danger);font-weight:600">-0.42%</td>
-  <td style="color:var(--danger);font-weight:600">-0.47%</td>
-  <td style="color:var(--success);font-weight:600">11.49%</td>
-</tr>
-<tr>
-  <td><strong>Agronegócio</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">3</td>
-  <td>R$ 2,772,360</td>
-  <td>R$ 850.3M</td>
-  <td style="font-weight:700">0.8914x</td>
-  <td style="color:var(--success);font-weight:600">12.94%</td>
-  <td style="color:var(--success);font-weight:600">13.22%</td>
-  <td style="color:var(--danger);font-weight:600">-0.38%</td>
-  <td style="color:var(--success);font-weight:600">11.79%</td>
-  <td style="color:var(--success);font-weight:600">27.38%</td>
-</tr>
-<tr>
-  <td><strong>Desenvolvimento</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">2</td>
-  <td>R$ 5,089,645</td>
-  <td>R$ 846.6M</td>
-  <td style="font-weight:700">0.5153x</td>
-  <td style="color:var(--success);font-weight:600">23.75%</td>
-  <td style="color:var(--success);font-weight:600">18.50%</td>
-  <td style="color:var(--danger);font-weight:600">-4.42%</td>
-  <td style="color:var(--danger);font-weight:600">-31.85%</td>
-  <td style="color:var(--danger);font-weight:600">-27.89%</td>
-</tr>
-<tr>
-  <td><strong>Agência Bancária</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">1</td>
-  <td>R$ 1,292,806</td>
-  <td>R$ 1454.9M</td>
-  <td style="font-weight:700">0.8779x</td>
-  <td style="color:var(--success);font-weight:600">14.89%</td>
-  <td style="color:var(--success);font-weight:600">13.79%</td>
-  <td style="color:var(--danger);font-weight:600">-0.52%</td>
-  <td style="color:var(--danger);font-weight:600">-3.05%</td>
-  <td style="color:var(--success);font-weight:600">13.99%</td>
-</tr>
-<tr>
-  <td><strong>Educacional</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">1</td>
-  <td>R$ 675,078</td>
-  <td>R$ 534.0M</td>
-  <td style="font-weight:700">0.8849x</td>
-  <td style="color:var(--success);font-weight:600">13.75%</td>
-  <td style="color:var(--success);font-weight:600">13.91%</td>
-  <td style="color:var(--danger);font-weight:600">-0.48%</td>
-  <td style="color:var(--success);font-weight:600">5.70%</td>
-  <td style="color:var(--success);font-weight:600">11.67%</td>
-</tr>
-<tr>
-  <td><strong>Hotel</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">1</td>
-  <td>R$ 440,575</td>
-  <td>R$ 386.1M</td>
-  <td style="font-weight:700">0.8960x</td>
-  <td style="color:var(--success);font-weight:600">12.93%</td>
-  <td style="color:var(--warning);font-weight:600">10.77%</td>
-  <td style="color:var(--success);font-weight:600">0.66%</td>
-  <td style="color:var(--danger);font-weight:600">-6.64%</td>
-  <td style="color:var(--success);font-weight:600">7.97%</td>
-</tr>
-<tr>
-  <td><strong>Outros</strong></td>
-  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">1</td>
-  <td>R$ 3,993,028</td>
-  <td>R$ 940.6M</td>
-  <td style="font-weight:700">1.0459x</td>
-  <td style="color:var(--success);font-weight:600">14.12%</td>
-  <td style="color:var(--success);font-weight:600">14.12%</td>
-  <td style="color:var(--success);font-weight:600">0.00%</td>
-  <td style="color:var(--success);font-weight:600">5.39%</td>
-  <td style="color:var(--success);font-weight:600">14.02%</td>
-</tr></tbody>
+          <tbody id="tbl-seg-body">
+            <tr><td colspan="7" style="text-align:center;color:#6b7a9a;padding:20px">Carregando...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
   </div>
+
+  <!-- ── SEÇÃO 3: Scatter DY × P/VP ───────────────────────────── -->
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">📊 Dispersão por Segmento — DY Anual × P/VP</div>
+    <div style="font-size:11px;color:#6b7a9a;margin-bottom:14px">
+      Quadrante ideal: <strong>alto DY + baixo P/VP</strong> (canto superior esquerdo).
+      Cada ponto representa a média do segmento.
+    </div>
+    <div id="seg-scatter-wrap" style="overflow-x:auto">
+      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
+    </div>
+  </div>
+
+  <!-- ── SEÇÃO 4: Radar comparativo ───────────────────────────── -->
+  <div class="card">
+    <div class="card-title">🕸 Radar Comparativo entre Segmentos</div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <!-- Controles -->
+      <div style="min-width:220px;flex-shrink:0">
+        <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Segmentos exibidos</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button onclick="selectAllRadarSegs(true)"  style="flex:1;padding:4px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Todos</button>
+          <button onclick="selectAllRadarSegs(false)" style="flex:1;padding:4px;background:#f0f0f0;color:#6b7a9a;border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Nenhum</button>
+        </div>
+        <div id="seg-radar-checkboxes" style="font-size:11px;line-height:2;max-height:320px;overflow-y:auto"></div>
+        <div style="margin-top:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Eixos do radar</div>
+          <div id="seg-radar-axes-controls"></div>
+        </div>
+      </div>
+      <!-- Gráfico -->
+      <div style="flex:1;min-width:280px;display:flex;justify-content:center">
+        <div id="seg-radar-wrap">
+          <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
 
 <!-- ══ RANKING ══ -->
 <div class="tab" id="tab-ranking">
@@ -4459,6 +4230,9 @@ const QUANTI_CRITERIA=[
   {id:'n12',peso:5.0,nome:'LTV',desc:'Razão de garantias (fundos de tijolo)',ranges:[{label:'0–3',txt:'> 40%'},{label:'4–6',txt:'20-40%'},{label:'7–10',txt:'< 20%'}],applicavel:false,checkAplic:true}
 ];
 let currentTicker='';
+// Dados da semana atual — compartilhados entre abas
+let _currentFundos=[];
+let _currentSemana=null;
 let analyses=JSON.parse(localStorage.getItem('apex_fii_analyses')||'{}');
 const tableSortState={};
 function showTab(id,el){
@@ -4467,6 +4241,7 @@ function showTab(id,el){
   document.getElementById('tab-'+id)?.classList.add('active');
   el.classList.add('active');
   if(id==='fundos') injectAnalyseTags();
+  if(id==='segmentos') renderSegmentos();
   if(id==='analise'){initAnaliseFundoDropdown();}
   if(id==='ranking') renderScoreRanking();
   if(id==='admin') carregarListaSemanas();
@@ -6119,10 +5894,480 @@ function renderizarSemana(semana, fundos){
   });
 
   injectPreAnaliseBadges();
+  // Armazenar dados globalmente para uso na aba Por Segmento
+  _currentFundos=fundos;
+  _currentSemana=semana;
+  renderSegmentos();
   console.log('✅ Dashboard atualizado com dados de '+semana.semana_data);
 }
 
-// helper para o "chip" colorido de segmento
+// ══════════════════════════════════════════════════════════════
+// POR SEGMENTO — Dados, Gráficos e Interatividade
+// ══════════════════════════════════════════════════════════════
+
+const SEG_COLORS={
+  'Recebível':'#1a6fa8','Galpão Logístico':'#3B6D11','Shopping Center':'#854F0B',
+  'Laje Corporativa':'#3C3489','Fundo de Fundos':'#085041','FI-Infra':'#7a1a6b',
+  'FIAgro - FII':'#5e3a00','Hedge Fund':'#8B0000','Renda Urbana':'#0a5f7a',
+  'Híbrido':'#4a4a00','Agronegócio':'#2d5a00','Desenvolvimento':'#003366',
+  'Agência Bancária':'#333300','Hotel':'#552200','Educacional':'#002244','Outros':'#444444'
+};
+const SEG_BG={
+  'Recebível':'#D2E5FF','Galpão Logístico':'#EAF3DE','Shopping Center':'#FAEEDA',
+  'Laje Corporativa':'#EEEDFE','Fundo de Fundos':'#E1F5EE','FI-Infra':'#f5e1f7',
+  'FIAgro - FII':'#fff3cd','Hedge Fund':'#FCEBEB','Renda Urbana':'#e1f5fb',
+  'Híbrido':'#fffff0','Agronegócio':'#e8f5e1','Desenvolvimento':'#e1eaf5',
+  'Agência Bancária':'#f5f5dc','Hotel':'#f5ebe1','Educacional':'#e1e8f5','Outros':'#f0f0f0'
+};
+
+let _segBarMetric='count';
+let _segData={};
+let _radarSelectedSegs=new Set();
+let _radarAxes=['dy_anual','pvp_atual','vol3m','mktcap','ret_ano'];
+const RADAR_AXIS_OPTIONS=[
+  {key:'dy_anual',  label:'DY Anual',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+  {key:'pvp_atual', label:'P/VP',        fmt:v=>v.toFixed(2)+'x',       higher:false},
+  {key:'vol3m',     label:'Vol Médio',   fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', higher:true},
+  {key:'mktcap',    label:'MktCap',      fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', higher:true},
+  {key:'ret_mes',   label:'Ret. Mês',    fmt:v=>(v*100).toFixed(2)+'%', higher:true},
+  {key:'ret_ano',   label:'Ret. Ano',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+  {key:'ret_ltm',   label:'Ret. LTM',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+  {key:'dy_ltm',    label:'DY LTM',      fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+];
+
+/** Constrói o mapa de dados por segmento a partir dos fundos da semana atual. */
+function buildSegData(fundos, semana){
+  const segs={};
+  const entraram=JSON.parse(semana?.entraram||'[]');
+  const sairam  =JSON.parse(semana?.sairam  ||'[]');
+
+  fundos.filter(f=>f.elegivel).forEach(f=>{
+    const s=f.segmento||'Outros';
+    if(!segs[s]) segs[s]={fundos:[],entraram:0,sairam:0};
+    segs[s].fundos.push(f);
+  });
+
+  // Tendências por segmento
+  entraram.forEach(m=>{if(segs[m.segmento]) segs[m.segmento].entraram++;});
+  sairam  .forEach(m=>{if(segs[m.segmento]) segs[m.segmento].sairam++;});
+
+  // Calcular médias
+  Object.entries(segs).forEach(([,s])=>{
+    const n=s.fundos.length||1;
+    const avg=key=>s.fundos.reduce((a,f)=>a+(parseFloat(f[key])||0),0)/n;
+    s.count=s.fundos.length;
+    s.dy_anual =avg('dy_anual');  s.dy_ltm  =avg('dy_ltm');
+    s.pvp_atual=avg('pvp_atual'); s.vol3m   =avg('vol3m');
+    s.mktcap   =avg('mktcap');    s.ret_mes =avg('ret_mes');
+    s.ret_ano  =avg('ret_ano');   s.ret_ltm =avg('ret_ltm');
+  });
+  return segs;
+}
+
+/** Entry point: reconstrói tudo a partir dos dados globais. */
+function renderSegmentos(){
+  if(!_currentFundos.length) return;
+  _segData=buildSegData(_currentFundos,_currentSemana);
+
+  // Header
+  const el=_currentFundos.filter(f=>f.elegivel).length;
+  const d=_currentSemana?.semana_data||'—';
+  const h=document.getElementById('seg-hdr-title');
+  const p=document.getElementById('seg-hdr-sub');
+  if(h) h.textContent='Análise por Segmento';
+  if(p) p.textContent=`Médias calculadas sobre ${el} fundos elegíveis · Referência: ${d}`;
+
+  renderSegBars();
+  renderSegRankingCruzado();
+  renderSegTable();
+  renderSegScatter();
+  initRadarControls();
+  renderSegRadar();
+}
+
+// ── Feature 3 + 4 + 5: Barras com toggle, tendências, expansão ──
+
+function setSegBarMetric(metric, btn){
+  _segBarMetric=metric;
+  document.querySelectorAll('.seg-toggle').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderSegBars();
+}
+
+function renderSegBars(){
+  const cont=document.getElementById('seg-bars-container');
+  if(!cont) return;
+  const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
+  if(!segs.length){cont.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
+
+  // Valor para a métrica selecionada
+  const getVal=s=>{
+    switch(_segBarMetric){
+      case 'dy':  return s.dy_anual;
+      case 'pvp': return s.pvp_atual;
+      case 'vol': return s.vol3m;
+      case 'mkt': return s.mktcap;
+      default:    return s.count;
+    }
+  };
+  const fmtVal=(s,v)=>{
+    switch(_segBarMetric){
+      case 'dy':  return (v*100).toFixed(1)+'%';
+      case 'pvp': return v.toFixed(2)+'x';
+      case 'vol': return 'R$'+(v/1e6).toFixed(1)+'M';
+      case 'mkt': return 'R$'+(v/1e9).toFixed(1)+'B';
+      default:    return v+' fundos';
+    }
+  };
+
+  const maxVal=Math.max(...segs.map(([,s])=>getVal(s)))||1;
+
+  cont.innerHTML=segs.map(([nome,s])=>{
+    const val=getVal(s);
+    const pct=Math.max(3,Math.round(val/maxVal*100));
+    const cor=SEG_COLORS[nome]||'#555';
+    const bg=SEG_BG[nome]||'#eee';
+    const trendHtml=()=>{
+      if(s.entraram>0&&s.sairam>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram} ▼${s.sairam}</span>`;
+      if(s.entraram>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram}</span>`;
+      if(s.sairam>0)   return `<span class="seg-bar-trend trend-dn">▼${s.sairam}</span>`;
+      return `<span class="seg-bar-trend trend-neu">—</span>`;
+    };
+    const rowId='seg-row-'+nome.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
+    const expandId='seg-exp-'+nome.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
+    // Tickers expandíveis
+    const tickersHtml=s.fundos.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>{
+      const dy=f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—';
+      const pvp=f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—';
+      return`<span class="seg-ticker-pill" onclick="openAnalise('${f.ticker}')" title="DY: ${dy} · P/VP: ${pvp}">${f.ticker}</span>`;
+    }).join('');
+
+    return`<div class="seg-bar-row">
+      <div class="seg-bar-header" onclick="toggleSegExpand('${expandId}',this)" id="${rowId}">
+        <span class="seg-bar-chip" style="background:${bg};color:${cor}">${nome}</span>
+        <div class="seg-bar-track">
+          <div class="seg-bar-fill" style="width:${pct}%;background:${cor}"></div>
+        </div>
+        <span class="seg-bar-val">${fmtVal(s,val)}</span>
+        ${trendHtml()}
+        <span style="font-size:10px;color:#aaa;margin-left:4px;transition:transform .2s" class="seg-arrow">▼</span>
+      </div>
+      <div class="seg-expand-body" id="${expandId}">
+        <div style="font-size:10px;color:#6b7a9a;margin-bottom:6px">
+          ${s.count} fundos · DY médio: <strong>${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP médio: <strong>${s.pvp_atual.toFixed(2)}x</strong> · Vol médio: <strong>R$${(s.vol3m/1e6).toFixed(1)}M</strong>
+        </div>
+        <div class="seg-ticker-grid">${tickersHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSegExpand(expandId, headerEl){
+  const body=document.getElementById(expandId);
+  if(!body) return;
+  const arrow=headerEl.querySelector('.seg-arrow');
+  const open=body.classList.toggle('open');
+  if(arrow) arrow.style.transform=open?'rotate(180deg)':'';
+}
+
+// ── Feature 6: Ranking cruzado ───────────────────────────────
+
+function renderSegRankingCruzado(){
+  const cont=document.getElementById('seg-ranking-cruzado');
+  if(!cont) return;
+  const segs=Object.entries(_segData);
+  if(!segs.length) return;
+
+  const criterios=[
+    {label:'Maior DY Anual',  key:'dy_anual',  fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+    {label:'Menor P/VP',      key:'pvp_atual', fmt:v=>v.toFixed(2)+'x',       best:'min'},
+    {label:'Maior Vol. Médio',key:'vol3m',      fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', best:'max'},
+    {label:'Maior Ret. Ano',  key:'ret_ano',   fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+    {label:'Maior MktCap',    key:'mktcap',    fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', best:'max'},
+    {label:'Mais fundos',     key:'count',     fmt:v=>v+' fundos',             best:'max'},
+  ];
+
+  cont.innerHTML=criterios.map(c=>{
+    const sorted=[...segs].sort((a,b)=>c.best==='max'?b[1][c.key]-a[1][c.key]:a[1][c.key]-b[1][c.key]);
+    const [nome,s]=sorted[0];
+    const cor=SEG_COLORS[nome]||'#555';
+    const bg=SEG_BG[nome]||'#eee';
+    const val=c.fmt(s[c.key]);
+    // Medalhas para os top 3
+    const medals=['🥇','🥈','🥉'];
+    const top3=sorted.slice(0,3).map(([n,sv],i)=>`
+      <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f4fa">
+        <span style="font-size:13px;width:20px">${medals[i]}</span>
+        <span style="font-size:10px;padding:1px 7px;border-radius:6px;background:${SEG_BG[n]||'#eee'};color:${SEG_COLORS[n]||'#555'};font-weight:700">${n}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-left:auto">${c.fmt(sv[c.key])}</span>
+      </div>`).join('');
+    return`<div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:6px">${c.label}</div>
+      ${top3}
+    </div>`;
+  }).join('');
+}
+
+// ── Tabela de indicadores com semáforo ───────────────────────
+
+function renderSegTable(){
+  const tbody=document.getElementById('tbl-seg-body');
+  if(!tbody) return;
+  const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
+
+  const clrDY=v=>v>=0.12?'var(--success)':v>=0.09?'var(--warning)':'var(--danger)';
+  const clrPVP=v=>v<0.90?'var(--success)':v<1.05?'var(--warning)':'var(--danger)';
+  const clrRet=v=>v>0.005?'var(--success)':v>-0.005?'#6b7a9a':'var(--danger)';
+  const pct=v=>(v*100).toFixed(2)+'%';
+
+  tbody.innerHTML=segs.map(([nome,s])=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    const bg=SEG_BG[nome]||'#eee';
+    return`<tr>
+      <td><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap">${nome}</span></td>
+      <td style="text-align:center;font-weight:700;color:var(--apex-blue)">${s.count}</td>
+      <td data-val="${s.dy_anual}" style="color:${clrDY(s.dy_anual)};font-weight:700">${pct(s.dy_anual)}</td>
+      <td data-val="${s.pvp_atual}" style="color:${clrPVP(s.pvp_atual)};font-weight:700">${s.pvp_atual.toFixed(2)}x</td>
+      <td data-val="${s.vol3m}">R$${(s.vol3m/1e6).toFixed(1)}M</td>
+      <td data-val="${s.ret_mes}" style="color:${clrRet(s.ret_mes)};font-weight:600">${pct(s.ret_mes)}</td>
+      <td data-val="${s.ret_ano}" style="color:${clrRet(s.ret_ano)};font-weight:600">${pct(s.ret_ano)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Feature 7: Scatter DY × P/VP ─────────────────────────────
+
+function renderSegScatter(){
+  const wrap=document.getElementById('seg-scatter-wrap');
+  if(!wrap) return;
+  const segs=Object.entries(_segData);
+  if(!segs.length) return;
+
+  const W=580,H=340,PAD={t:20,r:20,b:50,l:60};
+  const pw=W-PAD.l-PAD.r, ph=H-PAD.t-PAD.b;
+
+  // Ranges: PVP x-axis, DY y-axis
+  const pvps=segs.map(([,s])=>s.pvp_atual);
+  const dys =segs.map(([,s])=>s.dy_anual);
+  const xMin=Math.max(0.5, Math.min(...pvps)-0.05);
+  const xMax=Math.min(1.2, Math.max(...pvps)+0.05);
+  const yMin=Math.max(0.06,Math.min(...dys)-0.01);
+  const yMax=Math.min(0.22,Math.max(...dys)+0.01);
+
+  const sx=v=>PAD.l+(v-xMin)/(xMax-xMin)*pw;
+  const sy=v=>PAD.t+(1-(v-yMin)/(yMax-yMin))*ph;
+
+  // Grid lines
+  const gridX=[0.7,0.8,0.9,1.0,1.1,1.15].filter(v=>v>=xMin&&v<=xMax);
+  const gridY=[0.08,0.10,0.12,0.14,0.16,0.18,0.20].filter(v=>v>=yMin&&v<=yMax);
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px;font-family:Manrope,sans-serif">`;
+
+  // Background
+  svg+=`<rect x="${PAD.l}" y="${PAD.t}" width="${pw}" height="${ph}" fill="#fafcff" rx="4"/>`;
+
+  // Ideal quadrant (low P/VP + high DY) highlight
+  const qx1=PAD.l, qx2=sx(1.0), qy1=sy(yMax), qy2=sy(0.10);
+  if(qx2>qx1&&qy2>qy1) svg+=`<rect x="${qx1}" y="${qy1}" width="${Math.max(0,qx2-qx1)}" height="${Math.max(0,qy2-qy1)}" fill="rgba(27,138,82,.06)" rx="2"/>`;
+
+  // Grid
+  gridX.forEach(v=>{
+    const x=sx(v);
+    svg+=`<line x1="${x}" y1="${PAD.t}" x2="${x}" y2="${PAD.t+ph}" stroke="#e0e8f4" stroke-width="1"/>`;
+    svg+=`<text x="${x}" y="${PAD.t+ph+14}" text-anchor="middle" font-size="9" fill="#9aa7bd">${v.toFixed(2)}x</text>`;
+  });
+  gridY.forEach(v=>{
+    const y=sy(v);
+    svg+=`<line x1="${PAD.l}" y1="${y}" x2="${PAD.l+pw}" y2="${y}" stroke="#e0e8f4" stroke-width="1"/>`;
+    svg+=`<text x="${PAD.l-6}" y="${y+3}" text-anchor="end" font-size="9" fill="#9aa7bd">${(v*100).toFixed(0)}%</text>`;
+  });
+
+  // Reference lines P/VP=1.0 and DY=10%
+  if(1.0>=xMin&&1.0<=xMax){
+    const xr=sx(1.0);
+    svg+=`<line x1="${xr}" y1="${PAD.t}" x2="${xr}" y2="${PAD.t+ph}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    svg+=`<text x="${xr+4}" y="${PAD.t+10}" font-size="9" fill="#002060" font-weight="700">P/VP=1,0</text>`;
+  }
+  if(0.10>=yMin&&0.10<=yMax){
+    const yr=sy(0.10);
+    svg+=`<line x1="${PAD.l}" y1="${yr}" x2="${PAD.l+pw}" y2="${yr}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    svg+=`<text x="${PAD.l+4}" y="${yr-4}" font-size="9" fill="#002060" font-weight="700">DY=10%</text>`;
+  }
+
+  // Quadrant labels
+  svg+=`<text x="${PAD.l+6}" y="${PAD.t+14}" font-size="9" fill="rgba(27,138,82,.6)" font-weight="700">✦ Zona ideal</text>`;
+
+  // Axes labels
+  svg+=`<text x="${PAD.l+pw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#5a6e8a" font-weight="700">P/VP médio →</text>`;
+  svg+=`<text x="12" y="${PAD.t+ph/2}" text-anchor="middle" font-size="10" fill="#5a6e8a" font-weight="700" transform="rotate(-90,12,${PAD.t+ph/2})">DY Anual →</text>`;
+
+  // Dots + labels (render dots first, then labels to avoid overlap)
+  const dots=segs.map(([nome,s])=>{
+    const x=sx(s.pvp_atual), y=sy(s.dy_anual);
+    const cor=SEG_COLORS[nome]||'#555';
+    const r=6+Math.sqrt(s.count)*1.5; // size ~ sqrt(count)
+    return{nome,x,y,cor,r,s};
+  });
+
+  dots.forEach(({nome,x,y,cor,r})=>{
+    svg+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${cor}" fill-opacity=".85" stroke="#fff" stroke-width="1.5">
+      <title>${nome}\nDY: ${(dots.find(d=>d.nome===nome)?.s.dy_anual*100||0).toFixed(1)}% · P/VP: ${(dots.find(d=>d.nome===nome)?.s.pvp_atual||0).toFixed(2)}x</title>
+    </circle>`;
+  });
+  dots.forEach(({nome,x,y,r})=>{
+    // Place label above/below to reduce overlap
+    const ly=y-r-4;
+    svg+=`<text x="${x}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="#002060" style="pointer-events:none">${nome.length>12?nome.slice(0,11)+'…':nome}</text>`;
+  });
+
+  svg+='</svg>';
+  wrap.innerHTML=svg;
+}
+
+// ── Feature 8: Radar comparativo ─────────────────────────────
+
+function initRadarControls(){
+  const cbWrap=document.getElementById('seg-radar-checkboxes');
+  const axWrap=document.getElementById('seg-radar-axes-controls');
+  if(!cbWrap||!axWrap) return;
+
+  const segs=Object.keys(_segData).sort();
+
+  // Inicializar seleção com todos os segmentos
+  if(_radarSelectedSegs.size===0) segs.forEach(s=>_radarSelectedSegs.add(s));
+
+  // Checkboxes de segmentos
+  cbWrap.innerHTML=segs.map(nome=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    const bg=SEG_BG[nome]||'#eee';
+    const checked=_radarSelectedSegs.has(nome)?'checked':'';
+    return`<label class="radar-cb-row">
+      <input type="checkbox" ${checked} onchange="toggleRadarSeg('${nome.replace(/'/g,"\\'")}',this.checked)"
+        style="accent-color:${cor};width:13px;height:13px;cursor:pointer">
+      <span class="radar-cb-swatch" style="background:${cor}"></span>
+      <span style="font-size:11px;color:var(--apex-navy)">${nome}</span>
+    </label>`;
+  }).join('');
+
+  // Dropdowns para os 5 eixos
+  const optionsHtml=RADAR_AXIS_OPTIONS.map(o=>`<option value="${o.key}">${o.label}</option>`).join('');
+  axWrap.innerHTML=_radarAxes.map((axKey,i)=>`
+    <div class="radar-axis-row">
+      <span style="font-size:10px;font-weight:700;color:#6b7a9a;min-width:16px">A${i+1}</span>
+      <select class="radar-axis-select" onchange="setRadarAxis(${i},this.value)">
+        ${RADAR_AXIS_OPTIONS.map(o=>`<option value="${o.key}"${o.key===axKey?' selected':''}>${o.label}</option>`).join('')}
+      </select>
+    </div>`).join('');
+}
+
+function toggleRadarSeg(nome, checked){
+  if(checked) _radarSelectedSegs.add(nome);
+  else        _radarSelectedSegs.delete(nome);
+  renderSegRadar();
+}
+
+function selectAllRadarSegs(all){
+  const segs=Object.keys(_segData);
+  _radarSelectedSegs=all?new Set(segs):new Set();
+  // Refresh checkboxes
+  document.querySelectorAll('#seg-radar-checkboxes input[type=checkbox]').forEach(cb=>{
+    cb.checked=all;
+  });
+  renderSegRadar();
+}
+
+function setRadarAxis(idx, key){
+  _radarAxes[idx]=key;
+  renderSegRadar();
+}
+
+function renderSegRadar(){
+  const wrap=document.getElementById('seg-radar-wrap');
+  if(!wrap) return;
+  const selectedSegs=[..._radarSelectedSegs].filter(s=>_segData[s]);
+  if(!selectedSegs.length){
+    wrap.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Selecione ao menos um segmento.</div>';
+    return;
+  }
+
+  const axes=_radarAxes.map(k=>RADAR_AXIS_OPTIONS.find(o=>o.key===k)||RADAR_AXIS_OPTIONS[0]);
+  const N=axes.length;
+  const SIZE=320, CX=SIZE/2, CY=SIZE/2, R=120, LEVELS=4;
+
+  // Normalizar: para cada eixo, pegar min/max entre TODOS os segmentos (não só os selecionados)
+  const allSegs=Object.values(_segData);
+  const norm=axes.map(ax=>{
+    const vals=allSegs.map(s=>s[ax.key]||0);
+    const mn=Math.min(...vals), mx=Math.max(...vals);
+    return{mn,mx,range:mx-mn||1};
+  });
+
+  const angle=(i)=>( i/N*2*Math.PI - Math.PI/2 );
+  const pt=(i,r)=>[CX+r*Math.cos(angle(i)), CY+r*Math.sin(angle(i))];
+
+  let svg=`<svg viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${SIZE}px;font-family:Manrope,sans-serif">`;
+
+  // Concentric level rings
+  for(let l=1;l<=LEVELS;l++){
+    const lr=R*l/LEVELS;
+    const pts=Array.from({length:N},(_, i)=>pt(i,lr).join(',')).join(' ');
+    svg+=`<polygon points="${pts}" fill="none" stroke="#e0e8f4" stroke-width="1"/>`;
+    // Level label (inner ring only)
+    if(l===LEVELS){
+      const [lx,ly]=pt(0,lr);
+      svg+=`<text x="${lx+4}" y="${ly-3}" font-size="8" fill="#b0b8cc">100%</text>`;
+    }
+  }
+
+  // Axis lines + labels
+  axes.forEach((ax,i)=>{
+    const[x2,y2]=pt(i,R+16);
+    const[xa,ya]=pt(i,R);
+    svg+=`<line x1="${CX}" y1="${CY}" x2="${xa}" y2="${ya}" stroke="#d0d8ea" stroke-width="1.5"/>`;
+    const anchor=x2<CX-4?'end':x2>CX+4?'start':'middle';
+    svg+=`<text x="${x2}" y="${y2+3}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="#5a6e8a">${ax.label}</text>`;
+  });
+
+  // Segment polygons
+  selectedSegs.forEach((nome,si)=>{
+    const s=_segData[nome];
+    const cor=SEG_COLORS[nome]||'#555';
+    const pts=axes.map((ax,i)=>{
+      const raw=s[ax.key]||0;
+      const nr=(raw-norm[i].mn)/norm[i].range;
+      const r2=Math.max(0.04,nr)*R;
+      return pt(i,r2).join(',');
+    }).join(' ');
+    svg+=`<polygon points="${pts}" fill="${cor}" fill-opacity=".15" stroke="${cor}" stroke-width="2" stroke-linejoin="round">
+      <title>${nome}</title></polygon>`;
+    // Dots on vertices
+    axes.forEach((ax,i)=>{
+      const raw=s[ax.key]||0;
+      const nr=(raw-norm[i].mn)/norm[i].range;
+      const r2=Math.max(0.04,nr)*R;
+      const[dx,dy]=pt(i,r2);
+      svg+=`<circle cx="${dx}" cy="${dy}" r="3" fill="${cor}" stroke="#fff" stroke-width="1"><title>${nome}: ${ax.fmt(raw)}</title></circle>`;
+    });
+  });
+
+  // Center dot
+  svg+=`<circle cx="${CX}" cy="${CY}" r="3" fill="#002060"/>`;
+  svg+='</svg>';
+
+  // Legend
+  const legend=selectedSegs.map(nome=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    return`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+      <div style="width:12px;height:3px;background:${cor};border-radius:2px;flex-shrink:0"></div>
+      <span style="font-size:10px;color:var(--apex-navy)">${nome}</span>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML=`<div>${svg}</div>
+    <div style="margin-top:10px;max-height:120px;overflow-y:auto">${legend}</div>`;
+}
+
+
 /**
  * Renderiza o chip colorido de um segmento de FII.
  * Unifica as antigas segChipInline() e segChipMini() (A2) numa só função,
