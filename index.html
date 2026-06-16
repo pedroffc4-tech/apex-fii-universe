@@ -4098,11 +4098,17 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <div class="form-group">
         <label class="form-label">Data da semana</label>
         <input type="text" id="admin-data" class="form-select" placeholder="DD/MM/AAAA" maxlength="10"
-          oninput="this.value=this.value.replace(/[^0-9/]/g,'')">
+          oninput="adminDataMask(event)"
+          onkeydown="adminDataKeydown(event)"
+          onpaste="adminDataPaste(event)"
+          autocomplete="off">
+        <div id="admin-data-error" style="display:none;font-size:10px;color:var(--danger);font-weight:600;margin-top:5px"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Número da semana</label>
-        <input type="number" id="admin-num" class="form-select" placeholder="ex: 22" min="1">
+        <input type="number" id="admin-num" class="form-select" placeholder="ex: 22" min="1"
+          oninput="document.getElementById('admin-num-suggest').style.display='none'">
+        <div id="admin-num-suggest" style="display:none;font-size:10px;color:var(--success);font-weight:600;margin-top:5px">✓ Sugerido automaticamente</div>
       </div>
     </div>
     <div id="admin-upload-box" onclick="document.getElementById('admin-file-input').click()"
@@ -4113,6 +4119,23 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       <input type="file" id="admin-file-input" accept=".xlsx,.xls" style="display:none" onchange="onBTGUpload(this)">
     </div>
     <div id="admin-preview" style="display:none;margin-top:16px"></div>
+    <!-- Confirmação de sobrescrita de arquivo no Storage -->
+    <div id="admin-overwrite-warn" style="display:none;margin-top:12px;background:var(--warning-bg);border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:700;color:var(--apex-navy);margin-bottom:6px">⚠️ Arquivo já existe no Storage</div>
+      <div style="font-size:11px;color:#6b7a9a;margin-bottom:12px" id="admin-overwrite-desc">—</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="adminReset()"
+          style="flex:1;padding:9px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+          Cancelar
+        </button>
+        <button onclick="adminConfirmar(true)"
+          style="flex:1;padding:9px;background:var(--warning);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+          Sim, sobrescrever
+        </button>
+      </div>
+    </div>
+    <!-- Indicador de status do Storage -->
+    <div id="admin-storage-status" style="display:none;margin-top:10px;font-size:11px;font-weight:600;padding:8px 12px;border-radius:7px"></div>
     <div id="admin-btn-wrap" style="display:none;margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button id="admin-btn-cancel" onclick="adminReset()"
         style="padding:10px 24px;background:#f0f0f0;color:var(--apex-navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
@@ -5412,14 +5435,71 @@ async function onBTGUpload(input){
  * em `fund_data` (em lotes), gera o backup JSON e atualiza o dashboard.
  * @returns {Promise<void>}
  */
-async function adminConfirmar(){
+/**
+ * Confirma e salva a semana processada: verifica se já existe arquivo no Storage,
+ * pede confirmação de sobrescrita se necessário, faz upload bloqueante para o Storage,
+ * grava os dados no Supabase e gera o backup JSON.
+ * @param {boolean} [overwriteConfirmado=false] true quando chamado após confirmação de sobrescrita.
+ * @returns {Promise<void>}
+ */
+async function adminConfirmar(overwriteConfirmado=false){
   const db=getDB();
   if(!db){toast('Supabase não disponível.', 'error');return;}
   const btn=document.getElementById('admin-btn-confirm');
+  const storageStatusEl=document.getElementById('admin-storage-status');
+  const overwriteWarnEl=document.getElementById('admin-overwrite-warn');
+
+  if(overwriteWarnEl) overwriteWarnEl.style.display='none';
   btn.textContent='Salvando...';btn.disabled=true;
 
   try{
-    // 1. Salvar metadados da semana
+    // ── 1. Upload para Storage (bloqueante — falha para tudo) ───────
+    if(_adminRawFile){
+      const dataSemana=adminSemanaData.replace(/\//g,'');
+      const nomeArquivo=`BTGGuide_${dataSemana}.xlsx`;
+
+      if(!overwriteConfirmado){
+        if(storageStatusEl){
+          storageStatusEl.style.display='block';
+          storageStatusEl.style.background='var(--apex-blue-lt)';
+          storageStatusEl.style.color='var(--apex-blue)';
+          storageStatusEl.textContent='⟳ Verificando Storage...';
+        }
+        const jaExiste=await verificarArquivoStorage(nomeArquivo);
+        if(jaExiste){
+          const descEl=document.getElementById('admin-overwrite-desc');
+          if(descEl) descEl.textContent=
+            `Já existe o arquivo "${nomeArquivo}" no Storage referente à semana ${adminSemanaData}. `+
+            `Deseja substituí-lo pelo arquivo que você acabou de subir?`;
+          if(overwriteWarnEl) overwriteWarnEl.style.display='block';
+          if(storageStatusEl) storageStatusEl.style.display='none';
+          btn.textContent='✓ Confirmar e Salvar';btn.disabled=false;
+          return;
+        }
+      }
+
+      if(storageStatusEl){
+        storageStatusEl.style.display='block';
+        storageStatusEl.style.background='var(--apex-blue-lt)';
+        storageStatusEl.style.color='var(--apex-blue)';
+        storageStatusEl.textContent='⟳ Salvando arquivo no Storage...';
+      }
+      const {error:stErr}=await db.storage.from('fii-guides').upload(nomeArquivo,_adminRawFile,{
+        contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert:overwriteConfirmado
+      });
+      if(stErr) throw new Error('Erro ao salvar arquivo no Storage: '+stErr.message);
+
+      if(storageStatusEl){
+        storageStatusEl.style.background='var(--success-bg)';
+        storageStatusEl.style.color='var(--success)';
+        storageStatusEl.textContent='✅ Arquivo salvo no Storage';
+      }
+      console.log('[adminConfirmar] Storage: '+nomeArquivo+' salvo com sucesso');
+    }
+
+    // ── 2. Salvar metadados da semana ───────────────────────────────
+    btn.textContent='Salvando dados...';
     const nEl=adminFundos.filter(f=>f.elegivel).length;
     const {error:eS}=await db.from('semanas').upsert({
       semana_data:adminSemanaData,
@@ -5430,45 +5510,57 @@ async function adminConfirmar(){
       entraram:JSON.stringify(adminFundos._entraram||[]),
       sairam:JSON.stringify(adminFundos._sairam||[])
     },{onConflict:'semana_data'});
-    if(eS)throw new Error('Erro ao salvar semana: '+eS.message);
+    if(eS) throw new Error('Erro ao salvar semana: '+eS.message);
 
-    // 2. Salvar dados dos fundos em lotes de 100
+    // ── 3. Salvar fundos em lotes de 100 ────────────────────────────
     const fundosParaSalvar=adminFundos.map(f=>({...f,semana_data:adminSemanaData}));
     for(let i=0;i<fundosParaSalvar.length;i+=100){
       const lote=fundosParaSalvar.slice(i,i+100);
       const {error:eF}=await db.from('fund_data').upsert(lote,{onConflict:'semana_data,ticker'});
-      if(eF)throw new Error('Erro ao salvar fundos: '+eF.message);
+      if(eF) throw new Error('Erro ao salvar fundos: '+eF.message);
     }
 
-    // 3. Gerar e baixar backup JSON automaticamente
+    // ── 4. Backup JSON ──────────────────────────────────────────────
     gerarBackupJSON(adminSemanaData, adminSemanaNum, adminFundos);
-
-    // 4. Upload do arquivo original para o Supabase Storage (best-effort — não bloqueia)
-    if(_adminRawFile){
-      const dataSemana=adminSemanaData.replace(/\//g,'');
-      const nomeArquivo=`BTGGuide_${dataSemana}.xlsx`;
-      const {error:stErr}=await db.storage.from('fii-guides').upload(nomeArquivo,_adminRawFile,{
-        contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert:true
-      });
-      if(stErr) console.warn('[adminConfirmar] Storage upload falhou (não crítico):',stErr.message);
-      else console.log('✅ Storage: '+nomeArquivo+' salvo no bucket fii-guides');
-    }
 
     toast(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total\n\n📥 Backup JSON gerado automaticamente na pasta Downloads.`, 'success');
 
-    // 4. Atualizar a página com os novos dados
+    // ── 5. Atualizar dashboard ──────────────────────────────────────
     await carregarESemanaAtual();
     await atualizarHeaderSemana();
     adminReset();
     await carregarListaSemanas();
 
   }catch(e){
+    console.error('[adminConfirmar]', e);
+    if(storageStatusEl && storageStatusEl.textContent.includes('⟳')){
+      storageStatusEl.style.display='none';
+    }
     toast('❌ Erro ao salvar: '+e.message, 'error');
   }finally{
     btn.textContent='✓ Confirmar e Salvar';btn.disabled=false;
   }
 }
+
+// ── Verificar existência de arquivo no Storage ────────────────
+/**
+ * Verifica se um arquivo com o nome dado já existe no bucket fii-guides.
+ * @param {string} nomeArquivo Ex.: 'BTGGuide_09022026.xlsx'
+ * @returns {Promise<boolean>}
+ */
+async function verificarArquivoStorage(nomeArquivo){
+  const db=getDB();
+  if(!db) return false;
+  try{
+    const {data,error}=await db.storage.from('fii-guides').list('',{search:nomeArquivo});
+    if(error||!data) return false;
+    return data.some(f=>f.name===nomeArquivo);
+  }catch(e){
+    console.warn('[verificarArquivoStorage]',e.message);
+    return false;
+  }
+}
+
 
 // ── Backup JSON automático ───────────────────────────────────
 function gerarBackupJSON(semanaData, numSemana, fundos){
@@ -5565,8 +5657,168 @@ function gerarBackupJSON(semanaData, numSemana, fundos){
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// MÁSCARA DE DATA — campo "Data da semana" no Admin
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Formata o campo de data conforme o usuário digita, inserindo as barras
+ * automaticamente nas posições corretas (DD/MM/AAAA).
+ * Disparado pelo evento `oninput`.
+ * @param {InputEvent} e
+ */
+function adminDataMask(e){
+  const input=e.target;
+  const digits=input.value.replace(/\D/g,'').slice(0,8);
+  let formatted=digits;
+  if(digits.length>2) formatted=digits.slice(0,2)+'/'+digits.slice(2);
+  if(digits.length>4) formatted=digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+  input.value=formatted.slice(0,10);
+  adminDataValidar(input);
+}
+
+/**
+ * Trata o backspace sobre uma barra "/" para apagar também o dígito anterior,
+ * evitando que o cursor fique preso na posição da barra.
+ * Disparado pelo evento `onkeydown`.
+ * @param {KeyboardEvent} e
+ */
+function adminDataKeydown(e){
+  const input=e.target;
+  if(e.key==='Backspace'){
+    const pos=input.selectionStart;
+    const val=input.value;
+    if(pos>0 && val[pos-1]==='/'){
+      e.preventDefault();
+      input.value=val.slice(0,pos-2)+val.slice(pos);
+      input.setSelectionRange(pos-2,pos-2);
+      adminDataValidar(input);
+    }
+  }
+}
+
+/**
+ * Intercepta colagem (Ctrl+V / Cmd+V) e reformata o conteúdo colado para
+ * o padrão DD/MM/AAAA, extraindo apenas os dígitos do texto colado.
+ * Ex.: "09052026", "09/05/2026", "2026-05-09" → "09/05/2026".
+ * Disparado pelo evento `onpaste`.
+ * @param {ClipboardEvent} e
+ */
+function adminDataPaste(e){
+  e.preventDefault();
+  const pasted=(e.clipboardData||window.clipboardData).getData('text');
+  const digits=pasted.replace(/\D/g,'').slice(0,8);
+  let formatted=digits;
+  if(digits.length>2) formatted=digits.slice(0,2)+'/'+digits.slice(2);
+  if(digits.length>4) formatted=digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+  e.target.value=formatted.slice(0,10);
+  adminDataValidar(e.target);
+}
+
+/**
+ * Valida o conteúdo do campo de data e aplica o feedback visual.
+ * - Campo vazio ou incompleto: neutro (sem cor).
+ * - Data completa e válida: borda verde + avança para o campo de semana.
+ * - Data completa e inválida: borda vermelha + mensagem de erro específica.
+ * @param {HTMLInputElement} input
+ */
+function adminDataValidar(input){
+  const val=input.value;
+  const errEl=document.getElementById('admin-data-error');
+
+  // Campo vazio ou incompleto → estado neutro
+  if(val.length===0){
+    input.style.borderColor='';
+    if(errEl) errEl.style.display='none';
+    return;
+  }
+  if(val.length<10){
+    input.style.borderColor='';
+    if(errEl) errEl.style.display='none';
+    return;
+  }
+
+  // Data completa (10 chars) → validar
+  const match=val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!match){
+    input.style.borderColor='var(--danger)';
+    if(errEl){ errEl.textContent='⚠ Use o formato DD/MM/AAAA'; errEl.style.display='block'; }
+    return;
+  }
+  const d=parseInt(match[1]), m=parseInt(match[2]), y=parseInt(match[3]);
+  let erroMsg='';
+  if(m<1||m>12)           erroMsg='⚠ Mês inválido — use 01 a 12';
+  else if(d<1)            erroMsg='⚠ Dia inválido';
+  else if(y<2020||y>2035) erroMsg='⚠ Ano fora do intervalo esperado (2020–2035)';
+  else{
+    const maxDias=new Date(y,m,0).getDate();
+    if(d>maxDias) erroMsg=`⚠ ${String(m).padStart(2,'0')}/${y} tem no máximo ${maxDias} dias`;
+  }
+
+  if(erroMsg){
+    input.style.borderColor='var(--danger)';
+    if(errEl){ errEl.textContent=erroMsg; errEl.style.display='block'; }
+    return;
+  }
+
+  // Data válida ✓
+  input.style.borderColor='var(--success)';
+  if(errEl) errEl.style.display='none';
+
+  // Avançar cursor para o campo Número da Semana
+  const numInput=document.getElementById('admin-num');
+  if(numInput) numInput.focus();
+
+  // Sugerir automaticamente o próximo número de semana
+  autoCalcularNumSemana();
+}
+
+/**
+ * Busca no Supabase o maior num_semana existente e sugere o próximo valor
+ * automaticamente no campo "Número da semana", sem sobrescrever se o
+ * analista já tiver digitado algo.
+ * @returns {Promise<void>}
+ */
+async function autoCalcularNumSemana(){
+  const numInput=document.getElementById('admin-num');
+  const sugEl=document.getElementById('admin-num-suggest');
+  if(!numInput||numInput.value) return; // não sobrescreve o que o analista digitou
+  const db=getDB();
+  if(!db) return;
+  try{
+    const {data:semanas}=await db.from('semanas')
+      .select('num_semana')
+      .is('deleted_at',null)
+      .order('num_semana',{ascending:false})
+      .limit(1);
+    const proximo=(semanas&&semanas.length>0&&semanas[0].num_semana)
+      ?(semanas[0].num_semana+1):1;
+    numInput.value=proximo;
+    if(sugEl) sugEl.style.display='block';
+    // Flash verde breve no campo
+    numInput.style.borderColor='var(--success)';
+    setTimeout(()=>{ numInput.style.borderColor=''; },2500);
+    console.log('[autoCalcularNumSemana] sugerido: Semana '+proximo);
+  }catch(e){
+    console.warn('[autoCalcularNumSemana]',e.message);
+  }
+}
+
+
 function adminReset(){
   adminFundos=[];adminSemanaData='';adminSemanaNum=0;_adminRawFile=null;
+  const ssEl=document.getElementById('admin-storage-status');
+  const owEl=document.getElementById('admin-overwrite-warn');
+  const errEl=document.getElementById('admin-data-error');
+  const sugEl=document.getElementById('admin-num-suggest');
+  const dataInput=document.getElementById('admin-data');
+  const numInput=document.getElementById('admin-num');
+  if(ssEl) ssEl.style.display='none';
+  if(owEl) owEl.style.display='none';
+  if(errEl) errEl.style.display='none';
+  if(sugEl) sugEl.style.display='none';
+  if(dataInput){ dataInput.value=''; dataInput.style.borderColor=''; }
+  if(numInput)  { numInput.value=''; numInput.style.borderColor=''; }
   document.getElementById('admin-file-input').value='';
   document.getElementById('admin-preview').style.display='none';
   document.getElementById('admin-btn-wrap').style.display='none';
