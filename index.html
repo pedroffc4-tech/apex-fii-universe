@@ -283,7 +283,13 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .btn-editar{padding:4px 10px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
 .btn-editar:hover{background:var(--apex-blue);color:#fff}
 .btn-restaurar{padding:4px 10px;background:var(--success-bg);color:var(--success);border:1px solid #a7f3d0;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
-.btn-restaurar:hover{background:var(--success);color:#fff}
+.btn-download{padding:4px 10px;background:#e8f5e1;color:#2d5a00;border:1px solid #c3e6a8;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
+.btn-download:hover{background:#2d5a00;color:#fff}
+.btn-download.disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:default;pointer-events:none}
+.retro-progress{margin-top:12px;display:none}
+.retro-bar-wrap{background:#eef2fa;border-radius:6px;height:8px;overflow:hidden;margin:6px 0}
+.retro-bar-fill{background:var(--success);height:100%;width:0%;transition:width .3s ease;border-radius:6px}
+.retro-log{max-height:160px;overflow-y:auto;font-size:10px;color:#5a6e8a;line-height:1.7;padding:8px 10px;background:#f4f8fd;border-radius:6px;border:1px solid var(--apex-mist)}
 .semana-deletada td{opacity:.45;text-decoration:line-through}
 .semana-deletada .btn-restaurar{opacity:1;text-decoration:none}
 .edit-inline{display:flex;gap:6px;align-items:center}
@@ -4133,6 +4139,38 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     </div>
   </div>
 
+  <!-- Upload retroativo de arquivos para o Storage -->
+  <div class="card" style="border-top:3px solid var(--success)">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📦 BTG Guides — Arquivo Original por Semana</span>
+      <span style="font-size:10px;font-weight:500;color:#6b7a9a" id="retro-storage-count">Verificando...</span>
+    </div>
+    <div style="font-size:11px;color:#5a6e8a;line-height:1.6;margin-bottom:14px">
+      Suba os arquivos originais do BTG FII Guide para habilitar o download histórico por semana.
+      O sistema identifica automaticamente a qual semana cada arquivo pertence pelo nome do arquivo.
+    </div>
+    <div id="retro-drop-zone"
+      style="border:2px dashed var(--apex-mist);border-radius:10px;padding:24px;text-align:center;cursor:pointer;background:#fafcff;transition:all .2s"
+      onclick="document.getElementById('retro-file-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--apex-blue)';this.style.background='var(--apex-blue-lt)'"
+      ondragleave="this.style.borderColor='var(--apex-mist)';this.style.background='#fafcff'"
+      ondrop="event.preventDefault();this.style.borderColor='var(--apex-mist)';this.style.background='#fafcff';uploadRetroativo(event.dataTransfer.files)">
+      <div style="font-size:28px;margin-bottom:8px">📂</div>
+      <div style="font-size:13px;font-weight:700;color:var(--apex-navy);margin-bottom:4px">Arraste os arquivos aqui ou clique para selecionar</div>
+      <div style="font-size:11px;color:#6b7a9a">Selecione múltiplos arquivos de uma vez · Formato: BTGSGF_D_M_AAAA.xlsx</div>
+      <input type="file" id="retro-file-input" accept=".xlsx,.xls" multiple style="display:none"
+        onchange="uploadRetroativo(this.files)">
+    </div>
+    <div class="retro-progress" id="retro-progress">
+      <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--apex-navy)">
+        <span id="retro-progress-label">Enviando...</span>
+        <span id="retro-progress-pct">0%</span>
+      </div>
+      <div class="retro-bar-wrap"><div class="retro-bar-fill" id="retro-bar-fill"></div></div>
+      <div class="retro-log" id="retro-log"></div>
+    </div>
+  </div>
+
   <!-- Semanas processadas -->
   <div class="card">
     <div class="card-title">📋 Semanas processadas</div>
@@ -5135,6 +5173,7 @@ function injectPreAnaliseBadges(){
 // ══════════════════════════════════════════════════════════════
 const CRIT_VOL=400000, CRIT_YIELD=0.08, CRIT_PVP=1.15, CRIT_MKT=200000000;
 let adminFundos=[], adminSemanaData='', adminSemanaNum=0;
+let _adminRawFile=null; // File object original do BTG Guide, guardado para upload no Storage
 
 // ── Carregar e processar Excel ────────────────────────────────
 // ── Validação do BTG FII Guide ──────────────────────────────
@@ -5244,6 +5283,7 @@ function mostrarErroValidacao(erros){
 async function onBTGUpload(input){
   const file=input.files[0];
   if(!file)return;
+  _adminRawFile=file; // guardar para upload no Storage em adminConfirmar
   const box=document.getElementById('admin-upload-box');
   box.style.background='var(--apex-blue-lt)';
   box.style.borderColor='var(--apex-blue)';
@@ -5403,6 +5443,18 @@ async function adminConfirmar(){
     // 3. Gerar e baixar backup JSON automaticamente
     gerarBackupJSON(adminSemanaData, adminSemanaNum, adminFundos);
 
+    // 4. Upload do arquivo original para o Supabase Storage (best-effort — não bloqueia)
+    if(_adminRawFile){
+      const dataSemana=adminSemanaData.replace(/\//g,'');
+      const nomeArquivo=`BTGGuide_${dataSemana}.xlsx`;
+      const {error:stErr}=await db.storage.from('fii-guides').upload(nomeArquivo,_adminRawFile,{
+        contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert:true
+      });
+      if(stErr) console.warn('[adminConfirmar] Storage upload falhou (não crítico):',stErr.message);
+      else console.log('✅ Storage: '+nomeArquivo+' salvo no bucket fii-guides');
+    }
+
     toast(`✅ Semana ${adminSemanaData} salva com sucesso!\n${nEl} fundos elegíveis · ${adminFundos.length} total\n\n📥 Backup JSON gerado automaticamente na pasta Downloads.`, 'success');
 
     // 4. Atualizar a página com os novos dados
@@ -5514,7 +5566,7 @@ function gerarBackupJSON(semanaData, numSemana, fundos){
 }
 
 function adminReset(){
-  adminFundos=[];adminSemanaData='';adminSemanaNum=0;
+  adminFundos=[];adminSemanaData='';adminSemanaNum=0;_adminRawFile=null;
   document.getElementById('admin-file-input').value='';
   document.getElementById('admin-preview').style.display='none';
   document.getElementById('admin-btn-wrap').style.display='none';
@@ -5539,18 +5591,65 @@ function adminReset(){
   }
 }
 
+// ── Listar arquivos disponíveis no Storage ────────────────────
+async function listarArquivosStorage(){
+  const db=getDB();
+  if(!db) return new Set();
+  try{
+    const {data,error}=await db.storage.from('fii-guides').list('',{limit:200});
+    if(error||!data) return new Set();
+    // Retorna Set com os nomes dos arquivos (ex: "BTGGuide_09022026.xlsx")
+    return new Set(data.map(f=>f.name));
+  }catch(e){
+    console.warn('[listarArquivosStorage]',e.message);
+    return new Set();
+  }
+}
+
+// Montar nome do arquivo no Storage a partir da data da semana (DD/MM/AAAA → DDMMAAAA)
+function nomeArquivoStorage(semanaData){
+  return 'BTGGuide_'+semanaData.replace(/\//g,'')+'.xlsx';
+}
+
+// URL pública de download
+function urlDownloadStorage(semanaData){
+  return `${SUPA_URL}/storage/v1/object/public/fii-guides/${nomeArquivoStorage(semanaData)}`;
+}
+
 // ── Listar semanas processadas ────────────────────────────────
 async function carregarListaSemanas(){
   const el=document.getElementById('admin-semanas-list');
   if(!el)return;
-  const db=getDB();if(!db){el.innerHTML='<div style="color:#6b7a9a;font-size:12px">Supabase não disponível</div>';return;}
-  const {data:semanas,error}=await db.from('semanas').select('*').order('created_at',{ascending:false});
-  if(error||!semanas||semanas.length===0){el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Nenhuma semana processada ainda</div>';return;}
-  const ativas   = semanas.filter(s=>!s.deleted_at);
-  const inativas = semanas.filter(s=>!!s.deleted_at);
-  const renderRow = s=>{
-    const deletada = !!s.deleted_at;
-    const rowId = 'row-'+s.semana_data.replace(/\//g,'-');
+  const db=getDB();
+  if(!db){el.innerHTML='<div style="color:#6b7a9a;font-size:12px">Supabase não disponível</div>';return;}
+
+  // Buscar semanas e arquivos disponíveis no Storage em paralelo
+  const [{data:semanas,error}, arquivosStorage] = await Promise.all([
+    db.from('semanas').select('*').order('created_at',{ascending:false}),
+    listarArquivosStorage()
+  ]);
+
+  // Atualizar contador do painel de upload retroativo
+  const countEl=document.getElementById('retro-storage-count');
+  if(countEl) countEl.textContent=arquivosStorage.size+' arquivo(s) no Storage';
+
+  if(error||!semanas||semanas.length===0){
+    el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Nenhuma semana processada ainda</div>';
+    return;
+  }
+
+  const ativas  =semanas.filter(s=>!s.deleted_at);
+  const inativas=semanas.filter(s=>!!s.deleted_at);
+
+  const renderRow=s=>{
+    const deletada=!!s.deleted_at;
+    const rowId='row-'+s.semana_data.replace(/\//g,'-');
+    const nomeArq=nomeArquivoStorage(s.semana_data);
+    const temArquivo=arquivosStorage.has(nomeArq);
+    const btnDownload=temArquivo
+      ? `<a href="${urlDownloadStorage(s.semana_data)}" target="_blank" download
+           class="btn-download" title="Baixar BTG FII Guide original de ${s.semana_data}">⬇ BTG Guide</a>`
+      : `<span class="btn-download disabled" title="Arquivo original não disponível para esta semana">⬇ BTG Guide</span>`;
     return`<tr id="${rowId}" class="${deletada?'semana-deletada':''}">
       <td><strong>${s.semana_data}</strong></td>
       <td>${s.num_semana||'—'}</td>
@@ -5560,6 +5659,7 @@ async function carregarListaSemanas(){
       <td style="color:var(--success);font-weight:600">${JSON.parse(s.entraram||'[]').length}</td>
       <td style="color:var(--danger);font-weight:600">${JSON.parse(s.sairam||'[]').length}</td>
       <td class="acoes-semana"><div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${btnDownload}
         ${deletada
           ? `<button class="btn-restaurar" onclick="restaurarSemana('${s.semana_data}')">↺ Restaurar</button>`
           : `<button class="btn-editar"    onclick="editarSemana('${s.semana_data}',${s.num_semana||0})">✏️ Editar</button>
@@ -5568,14 +5668,100 @@ async function carregarListaSemanas(){
       </div></td>
     </tr>`;
   };
+
   el.innerHTML=`<div class="tbl-wrap" style="border:none"><table>
     <thead><tr><th>Data</th><th>#</th><th>Total</th><th>Elegíveis</th><th>Não Elegíveis</th><th>Entraram</th><th>Saíram</th><th>Ações</th></tr></thead>
     <tbody>${[...ativas,...inativas].map(renderRow).join('')}</tbody>
   </table></div>
-  ${inativas.length>0?`<div style="font-size:10px;color:#6b7a9a;margin-top:8px;text-align:right">${inativas.length} semana(s) oculta(s) — restaurável(is) a qualquer momento</div>`:''}`;
+  ${inativas.length>0?`<div style="font-size:10px;color:#6b7a9a;margin-top:8px;text-align:right">${inativas.length} semana(s) oculta(s) — restaurável(is) a qualquer momento</div>`:''}`
+  +`<div style="font-size:10px;color:#6b7a9a;margin-top:8px">
+      ⬇ BTG Guide <span style="color:var(--success)">verde</span> = arquivo original disponível ·
+      <span style="color:#aaa">cinza</span> = não disponível (faça o upload retroativo acima)
+    </div>`;
 }
 
-// ── Carregar e renderizar semana mais recente ─────────────────
+// ── Upload retroativo de arquivos para o Storage ─────────────
+/**
+ * Recebe uma lista de File objects (FileList ou Array), extrai a data de cada
+ * um pelo padrão BTGSGF_D_M_AAAA no nome, e faz upload para o bucket fii-guides.
+ * Mostra barra de progresso e log linha a linha.
+ * @param {FileList|File[]} files Arquivos selecionados pelo usuário.
+ * @returns {Promise<void>}
+ */
+async function uploadRetroativo(files){
+  const db=getDB();
+  if(!db){toast('Supabase não disponível','error');return;}
+  if(!files||files.length===0) return;
+
+  const lista=Array.from(files).filter(f=>f.name.endsWith('.xlsx')||f.name.endsWith('.xls'));
+  if(!lista.length){toast('Nenhum arquivo .xlsx encontrado na seleção','warning');return;}
+
+  // Mostrar painel de progresso
+  const progDiv  =document.getElementById('retro-progress');
+  const barFill  =document.getElementById('retro-bar-fill');
+  const progLabel=document.getElementById('retro-progress-label');
+  const progPct  =document.getElementById('retro-progress-pct');
+  const logEl    =document.getElementById('retro-log');
+  if(progDiv) progDiv.style.display='block';
+  if(logEl)   logEl.innerHTML='';
+
+  const addLog=(msg,tipo='')=>{
+    if(!logEl) return;
+    const cor=tipo==='ok'?'var(--success)':tipo==='err'?'var(--danger)':tipo==='skip'?'var(--warning)':'#5a6e8a';
+    logEl.innerHTML+=`<div style="color:${cor}">${msg}</div>`;
+    logEl.scrollTop=logEl.scrollHeight;
+  };
+
+  let ok=0, skip=0, err=0;
+
+  for(let i=0;i<lista.length;i++){
+    const file=lista[i];
+    const pct=Math.round((i/lista.length)*100);
+    if(barFill)  barFill.style.width=pct+'%';
+    if(progPct)  progPct.textContent=pct+'%';
+    if(progLabel)progLabel.textContent=`Enviando ${i+1}/${lista.length}: ${file.name}`;
+
+    // Extrair data do nome: BTGSGF_D_M_AAAA
+    const m=file.name.match(/BTGSGF_(\d+)_(\d+)_(\d{4})/i);
+    if(!m){
+      addLog(`⚠ ${file.name} — nome fora do padrão BTGSGF_D_M_AAAA, ignorado`,'skip');
+      skip++; continue;
+    }
+    const d =String(m[1]).padStart(2,'0');
+    const mo=String(m[2]).padStart(2,'0');
+    const y =m[3];
+    const dataSemana=`${d}${mo}${y}`;  // ex: 09022026
+    const nomeArq=`BTGGuide_${dataSemana}.xlsx`;
+    const dataFmt=`${d}/${mo}/${y}`;
+
+    try{
+      const {error}=await db.storage.from('fii-guides').upload(nomeArq, file, {
+        contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert:true  // sobrescreve se já existir
+      });
+      if(error) throw error;
+      addLog(`✅ ${dataFmt} → ${nomeArq} enviado`,'ok');
+      ok++;
+    }catch(e){
+      addLog(`❌ ${dataFmt} — erro: ${e.message}`,'err');
+      err++;
+    }
+  }
+
+  // Finalizar barra
+  if(barFill)  barFill.style.width='100%';
+  if(progPct)  progPct.textContent='100%';
+  if(progLabel)progLabel.textContent='Concluído';
+
+  addLog(`\n─── ${ok} enviados · ${skip} ignorados · ${err} erros ───`);
+
+  const tipo=err>0?'warning':'success';
+  toast(`Upload retroativo: ${ok} arquivo(s) enviado(s)${err>0?' · '+err+' erro(s)':''}`,tipo);
+
+  // Limpar seleção e recarregar tabela para mostrar botões verdes
+  document.getElementById('retro-file-input').value='';
+  await carregarListaSemanas();
+}
 /**
  * Carrega do Supabase a semana ativa mais recente e seus fundos, e dispara a
  * renderização do dashboard (KPIs, tabelas, segmentos).
