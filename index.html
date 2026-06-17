@@ -7113,132 +7113,162 @@ async function fetchBCBSeries(codigo,startYM,endYM){
 }
 
 /**
- * Calcula retorno mensal ponderado da Carteira APX usando brapi.dev.
- * Preços adjustedClose (inclui dividendos = retorno total real).
- * Tickers sem .SA — brapi.dev usa padrão B3 nativo.
+ * Calcula retorno mensal ponderado da Carteira APX direto do Supabase.
+ * Usa fechamento semanal → retorno mês a mês por fundo → média ponderada.
+ * Não depende de nenhuma API externa — 100% confiável.
  */
 async function calcPortfolioMonthlyReturns(startYM,endYM){
   if(!_carteira.length) return[];
+  const db=getDB();
+  if(!db) return[];
+
+  const tickers=_carteira.map(c=>c.ticker);
   const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
   const pesoMap={};
   _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
 
-  const fundDataLocal={};
-  let loaded=0,failed=0;
   const info=document.getElementById('bench-update-info');
+  if(info) info.textContent='Buscando dados de preços no Supabase...';
 
-  for(const c of _carteira){
-    if(info) info.textContent=`Buscando ${c.ticker} (${loaded+failed+1}/${_carteira.length})...`;
-    try{
-      const data=await fetchBrapiMonthly(c.ticker,startYM,endYM);
-      if(data.length===0) throw new Error('Histórico vazio');
-      fundDataLocal[c.ticker]=data;
-      _benchFundData[c.ticker]=data;
-      _benchDataStatus[c.ticker]='ok';
-      loaded++;
-    }catch(e){
-      console.warn(`[benchmarks] ${c.ticker}:`,e.message);
-      _benchDataStatus[c.ticker]='failed';
-      failed++;
-    }
-    await new Promise(r=>setTimeout(r,200));
-  }
+  try{
+    // Buscar todas as semanas ativas no período — converter DD/MM/AAAA → YYYY-MM
+    const{data:semanas,error:eS}=await db.from('semanas')
+      .select('semana_data')
+      .is('deleted_at',null)
+      .order('semana_data',{ascending:true});
+    if(eS||!semanas?.length) throw new Error('Sem semanas no Supabase');
 
-  if(info) info.textContent=`${loaded}/${_carteira.length} fundos OK${failed>0?` · ${failed} falharam`:''}`;
-
-  const monthSet=new Set();
-  Object.values(fundDataLocal).forEach(s=>s.forEach(p=>monthSet.add(p.date)));
-  const months=[...monthSet].sort().filter(m=>m>=startYM&&m<=endYM);
-
-  return months.map(month=>{
-    let wRet=0,wTotal=0;
-    _carteira.forEach(c=>{
-      const pt=fundDataLocal[c.ticker]?.find(p=>p.date===month);
-      if(pt){wRet+=pt.ret*pesoMap[c.ticker];wTotal+=pesoMap[c.ticker];}
+    // Filtrar pelo período e mapear para YYYY-MM
+    // semana_data está em DD/MM/AAAA
+    const semanasMap={}; // {YYYY-MM: [semana_data...]}
+    semanas.forEach(s=>{
+      const parts=s.semana_data.split('/');
+      if(parts.length!==3) return;
+      const ym=`${parts[2]}-${parts[1]}`; // YYYY-MM
+      if(ym<startYM||ym>endYM) return;
+      if(!semanasMap[ym]) semanasMap[ym]=[];
+      semanasMap[ym].push(s.semana_data);
     });
-    return{date:month,ret:wTotal>0?wRet/wTotal:0};
-  });
+
+    const months=Object.keys(semanasMap).sort();
+    if(!months.length){
+      _benchDataStatus.carteira='empty';
+      return[];
+    }
+
+    // Para cada mês, pegar a ÚLTIMA semana disponível (mais recente do mês)
+    const lastWeekPerMonth={};
+    months.forEach(ym=>{
+      const weeks=semanasMap[ym].sort();
+      lastWeekPerMonth[ym]=weeks[weeks.length-1];
+    });
+
+    // Buscar fechamento de cada fundo em cada semana relevante
+    const semanaDatas=[...new Set(Object.values(lastWeekPerMonth))];
+    const{data:fundData,error:eF}=await db.from('fund_data')
+      .select('semana_data,ticker,fechamento,ret_mes')
+      .in('semana_data',semanaDatas)
+      .in('ticker',tickers);
+
+    if(eF||!fundData?.length) throw new Error('Sem dados de fundos no Supabase');
+
+    // Indexar por {semana_data: {ticker: {fechamento, ret_mes}}}
+    const dataIdx={};
+    fundData.forEach(f=>{
+      if(!dataIdx[f.semana_data]) dataIdx[f.semana_data]={};
+      dataIdx[f.semana_data][f.ticker]=f;
+    });
+
+    // Calcular retorno mensal ponderado usando PREÇO DE FECHAMENTO
+    // ret = preco_mes_atual / preco_mes_anterior - 1
+    const results=[];
+    const precoAnterior={};
+
+    months.forEach(ym=>{
+      const semana=lastWeekPerMonth[ym];
+      const weekData=dataIdx[semana]||{};
+      let wRet=0,wTotal=0;
+
+      tickers.forEach(ticker=>{
+        const f=weekData[ticker];
+        if(!f?.fechamento) return;
+        const preco=parseFloat(f.fechamento);
+        if(isNaN(preco)||preco<=0) return;
+
+        if(precoAnterior[ticker]&&precoAnterior[ticker]>0){
+          const ret=preco/precoAnterior[ticker]-1;
+          wRet+=ret*pesoMap[ticker];
+          wTotal+=pesoMap[ticker];
+        }
+        precoAnterior[ticker]=preco;
+      });
+
+      if(wTotal>0) results.push({date:ym,ret:wRet/wTotal});
+    });
+
+    const n=results.length;
+    console.log(`[benchmarks] Carteira: ${n} meses calculados do Supabase`);
+    _benchDataStatus.carteira=n>0?'ok':'empty';
+    if(info) info.textContent=n>0?`Carteira: ${n} meses de retornos calculados`:'Carteira: dados insuficientes';
+    return results;
+
+  }catch(e){
+    console.warn('[calcPortfolioMonthlyReturns Supabase]',e.message);
+    _benchDataStatus.carteira='failed';
+    return[];
+  }
 }
 
 async function loadAllBenchmarkData(startYM,endYM){
   setBenchLoading(true);
   const info=document.getElementById('bench-update-info');
-  if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB)...';
+  if(info) info.textContent='Carregando benchmarks...';
 
-  // Marcar tudo como carregando
-  ['cdi','ipca','selic','carteira','ifix','ibov'].forEach(k=>{_benchDataStatus[k]='loading';});
+  ['cdi','ipca','selic','carteira','ifix','ibov']
+    .forEach(k=>{_benchDataStatus[k]='loading';});
 
   try{
-    // 1. BCB — paralelo, sem CORS, API pública oficial
-    const[cdi,ipca,selic]=await Promise.allSettled([
-      fetchBCBSeries(BCB_SERIES_IDS.cdi,startYM,endYM),
-      fetchBCBSeries(BCB_SERIES_IDS.ipca,startYM,endYM),
+    // 1. BCB (CDI/IPCA/SELIC) + Carteira via Supabase — paralelo
+    if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB) + retornos da carteira (Supabase)...';
+
+    const[cdi,ipca,selic,carteira]=await Promise.allSettled([
+      fetchBCBSeries(BCB_SERIES_IDS.cdi,  startYM,endYM),
+      fetchBCBSeries(BCB_SERIES_IDS.ipca, startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.selic,startYM,endYM),
+      calcPortfolioMonthlyReturns(startYM,endYM),
     ]);
     const ok=r=>r.status==='fulfilled'?r.value:[];
-    _benchData.cdi   =ok(cdi);   _benchDataStatus.cdi  =cdi.status==='fulfilled'?'ok':'failed';
-    _benchData.ipca  =ok(ipca);  _benchDataStatus.ipca =ipca.status==='fulfilled'?'ok':'failed';
-    _benchData.selic =ok(selic); _benchDataStatus.selic=selic.status==='fulfilled'?'ok':'failed';
-    renderBenchToggles();
-    renderBenchChart();
+    _benchData.cdi     =ok(cdi);     _benchDataStatus.cdi     =ok(cdi).length>0?'ok':'failed';
+    _benchData.ipca    =ok(ipca);    _benchDataStatus.ipca    =ok(ipca).length>0?'ok':'failed';
+    _benchData.selic   =ok(selic);   _benchDataStatus.selic   =ok(selic).length>0?'ok':'failed';
+    _benchData.carteira=ok(carteira);_benchDataStatus.carteira=ok(carteira).length>0?'ok':'failed';
 
-    // 2. brapi.dev — IBOV (via BOVA11 ETF) e IFIX (via XFIX11)
-    if(info) info.textContent='Buscando IBOV e IFIX via brapi.dev...';
+    // Renderizar imediatamente com o que temos
+    renderAllBenchmarks();
+
+    // 2. brapi.dev — IBOV e IFIX (best-effort, falha não bloqueia)
+    if(info) info.textContent='Buscando IBOV e IFIX (brapi.dev, best-effort)...';
     const[ibov,ifix]=await Promise.allSettled([
       fetchBrapiMonthly(BRAPI_INDEX_MAP.ibov,startYM,endYM),
       fetchBrapiMonthly(BRAPI_INDEX_MAP.ifix,startYM,endYM),
     ]);
-    _benchData.ibov=ok(ibov); _benchDataStatus.ibov=ibov.status==='fulfilled'&&ok(ibov).length>0?'ok':'failed';
-    _benchData.ifix=ok(ifix); _benchDataStatus.ifix=ifix.status==='fulfilled'&&ok(ifix).length>0?'ok':'failed';
-    if(ibov.status==='rejected') console.warn('[benchmarks] IBOV/BOVA11:',ibov.reason?.message);
-    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX/XFIX11:',ifix.reason?.message);
-
-    // 3. brapi.dev — fundos da carteira (sequencial)
-    if(info) info.textContent='Buscando retornos dos fundos...';
-    _benchData.carteira=await calcPortfolioMonthlyReturns(startYM,endYM);
-    _benchDataStatus.carteira=_benchData.carteira.length>0?'ok':'failed';
+    _benchData.ibov=ok(ibov); _benchDataStatus.ibov=ok(ibov).length>0?'ok':'failed';
+    _benchData.ifix=ok(ifix); _benchDataStatus.ifix=ok(ifix).length>0?'ok':'failed';
 
     _benchLoaded=true;
     renderAllBenchmarks();
 
-    const now=new Date();
     const nOk=Object.values(_benchDataStatus).filter(v=>v==='ok').length;
     const nFail=Object.values(_benchDataStatus).filter(v=>v==='failed').length;
-    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${nOk} séries OK${nFail>0?' · '+nFail+' falharam':''}`;
+    const now=new Date();
+    if(info) info.textContent=
+      `Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · `+
+      `${nOk} séries OK${nFail>0?' · '+nFail+' indisponíveis':''}`;
+
   }catch(e){
     console.error('[loadAllBenchmarkData]',e);
     toast('Erro ao carregar benchmarks: '+e.message,'error');
   }finally{setBenchLoading(false);}
-}
-
-/**
- * Toggles uma série no gráfico.
- * Se a série está ativa mas sem dados, avisa o usuário com um toast.
- */
-function toggleBenchSeries(key,btn){
-  const activating=!_benchVisible.has(key);
-  if(activating){
-    // Verificar se tem dados antes de ativar
-    const hasData=BENCH_LABELS[key]
-      ?(_benchData[key]?.length>0)
-      :(_benchFundData[key]?.length>0);
-    if(!hasData){
-      const status=_benchDataStatus[key];
-      if(status==='loading')  toast(`${BENCH_LABELS[key]||key} ainda está carregando...`,'info',2500);
-      else if(status==='failed') toast(`${BENCH_LABELS[key]||key}: dados não disponíveis. Verifique o console para detalhes.`,'warning');
-      else                       toast(`${BENCH_LABELS[key]||key}: nenhum dado carregado ainda. Clique em Atualizar.`,'warning');
-      return; // não ativa série sem dados
-    }
-  }
-  if(_benchVisible.has(key))_benchVisible.delete(key);
-  else _benchVisible.add(key);
-  const cor=BENCH_COLORS[key]||'#999';
-  const active=_benchVisible.has(key);
-  btn.classList.toggle('active',active);
-  btn.style.background=active?cor:'transparent';
-  btn.style.color=active?'#fff':cor;
-  renderBenchChart();
-  renderBenchStats();
 }
 
 function setBenchLoading(on){
