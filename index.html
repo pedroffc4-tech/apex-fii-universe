@@ -286,7 +286,32 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .btn-download{padding:4px 10px;background:#e8f5e1;color:#2d5a00;border:1px solid #c3e6a8;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
 .btn-download:hover{background:#2d5a00;color:#fff}
 .btn-download.disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:default;pointer-events:none}
-/* ── Carteira APX ── */
+/* ── Benchmarks ── */
+:root{
+  --bench-carteira:#000123; --bench-cdi:#27ae60; --bench-ipca:#e67e22;
+  --bench-selic:#8e44ad;    --bench-ifix:#307AE0; --bench-ibov:#c0392b;
+}
+.bench-toggle{padding:4px 12px;border-radius:12px;border:1.5px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s;white-space:nowrap}
+.bench-toggle.active{color:#fff}
+.bench-toggle:not(.active){opacity:.55}
+.bench-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.bench-kpi-card{background:#fff;border:1.5px solid var(--apex-mist);border-radius:10px;padding:12px 14px;text-align:center}
+.bench-kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:4px}
+.bench-kpi-val{font-size:18px;font-weight:800;margin-bottom:2px}
+.bench-kpi-sub{font-size:9px;color:#6b7a9a}
+.bench-stats-table{width:100%;border-collapse:collapse;font-size:11px}
+.bench-stats-table th{padding:8px 12px;background:var(--apex-navy);color:#fff;font-size:10px;font-weight:700;white-space:nowrap;text-align:right}
+.bench-stats-table th:first-child{text-align:left}
+.bench-stats-table td{padding:8px 12px;border-bottom:1px solid #f0f4fa;font-weight:600;text-align:right;white-space:nowrap}
+.bench-stats-table td:first-child{text-align:left;font-weight:700;color:var(--apex-navy)}
+.bench-stats-table tr:hover td{background:#f4f8fd}
+.hm-cell{padding:5px 7px;text-align:center;font-size:10px;font-weight:600;white-space:nowrap}
+.bench-annual-table{width:100%;border-collapse:collapse;font-size:11px}
+.bench-annual-table th{padding:8px 12px;background:var(--apex-navy);color:#fff;font-size:10px;font-weight:700;white-space:nowrap;text-align:center}
+.bench-annual-table th:first-child{text-align:left}
+.bench-annual-table td{padding:7px 12px;border-bottom:1px solid #f0f4fa;font-weight:600;text-align:center;white-space:nowrap}
+.bench-annual-table td:first-child{text-align:left;font-weight:700}
+.bench-annual-table tr:nth-child(even) td{background:#f8faff}
 .ctab{padding:8px 18px;background:transparent;color:#6b7a9a;border:none;border-bottom:3px solid transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;letter-spacing:.4px;text-transform:uppercase;transition:all .15s;margin-bottom:-2px}
 .ctab:hover{color:var(--apex-navy);background:var(--apex-blue-lt)}
 .ctab.active{color:var(--apex-blue);border-bottom-color:var(--apex-blue);background:var(--apex-blue-lt)}
@@ -580,6 +605,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <button class="ctab active" onclick="showCarteiraTab('posicoes',this)">📊 Posições</button>
     <button class="ctab" onclick="showCarteiraTab('composicao',this)">🧩 Composição</button>
     <button class="ctab" onclick="showCarteiraTab('visaogeral',this)">📈 Visão Geral</button>
+    <button class="ctab" onclick="showCarteiraTab('benchmarks',this)">📉 Benchmarks</button>
     <button class="ctab" onclick="showCarteiraTab('alertas',this)">🔔 Alertas</button>
   </div>
 
@@ -779,6 +805,75 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ── SUB-TAB: BENCHMARKS ── -->
+  <div id="ctab-benchmarks" class="ctab-content" style="display:none">
+
+    <!-- Controles de período -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-weight:700;color:var(--apex-navy);font-size:12px">Período:</div>
+        <input type="month" id="bench-start" class="form-select" style="width:150px;font-family:'Manrope',sans-serif">
+        <span style="color:#6b7a9a;font-size:12px">até</span>
+        <input type="month" id="bench-end" class="form-select" style="width:150px;font-family:'Manrope',sans-serif">
+        <button onclick="updateBenchmarkPeriod()"
+          style="padding:8px 18px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+          🔄 Atualizar
+        </button>
+        <div id="bench-update-info" style="font-size:10px;color:#6b7a9a;flex:1;text-align:right"></div>
+      </div>
+      <!-- Toggles de séries -->
+      <div id="bench-series-toggles" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--apex-mist)"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="bench-loading" style="display:none;text-align:center;padding:40px;color:#6b7a9a;font-size:13px;font-weight:600">
+      <div style="font-size:24px;margin-bottom:12px">⟳</div>Carregando dados de benchmarks...
+    </div>
+
+    <!-- Gráfico de linhas acumulado -->
+    <div class="card" style="margin-bottom:16px" id="bench-chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="card-title" style="margin:0;padding:0;border:none">Rentabilidade Acumulada</div>
+        <div style="font-size:10px;color:#6b7a9a">Todos os índices partem de 0% no início do período selecionado</div>
+      </div>
+      <div id="bench-chart-wrap" style="overflow-x:auto">
+        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Clique em "Atualizar" para carregar os dados</div>
+      </div>
+      <div id="bench-chart-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:10px;border-top:1px solid #f0f4fa;font-size:11px"></div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div id="bench-kpi-section" style="margin-bottom:16px"></div>
+
+    <!-- Tabela anual -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Rentabilidade Anual</div>
+      <div id="bench-annual-wrap">
+        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Aguardando dados...</div>
+      </div>
+    </div>
+
+    <!-- Heat map mensal -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Retorno Mensal</div>
+      <div id="bench-heatmap-wrap">
+        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Aguardando dados...</div>
+      </div>
+    </div>
+
+    <!-- Painel de estatísticas de risco -->
+    <div class="card">
+      <div class="card-title">📐 Estatísticas de Risco — Período Selecionado</div>
+      <div style="font-size:10px;color:#6b7a9a;margin-bottom:12px">
+        Sharpe calculado com CDI como taxa livre de risco · Drawdown = maior queda do pico ao vale
+      </div>
+      <div id="bench-stats-wrap">
+        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Aguardando dados...</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── SUB-TAB: ALERTAS ── -->
@@ -6844,8 +6939,9 @@ function showCarteiraTab(id, btn){
   if(btn) btn.classList.add('active');
   const el=document.getElementById('ctab-'+id);
   if(el) el.style.display='block';
-  if(id==='composicao') renderCarteiraComposicao();
+  if(id==='composicao')  renderCarteiraComposicao();
   if(id==='visaogeral')  renderCarteiraVisaoGeral();
+  if(id==='benchmarks')  initBenchmarks();
   if(id==='alertas'){    renderAlertasLista(); verificarAlertasCarteira(); }
 }
 
@@ -6893,6 +6989,376 @@ async function logCarteiraAtividade(tipo, ticker, detalhe){
   }catch(e){ console.warn('[logCarteiraAtividade]',e.message); }
 }
 
+
+
+// ══════════════════════════════════════════════════════════════
+// BENCHMARKS — Comparação de Rentabilidade
+// ══════════════════════════════════════════════════════════════
+
+const BENCH_COLORS={carteira:'#000123',cdi:'#27ae60',ipca:'#e67e22',selic:'#8e44ad',ifix:'#307AE0',ibov:'#c0392b'};
+const BENCH_LABELS={carteira:'Carteira APX',cdi:'CDI',ipca:'IPCA',selic:'SELIC',ifix:'IFIX',ibov:'IBOV'};
+const BCB_SERIES_IDS={cdi:4391,ipca:433,selic:4390};
+const YF_BENCH_TICKERS={ifix:'%5EIFIX',ibov:'%5EBVSP'};
+
+let _benchData={};
+let _benchFundData={};
+let _benchPeriodStart='';
+let _benchPeriodEnd='';
+let _benchVisible=new Set(['carteira','cdi','ipca','ifix','ibov']);
+let _benchLoaded=false;
+
+async function initBenchmarks(){
+  if(!_benchPeriodStart){
+    _benchPeriodStart='2021-09';
+    const now=new Date();
+    _benchPeriodEnd=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
+  const s=document.getElementById('bench-start');
+  const e=document.getElementById('bench-end');
+  if(s&&!s.value) s.value=_benchPeriodStart;
+  if(e&&!e.value) e.value=_benchPeriodEnd;
+  renderBenchToggles();
+  if(!_benchLoaded) await loadAllBenchmarkData(_benchPeriodStart,_benchPeriodEnd);
+  else renderAllBenchmarks();
+}
+
+function updateBenchmarkPeriod(){
+  const s=document.getElementById('bench-start')?.value;
+  const e=document.getElementById('bench-end')?.value;
+  if(!s||!e){toast('Selecione o período','warning');return;}
+  if(s>e){toast('A data de início deve ser anterior ao fim','warning');return;}
+  _benchPeriodStart=s;_benchPeriodEnd=e;
+  _benchLoaded=false;_benchData={};_benchFundData={};
+  loadAllBenchmarkData(s,e);
+}
+
+async function fetchBCBSeries(codigo,startYM,endYM){
+  const[sy,sm]=startYM.split('-');
+  const[ey,em]=endYM.split('-');
+  const lastDay=new Date(parseInt(ey),parseInt(em),0).getDate();
+  const url=`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${codigo}/dados?formato=json`+
+    `&dataInicial=01%2F${sm}%2F${sy}&dataFinal=${lastDay}%2F${em}%2F${ey}`;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error(`BCB ${codigo}: HTTP ${res.status}`);
+  const data=await res.json();
+  return data.map(d=>{
+    const p=d.data.split('/');
+    return{date:`${p[2]}-${p[1]}`,ret:parseFloat((d.valor||'0').replace(',','.'))/100};
+  }).filter(d=>d.date>=startYM&&d.date<=endYM);
+}
+
+async function fetchYFMonthlyPrices(encodedTicker,startYM,endYM){
+  const[sy,sm]=startYM.split('-').map(Number);
+  const[ey,em]=endYM.split('-').map(Number);
+  const p1=Math.floor(new Date(sy,sm-2,1).getTime()/1000);
+  const p2=Math.floor(new Date(ey,em,1).getTime()/1000);
+  const url=`${YF_CHART_URL}/${encodedTicker}?interval=1mo&period1=${p1}&period2=${p2}`;
+  const res=await fetch(CORS_PROXY+encodeURIComponent(url));
+  if(!res.ok) throw new Error(`YF ${encodedTicker}: HTTP ${res.status}`);
+  const json=await res.json();
+  const result=json?.chart?.result?.[0];
+  if(!result) throw new Error(`YF ${encodedTicker}: sem dados`);
+  const timestamps=result.timestamp||[];
+  const closes=result.indicators?.quote?.[0]?.close||[];
+  const points=[];
+  for(let i=1;i<timestamps.length;i++){
+    if(!closes[i]||!closes[i-1]) continue;
+    const d=new Date(timestamps[i]*1000);
+    const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(dateStr>=startYM&&dateStr<=endYM) points.push({date:dateStr,ret:closes[i]/closes[i-1]-1});
+  }
+  return points;
+}
+
+async function calcPortfolioMonthlyReturns(startYM,endYM){
+  if(!_carteira.length) return[];
+  const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
+  const pesoMap={};
+  _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
+  const fundDataLocal={};
+  await Promise.allSettled(_carteira.map(async c=>{
+    try{
+      const data=await fetchYFMonthlyPrices(`${c.ticker}.SA`,startYM,endYM);
+      fundDataLocal[c.ticker]=data;
+      _benchFundData[c.ticker]=data;
+    }catch(e){console.warn(`[benchmarks] ${c.ticker}:`,e.message);}
+  }));
+  const monthSet=new Set();
+  Object.values(fundDataLocal).forEach(s=>s.forEach(p=>monthSet.add(p.date)));
+  const months=[...monthSet].sort().filter(m=>m>=startYM&&m<=endYM);
+  return months.map(month=>{
+    let wRet=0,wTotal=0;
+    _carteira.forEach(c=>{
+      const pt=fundDataLocal[c.ticker]?.find(p=>p.date===month);
+      if(pt){wRet+=pt.ret*pesoMap[c.ticker];wTotal+=pesoMap[c.ticker];}
+    });
+    return{date:month,ret:wTotal>0?wRet/wTotal:0};
+  });
+}
+
+async function loadAllBenchmarkData(startYM,endYM){
+  setBenchLoading(true);
+  const info=document.getElementById('bench-update-info');
+  if(info) info.textContent='Buscando dados...';
+  try{
+    const[cdi,ipca,selic,ifix,ibov,carteira]=await Promise.allSettled([
+      fetchBCBSeries(BCB_SERIES_IDS.cdi,startYM,endYM),
+      fetchBCBSeries(BCB_SERIES_IDS.ipca,startYM,endYM),
+      fetchBCBSeries(BCB_SERIES_IDS.selic,startYM,endYM),
+      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ifix,startYM,endYM),
+      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ibov,startYM,endYM),
+      calcPortfolioMonthlyReturns(startYM,endYM)
+    ]);
+    const ok=r=>r.status==='fulfilled'?r.value:[];
+    _benchData={carteira:ok(carteira),cdi:ok(cdi),ipca:ok(ipca),selic:ok(selic),ifix:ok(ifix),ibov:ok(ibov)};
+    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX indisponível no YF:',ifix.reason?.message);
+    _benchLoaded=true;
+    const now=new Date();
+    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    renderAllBenchmarks();
+  }catch(e){
+    console.error('[loadAllBenchmarkData]',e);
+    toast('Erro ao carregar benchmarks: '+e.message,'error');
+  }finally{setBenchLoading(false);}
+}
+
+function setBenchLoading(on){
+  const el=document.getElementById('bench-loading');
+  if(el) el.style.display=on?'block':'none';
+  const card=document.getElementById('bench-chart-card');
+  if(card) card.style.opacity=on?'0.4':'1';
+}
+
+function renderAllBenchmarks(){
+  renderBenchToggles();
+  renderBenchChart();
+  renderBenchKPIs();
+  renderBenchAnnualTable();
+  renderBenchHeatmap();
+  renderBenchStats();
+}
+
+function renderBenchToggles(){
+  const wrap=document.getElementById('bench-series-toggles');
+  if(!wrap) return;
+  const fixed=['carteira','cdi','ipca','selic','ifix','ibov'];
+  const fundKeys=_carteira.map(c=>c.ticker);
+  wrap.innerHTML=[...fixed,...fundKeys].map(key=>{
+    const cor=BENCH_COLORS[key]||SEG_COLORS[_carteiraPrecos[key]?.seg||'Outros']||'#999';
+    const active=_benchVisible.has(key);
+    const label=BENCH_LABELS[key]||key;
+    return`<button class="bench-toggle${active?' active':''}" onclick="toggleBenchSeries('${key}',this)"
+      style="border-color:${cor};background:${active?cor:'transparent'};color:${active?'#fff':cor}">${label}</button>`;
+  }).join('');
+}
+
+function toggleBenchSeries(key,btn){
+  if(_benchVisible.has(key))_benchVisible.delete(key);
+  else _benchVisible.add(key);
+  const cor=BENCH_COLORS[key]||'#999';
+  const active=_benchVisible.has(key);
+  btn.classList.toggle('active',active);
+  btn.style.background=active?cor:'transparent';
+  btn.style.color=active?'#fff':cor;
+  renderBenchChart();
+  renderBenchStats();
+}
+
+function calcCumulative(series){
+  let cum=1;
+  return series.map(p=>{cum*=(1+p.ret);return{date:p.date,cum:(cum-1)*100};});
+}
+
+function calcBenchStats(series,rfSeries){
+  if(!series||series.length<2) return null;
+  const rfMap={};(rfSeries||[]).forEach(p=>{rfMap[p.date]=p.ret;});
+  const rets=series.map(p=>p.ret);const n=rets.length;
+  const totalRet=rets.reduce((acc,r)=>acc*(1+r),1)-1;
+  const years=n/12;
+  const annRet=years>0?Math.pow(1+totalRet,1/years)-1:0;
+  const mean=rets.reduce((a,b)=>a+b,0)/n;
+  const variance=rets.reduce((acc,r)=>acc+Math.pow(r-mean,2),0)/(n-1||1);
+  const annVol=Math.sqrt(variance)*Math.sqrt(12);
+  const excess=series.map(p=>p.ret-(rfMap[p.date]||0));
+  const meanEx=excess.reduce((a,b)=>a+b,0)/excess.length;
+  const varEx=excess.reduce((acc,r)=>acc+Math.pow(r-meanEx,2),0)/((excess.length-1)||1);
+  const sharpe=Math.sqrt(varEx)>0?meanEx*12/(Math.sqrt(varEx)*Math.sqrt(12)):0;
+  const rfTotal=(rfSeries||[]).reduce((acc,p)=>acc*(1+p.ret),1)-1;
+  const alpha=totalRet-rfTotal;
+  let peak=1,maxDD=0,c=1;
+  rets.forEach(r=>{c*=(1+r);if(c>peak)peak=c;const dd=(peak-c)/peak;if(dd>maxDD)maxDD=dd;});
+  return{totalRet,annRet,annVol,sharpe,alpha,maxDD};
+}
+
+function bPct(v,dec=2){return v==null?'—':((v>=0?'+':'')+(v*100).toFixed(dec)+'%');}
+function bPctAbs(v,dec=2){return v==null?'—':((v*100).toFixed(dec)+'%');}
+
+function renderBenchChart(){
+  const wrap=document.getElementById('bench-chart-wrap');
+  const legEl=document.getElementById('bench-chart-legend');
+  if(!wrap) return;
+  const allKeys=[..._benchVisible].filter(k=>{
+    if(BENCH_LABELS[k]) return(_benchData[k]?.length>0);
+    return(_benchFundData[k]?.length>0);
+  });
+  if(!allKeys.length){
+    wrap.innerHTML='<div style="padding:40px;text-align:center;color:#6b7a9a">Nenhuma série com dados disponíveis.</div>';
+    return;
+  }
+  const monthSet=new Set();
+  allKeys.forEach(k=>{const src=BENCH_LABELS[k]?_benchData[k]:_benchFundData[k];src?.forEach(p=>monthSet.add(p.date));});
+  const months=[...monthSet].sort();if(!months.length) return;
+  const cumMap={};
+  allKeys.forEach(k=>{
+    const src=BENCH_LABELS[k]?_benchData[k]:_benchFundData[k];
+    const byDate={};(src||[]).forEach(p=>{byDate[p.date]=p.ret;});
+    let c=1;
+    cumMap[k]=months.map(m=>{c*=(1+(byDate[m]||0));return{date:m,cum:(c-1)*100};});
+  });
+  const allV=Object.values(cumMap).flat().map(p=>p.cum);
+  const vMin=Math.min(...allV,0),vMax=Math.max(...allV,1);
+  const pad=(vMax-vMin)*0.08||2;
+  const W=680,H=300,P={t:16,r:110,b:44,l:56};
+  const pw=W-P.l-P.r,ph=H-P.t-P.b;
+  const sx=i=>P.l+(months.length>1?i/(months.length-1):0.5)*pw;
+  const sy=v=>P.t+(1-(v-(vMin-pad))/((vMax+pad)-(vMin-pad)))*ph;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px;font-family:Manrope,sans-serif">`;
+  svg+=`<rect x="${P.l}" y="${P.t}" width="${pw}" height="${ph}" fill="#fafcff" rx="3"/>`;
+  const zy=sy(0);
+  svg+=`<line x1="${P.l}" y1="${zy}" x2="${P.l+pw}" y2="${zy}" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>`;
+  svg+=`<text x="${P.l-4}" y="${zy+4}" text-anchor="end" font-size="9" fill="#9aa7bd">0%</text>`;
+  const range=(vMax+pad)-(vMin-pad);
+  const step=range>200?50:range>100?20:range>50?10:range>20?5:2;
+  for(let t=Math.ceil((vMin-pad)/step)*step;t<=(vMax+pad);t+=step){
+    const y=sy(t);if(y<P.t||y>P.t+ph) continue;
+    svg+=`<line x1="${P.l}" y1="${y}" x2="${P.l+pw}" y2="${y}" stroke="#e4ecf7" stroke-width="1"/>`;
+    svg+=`<text x="${P.l-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#9aa7bd">${t>0?'+':''}${t.toFixed(0)}%</text>`;
+  }
+  const labelEvery=months.length>48?12:months.length>24?6:months.length>12?3:1;
+  months.forEach((m,i)=>{
+    if(i%labelEvery===0){
+      const x=sx(i);const[y,mo]=m.split('-');
+      svg+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-size="9" fill="#9aa7bd">${mo}/${y.slice(2)}</text>`;
+      svg+=`<line x1="${x}" y1="${P.t}" x2="${x}" y2="${P.t+ph}" stroke="#e4ecf7" stroke-width="1"/>`;
+    }
+  });
+  allKeys.forEach(k=>{
+    const cor=BENCH_COLORS[k]||SEG_COLORS[_carteiraPrecos[k]?.seg||'Outros']||'#999';
+    const pts=cumMap[k].map((p,i)=>`${sx(i).toFixed(1)},${sy(p.cum).toFixed(1)}`).join(' ');
+    svg+=`<polyline points="${pts}" fill="none" stroke="${cor}" stroke-width="${k==='carteira'?2.5:1.8}" stroke-linejoin="round"/>`;
+    const last=cumMap[k][cumMap[k].length-1];
+    if(last){
+      const lx=P.l+pw+5,ly=Math.max(P.t+8,Math.min(P.t+ph-4,sy(last.cum)));
+      svg+=`<text x="${lx}" y="${ly+4}" font-size="9" font-weight="700" fill="${cor}">${BENCH_LABELS[k]||k}: ${last.cum>=0?'+':''}${last.cum.toFixed(1)}%</text>`;
+    }
+  });
+  svg+='</svg>';
+  wrap.innerHTML=svg;
+  if(legEl) legEl.innerHTML=allKeys.map(k=>{
+    const cor=BENCH_COLORS[k]||'#999';
+    const last=cumMap[k]?.[cumMap[k].length-1];
+    return`<div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;background:${cor};border-radius:2px"></div><span style="color:${cor};font-weight:700">${BENCH_LABELS[k]||k}</span>${last?`<span style="color:#6b7a9a;font-size:10px">${last.cum>=0?'+':''}${last.cum.toFixed(1)}%</span>`:''}</div>`;
+  }).join('');
+}
+
+function renderBenchKPIs(){
+  const el=document.getElementById('bench-kpi-section');if(!el) return;
+  const tot=series=>series.reduce((a,p)=>a*(1+p.ret),1)-1;
+  const cT=tot(_benchData.carteira||[]),cdiT=tot(_benchData.cdi||[]);
+  const ifT=tot(_benchData.ifix||[]),ibT=tot(_benchData.ibov||[]);
+  const ipT=tot(_benchData.ipca||[]),slT=tot(_benchData.selic||[]);
+  const perf=v=>v>0?'var(--success)':v<0?'var(--danger)':' #6b7a9a';
+  const card=(label,val,sub,cor)=>`<div class="bench-kpi-card"><div class="bench-kpi-label">${label}</div><div class="bench-kpi-val" style="color:${cor||'var(--apex-navy)'}">${bPct(val,1)}</div>${sub?`<div class="bench-kpi-sub">${sub}</div>`:''}</div>`;
+  el.innerHTML=`<div class="bench-kpi-grid">
+    ${card('Carteira APX',cT,'Período selecionado',perf(cT))}
+    ${card('CDI',cdiT,'',perf(cdiT))}
+    ${card('IPCA',ipT,'',perf(ipT))}
+    ${card('SELIC',slT,'',perf(slT))}
+    ${ifT?card('IFIX',ifT,'',perf(ifT)):''}
+    ${ibT?card('IBOV',ibT,'',perf(ibT)):''}
+    ${cT&&cdiT?card('Alfa vs CDI',cT-cdiT,'Carteira − CDI',perf(cT-cdiT)):''}
+    ${ifT&&cT?card('Alfa vs IFIX',cT-ifT,'Carteira − IFIX',perf(cT-ifT)):''}
+  </div>`;
+}
+
+function renderBenchAnnualTable(){
+  const wrap=document.getElementById('bench-annual-wrap');if(!wrap) return;
+  const visK=['carteira','cdi','ipca','selic','ifix','ibov'].filter(k=>_benchVisible.has(k)&&_benchData[k]?.length>0);
+  if(!visK.length){wrap.innerHTML='<div style="padding:20px;text-align:center;color:#6b7a9a;font-size:12px">Nenhuma série visível</div>';return;}
+  const ySet=new Set();visK.forEach(k=>_benchData[k].forEach(p=>ySet.add(p.date.split('-')[0])));
+  const years=[...ySet].sort((a,b)=>b-a);
+  let html=`<div style="overflow-x:auto"><table class="bench-annual-table"><thead><tr><th style="text-align:left">Série</th>${years.map(y=>`<th>${y}</th>`).join('')}</tr></thead><tbody>`;
+  visK.forEach(k=>{
+    const cor=BENCH_COLORS[k];
+    const byDate={};_benchData[k].forEach(p=>{byDate[p.date]=p.ret;});
+    html+=`<tr><td style="color:${cor};font-weight:700">${BENCH_LABELS[k]}</td>${years.map(y=>{
+      const rets=Object.entries(byDate).filter(([d])=>d.startsWith(y)).map(([,v])=>v);
+      const tot=rets.length?rets.reduce((a,r)=>a*(1+r),1)-1:null;
+      const c=tot==null?'#f8f9fa':tot>0.05?'#c8e6c9':tot>0.01?'#e8f5e9':tot>0?'#f1f8e9':tot>-0.05?'#ffcdd2':'#ef9a9a';
+      const fg=tot==null?'#6b7a9a':Math.abs(tot)>0.08?'#1a3a2a':'#333';
+      return`<td style="background:${c};color:${fg}">${tot!=null?bPct(tot,2):'—'}</td>`;
+    }).join('')}</tr>`;
+  });
+  html+='</tbody></table></div>';wrap.innerHTML=html;
+}
+
+function renderBenchHeatmap(){
+  const wrap=document.getElementById('bench-heatmap-wrap');if(!wrap) return;
+  const visK=['carteira','cdi','ipca','selic','ifix','ibov'].filter(k=>_benchVisible.has(k)&&_benchData[k]?.length>0);
+  if(!visK.length){wrap.innerHTML='<div style="padding:20px;text-align:center;color:#6b7a9a;font-size:12px">Nenhuma série visível</div>';return;}
+  const ySet=new Set();visK.forEach(k=>_benchData[k].forEach(p=>ySet.add(p.date.split('-')[0])));
+  const years=[...ySet].sort();
+  const mNames=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const hc=v=>{if(v==null)return'#f8f9fa';const p=v*100;return p>3?'#1b5e20':p>1.5?'#388e3c':p>0.3?'#81c784':p>0?'#c8e6c9':p>-0.3?'#ffcdd2':p>-1.5?'#e57373':p>-3?'#c62828':'#7f0000';};
+  const tc=v=>{if(v==null)return'#6b7a9a';return Math.abs(v*100)>1.5?'#fff':'#333';};
+  let html=`<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:10px;min-width:600px"><thead><tr><th style="padding:6px 10px;text-align:left;background:var(--apex-navy);color:#fff;white-space:nowrap">Série</th>${mNames.map(m=>`<th style="padding:6px 8px;text-align:center;background:var(--apex-navy);color:#fff">${m}</th>`).join('')}<th style="padding:6px 10px;text-align:center;background:var(--apex-navy);color:#fff">Ano</th></tr></thead><tbody>`;
+  years.forEach((year,yi)=>{
+    if(yi>0) html+=`<tr><td colspan="14" style="height:3px;background:#e0e8f4;padding:0"></td></tr>`;
+    visK.forEach(k=>{
+      const cor=BENCH_COLORS[k];
+      const byDate={};_benchData[k].forEach(p=>{byDate[p.date]=p.ret;});
+      let yc=1;
+      html+=`<tr><td style="padding:5px 10px;font-weight:700;color:${cor};white-space:nowrap;background:${yi%2?'#f8faff':'#fff'}">${BENCH_LABELS[k]} ${year}</td>`;
+      [1,2,3,4,5,6,7,8,9,10,11,12].forEach(mo=>{
+        const d=`${year}-${String(mo).padStart(2,'0')}`;
+        const v=byDate[d];if(v!==undefined) yc*=(1+v);
+        html+=`<td class="hm-cell" style="background:${hc(v)};color:${tc(v)}">${v!=null?(v*100).toFixed(2)+'%':'—'}</td>`;
+      });
+      const yr=yc-1;
+      html+=`<td class="hm-cell" style="background:${hc(yr)};color:${tc(yr)};font-weight:700">${bPct(yr,2)}</td></tr>`;
+    });
+  });
+  html+='</tbody></table></div>';wrap.innerHTML=html;
+}
+
+function renderBenchStats(){
+  const wrap=document.getElementById('bench-stats-wrap');if(!wrap) return;
+  const cdi=_benchData.cdi||[];
+  const visK=['carteira','ifix','ibov','cdi','ipca','selic'].filter(k=>_benchVisible.has(k)&&_benchData[k]?.length>1);
+  if(!visK.length){wrap.innerHTML='<div style="padding:20px;text-align:center;color:#6b7a9a;font-size:12px">Nenhuma série com dados suficientes</div>';return;}
+  const metrics=[
+    {key:'totalRet',label:'Retorno Total',fmt:v=>bPct(v,2)},
+    {key:'annRet',label:'Retorno Anualizado',fmt:v=>bPct(v,2)},
+    {key:'annVol',label:'Volatilidade (anual.)',fmt:v=>bPctAbs(v,2)},
+    {key:'sharpe',label:'Sharpe Ratio',fmt:v=>v?.toFixed(2)||'—'},
+    {key:'alpha',label:'Alfa vs CDI',fmt:v=>bPct(v,2)},
+    {key:'maxDD',label:'Drawdown Máximo',fmt:v=>v!=null?'-'+bPctAbs(v,2):'—'},
+  ];
+  const statsMap={};visK.forEach(k=>{statsMap[k]=calcBenchStats(_benchData[k],cdi);});
+  const perf=v=>v>0?'var(--success)':v<0?'var(--danger)':'inherit';
+  let html=`<div style="overflow-x:auto"><table class="bench-stats-table"><thead><tr><th style="text-align:left">Métrica</th>${visK.map(k=>`<th style="color:${BENCH_COLORS[k]||'#fff'};text-align:center">${BENCH_LABELS[k]||k}</th>`).join('')}</tr></thead><tbody>`;
+  metrics.forEach(m=>{
+    html+=`<tr><td>${m.label}</td>`;
+    visK.forEach(k=>{
+      const s=statsMap[k];const v=s?.[m.key];
+      const col=['totalRet','annRet','alpha'].includes(m.key)&&v!=null?perf(v):'inherit';
+      const neg=m.key==='maxDD'&&v>0?'var(--danger)':'inherit';
+      html+=`<td style="color:${neg!=='inherit'?neg:col}">${s?m.fmt(v):'—'}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';wrap.innerHTML=html;
+}
 
 
 const SEG_COLORS={
