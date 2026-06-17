@@ -7076,7 +7076,11 @@ async function fetchYFMonthlyPrices(encodedTicker,startYM,endYM){
   const result=json?.chart?.result?.[0];
   if(!result) throw new Error(`YF ${encodedTicker}: sem dados`);
   const timestamps=result.timestamp||[];
-  const closes=result.indicators?.quote?.[0]?.close||[];
+  // adjclose incorpora dividendos pagos — retorno total real.
+  // Fallback para close em casos onde adjclose não está disponível (ex: índices ^BVSP, ^IFIX).
+  const adjCloses=result.indicators?.adjclose?.[0]?.adjclose||[];
+  const rawCloses=result.indicators?.quote?.[0]?.close||[];
+  const closes=adjCloses.length>0?adjCloses:rawCloses;
   const points=[];
   for(let i=1;i<timestamps.length;i++){
     if(!closes[i]||!closes[i-1]) continue;
