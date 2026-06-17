@@ -6323,39 +6323,43 @@ let _carteiraObjetivo   = 'Entregar renda mensal com gestão ativa, alinhando ex
 
 const CORS_PROXY    = 'https://corsproxy.io/?url=';   // usado pela carteira (atualizarPrecosCarteira)
 
-// ── Proxies para Yahoo Finance (benchmarks) ───────────────────
-// Múltiplos proxies em cascata — se o primeiro falhar ou timeout, tenta o próximo.
-const YF_PROXIES = [
-  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://thingproxy.freeboard.io/fetch/${url}`,
-];
+// ── API de preços: brapi.dev (API brasileira, CORS nativo, sem proxy) ────
+// https://brapi.dev — gratuita, browser-friendly, sem proxy necessário.
+// Tickers brasileiros SEM sufixo .SA (ex: KNCR11, %5EBVSP para IBOV).
+const BRAPI_BASE = 'https://brapi.dev/api';
 
 /**
- * Faz fetch de uma URL do Yahoo Finance tentando múltiplos proxies CORS em cascata.
- * Timeout de 12s por tentativa para não bloquear indefinidamente.
- * @param {string} url URL completa do Yahoo Finance (sem proxy).
- * @returns {Promise<Object>} JSON da resposta.
+ * Busca preços mensais históricos via brapi.dev (sem proxy, CORS nativo).
+ * Usa adjustedClose para retorno total incluindo dividendos (correto para FIIs).
+ * @param {string} ticker  Ticker B3 sem .SA (ex: 'KNCR11') ou índice ('%5EBVSP')
+ * @param {string} startYM Início 'YYYY-MM'
+ * @param {string} endYM   Fim 'YYYY-MM'
+ * @returns {Promise<{date:string,ret:number}[]>}
  */
-async function fetchYF(url){
-  let lastErr=new Error('Todos os proxies falharam para: '+url);
-  for(const proxyFn of YF_PROXIES){
-    try{
-      const ctrl=new AbortController();
-      const tid=setTimeout(()=>ctrl.abort(),12000);
-      const res=await fetch(proxyFn(url),{signal:ctrl.signal});
-      clearTimeout(tid);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json=await res.json();
-      if(json?.chart?.error) throw new Error(json.chart.error.description||'YF error');
-      return json;
-    }catch(e){
-      lastErr=e;
-      console.warn('[fetchYF] proxy falhou, tentando próximo:',e.message);
+async function fetchBrapiMonthly(ticker,startYM,endYM){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    const url=`${BRAPI_BASE}/quote/${ticker}?interval=1mo&range=5y&fundamental=false`;
+    const res=await fetch(url,{signal:ctrl.signal});
+    clearTimeout(tid);
+    if(!res.ok) throw new Error(`brapi ${ticker}: HTTP ${res.status}`);
+    const json=await res.json();
+    const hist=json?.results?.[0]?.historicalDataPrice;
+    if(!hist?.length) throw new Error(`brapi ${ticker}: sem histórico`);
+    const points=[];
+    for(let i=1;i<hist.length;i++){
+      const c0=hist[i-1].adjustedClose||hist[i-1].close;
+      const c1=hist[i].adjustedClose||hist[i].close;
+      if(!c0||!c1) continue;
+      const d=new Date(hist[i].date*1000);
+      const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if(ds>=startYM&&ds<=endYM) points.push({date:ds,ret:c1/c0-1});
     }
-  }
-  throw lastErr;
+    return points;
+  }finally{clearTimeout(tid);}
 }
+
 const YF_QUOTE_URL  = 'https://query2.finance.yahoo.com/v7/finance/quote';
 const YF_CHART_URL  = 'https://query2.finance.yahoo.com/v8/finance/chart';
 
@@ -7049,6 +7053,7 @@ async function logCarteiraAtividade(tipo, ticker, detalhe){
 const BENCH_COLORS={carteira:'#000123',cdi:'#27ae60',ipca:'#e67e22',selic:'#8e44ad',ifix:'#307AE0',ibov:'#c0392b'};
 const BENCH_LABELS={carteira:'Carteira APX',cdi:'CDI',ipca:'IPCA',selic:'SELIC',ifix:'IFIX',ibov:'IBOV'};
 const BCB_SERIES_IDS={cdi:4391,ipca:433,selic:4390};
+
 const YF_BENCH_TICKERS={ifix:'%5EIFIX',ibov:'%5EBVSP'};
 
 let _benchData={};
@@ -7098,36 +7103,11 @@ async function fetchBCBSeries(codigo,startYM,endYM){
   }).filter(d=>d.date>=startYM&&d.date<=endYM);
 }
 
-async function fetchYFMonthlyPrices(encodedTicker,startYM,endYM){
-  const[sy,sm]=startYM.split('-').map(Number);
-  const[ey,em]=endYM.split('-').map(Number);
-  // Recua 1 mês antes do início para ter o preço base do primeiro período
-  const p1=Math.floor(new Date(sy,sm-2,1).getTime()/1000);
-  const p2=Math.floor(new Date(ey,em,1).getTime()/1000);
-  const url=`${YF_CHART_URL}/${encodedTicker}?interval=1mo&period1=${p1}&period2=${p2}`;
-
-  const json=await fetchYF(url); // multi-proxy com fallback e timeout
-
-  const result=json?.chart?.result?.[0];
-  if(!result) throw new Error(`YF ${encodedTicker}: sem dados na resposta`);
-
-  const timestamps=result.timestamp||[];
-  // adjclose incorpora dividendos (retorno total). Fallback para close em índices.
-  const adjCloses=result.indicators?.adjclose?.[0]?.adjclose||[];
-  const rawCloses=result.indicators?.quote?.[0]?.close||[];
-  const closes=adjCloses.filter(v=>v!=null).length>0?adjCloses:rawCloses;
-
-  const points=[];
-  for(let i=1;i<timestamps.length;i++){
-    const c0=closes[i-1],c1=closes[i];
-    if(!c0||!c1) continue;
-    const d=new Date(timestamps[i]*1000);
-    const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(dateStr>=startYM&&dateStr<=endYM) points.push({date:dateStr,ret:c1/c0-1});
-  }
-  return points;
-}
-
+/**
+ * Calcula retorno mensal ponderado da Carteira APX usando brapi.dev.
+ * Preços ajustados (adjustedClose) incluem dividendos — retorno total real.
+ * Tickers sem .SA: brapi.dev usa padrão B3 nativo.
+ */
 async function calcPortfolioMonthlyReturns(startYM,endYM){
   if(!_carteira.length) return[];
   const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
@@ -7135,26 +7115,26 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
   _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
 
   const fundDataLocal={};
-  let loaded=0, failed=0;
+  let loaded=0,failed=0;
   const info=document.getElementById('bench-update-info');
 
-  // Sequencial para evitar rate limit nos proxies (11 req paralelas causam bloqueio)
   for(const c of _carteira){
-    if(info) info.textContent=`Carregando ${c.ticker} (${loaded+failed+1}/${_carteira.length})...`;
+    if(info) info.textContent=`Buscando ${c.ticker} (${loaded+failed+1}/${_carteira.length}) via brapi.dev...`;
     try{
-      const data=await fetchYFMonthlyPrices(`${c.ticker}.SA`,startYM,endYM);
+      // brapi.dev: sem .SA, sem proxy
+      const data=await fetchBrapiMonthly(c.ticker,startYM,endYM);
       fundDataLocal[c.ticker]=data;
       _benchFundData[c.ticker]=data;
       loaded++;
+      console.log(`[benchmarks] ${c.ticker}: ${data.length} meses OK`);
     }catch(e){
       console.warn(`[benchmarks] ${c.ticker} falhou:`,e.message);
       failed++;
     }
-    // Pequena pausa entre requisições para não sobrecarregar o proxy
-    await new Promise(r=>setTimeout(r,300));
+    await new Promise(r=>setTimeout(r,200));
   }
 
-  if(info) info.textContent=`${loaded} fundos carregados${failed>0?` · ${failed} falharam`:''}`;
+  if(info) info.textContent=`${loaded}/${_carteira.length} fundos carregados${failed>0?` (${failed} falharam)`:''}`;
 
   const monthSet=new Set();
   Object.values(fundDataLocal).forEach(s=>s.forEach(p=>monthSet.add(p.date)));
@@ -7175,7 +7155,7 @@ async function loadAllBenchmarkData(startYM,endYM){
   const info=document.getElementById('bench-update-info');
   if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB)...';
   try{
-    // 1. BCB (sem proxy — API pública, sem CORS) — paralelo
+    // 1. BCB — paralelo (sem CORS, API pública oficial)
     const[cdi,ipca,selic]=await Promise.allSettled([
       fetchBCBSeries(BCB_SERIES_IDS.cdi,startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.ipca,startYM,endYM),
@@ -7185,28 +7165,26 @@ async function loadAllBenchmarkData(startYM,endYM){
     _benchData.cdi   =ok(cdi);
     _benchData.ipca  =ok(ipca);
     _benchData.selic =ok(selic);
+    renderAllBenchmarks(); // exibir BCB enquanto o resto carrega
 
-    // Renderizar parcialmente com BCB (já visível enquanto YF carrega)
-    renderAllBenchmarks();
-
-    // 2. Yahoo Finance — índices
-    if(info) info.textContent='Buscando IFIX e IBOV (Yahoo Finance)...';
-    const[ifix,ibov]=await Promise.allSettled([
-      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ifix,startYM,endYM),
-      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ibov,startYM,endYM),
+    // 2. brapi.dev — IBOV e IFIX (sem proxy)
+    if(info) info.textContent='Buscando IBOV e IFIX via brapi.dev...';
+    const[ibov,ifix]=await Promise.allSettled([
+      fetchBrapiMonthly('%5EBVSP',startYM,endYM),
+      fetchBrapiMonthly('%5EIFIX',startYM,endYM),
     ]);
-    _benchData.ifix=ok(ifix);
     _benchData.ibov=ok(ibov);
+    _benchData.ifix=ok(ifix);
+    if(ibov.status==='rejected') console.warn('[benchmarks] IBOV:',ibov.reason?.message);
     if(ifix.status==='rejected') console.warn('[benchmarks] IFIX:',ifix.reason?.message);
 
-    // 3. Yahoo Finance — carteira (sequencial para evitar rate limit)
+    // 3. brapi.dev — fundos da carteira (sequencial, 200ms entre req)
     if(info) info.textContent='Buscando retornos dos fundos da carteira...';
     _benchData.carteira=await calcPortfolioMonthlyReturns(startYM,endYM);
 
     _benchLoaded=true;
     const now=new Date();
-    const failedCount=[ifix,ibov].filter(r=>r.status==='rejected').length;
-    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}${failedCount?' · alguns índices indisponíveis':''}`;
+    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
     renderAllBenchmarks();
   }catch(e){
     console.error('[loadAllBenchmarkData]',e);
