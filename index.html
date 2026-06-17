@@ -6321,7 +6321,41 @@ let _carteiraAlertasCfg = [];
 let _carteiraRetornos   = []; // [{ano, retCarteira, retIfix, acCarteira, acIfix}]
 let _carteiraObjetivo   = 'Entregar renda mensal com gestão ativa, alinhando exposição ao ciclo imobiliário com controle de risco e preservação do patrimônio real.';
 
-const CORS_PROXY    = 'https://corsproxy.io/?url=';
+const CORS_PROXY    = 'https://corsproxy.io/?url=';   // usado pela carteira (atualizarPrecosCarteira)
+
+// ── Proxies para Yahoo Finance (benchmarks) ───────────────────
+// Múltiplos proxies em cascata — se o primeiro falhar ou timeout, tenta o próximo.
+const YF_PROXIES = [
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
+/**
+ * Faz fetch de uma URL do Yahoo Finance tentando múltiplos proxies CORS em cascata.
+ * Timeout de 12s por tentativa para não bloquear indefinidamente.
+ * @param {string} url URL completa do Yahoo Finance (sem proxy).
+ * @returns {Promise<Object>} JSON da resposta.
+ */
+async function fetchYF(url){
+  let lastErr=new Error('Todos os proxies falharam para: '+url);
+  for(const proxyFn of YF_PROXIES){
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),12000);
+      const res=await fetch(proxyFn(url),{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json=await res.json();
+      if(json?.chart?.error) throw new Error(json.chart.error.description||'YF error');
+      return json;
+    }catch(e){
+      lastErr=e;
+      console.warn('[fetchYF] proxy falhou, tentando próximo:',e.message);
+    }
+  }
+  throw lastErr;
+}
 const YF_QUOTE_URL  = 'https://query2.finance.yahoo.com/v7/finance/quote';
 const YF_CHART_URL  = 'https://query2.finance.yahoo.com/v8/finance/chart';
 
@@ -7067,26 +7101,29 @@ async function fetchBCBSeries(codigo,startYM,endYM){
 async function fetchYFMonthlyPrices(encodedTicker,startYM,endYM){
   const[sy,sm]=startYM.split('-').map(Number);
   const[ey,em]=endYM.split('-').map(Number);
+  // Recua 1 mês antes do início para ter o preço base do primeiro período
   const p1=Math.floor(new Date(sy,sm-2,1).getTime()/1000);
   const p2=Math.floor(new Date(ey,em,1).getTime()/1000);
   const url=`${YF_CHART_URL}/${encodedTicker}?interval=1mo&period1=${p1}&period2=${p2}`;
-  const res=await fetch(CORS_PROXY+encodeURIComponent(url));
-  if(!res.ok) throw new Error(`YF ${encodedTicker}: HTTP ${res.status}`);
-  const json=await res.json();
+
+  const json=await fetchYF(url); // multi-proxy com fallback e timeout
+
   const result=json?.chart?.result?.[0];
-  if(!result) throw new Error(`YF ${encodedTicker}: sem dados`);
+  if(!result) throw new Error(`YF ${encodedTicker}: sem dados na resposta`);
+
   const timestamps=result.timestamp||[];
-  // adjclose incorpora dividendos pagos — retorno total real.
-  // Fallback para close em casos onde adjclose não está disponível (ex: índices ^BVSP, ^IFIX).
+  // adjclose incorpora dividendos (retorno total). Fallback para close em índices.
   const adjCloses=result.indicators?.adjclose?.[0]?.adjclose||[];
   const rawCloses=result.indicators?.quote?.[0]?.close||[];
-  const closes=adjCloses.length>0?adjCloses:rawCloses;
+  const closes=adjCloses.filter(v=>v!=null).length>0?adjCloses:rawCloses;
+
   const points=[];
   for(let i=1;i<timestamps.length;i++){
-    if(!closes[i]||!closes[i-1]) continue;
+    const c0=closes[i-1],c1=closes[i];
+    if(!c0||!c1) continue;
     const d=new Date(timestamps[i]*1000);
     const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(dateStr>=startYM&&dateStr<=endYM) points.push({date:dateStr,ret:closes[i]/closes[i-1]-1});
+    if(dateStr>=startYM&&dateStr<=endYM) points.push({date:dateStr,ret:c1/c0-1});
   }
   return points;
 }
@@ -7096,17 +7133,33 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
   const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
   const pesoMap={};
   _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
+
   const fundDataLocal={};
-  await Promise.allSettled(_carteira.map(async c=>{
+  let loaded=0, failed=0;
+  const info=document.getElementById('bench-update-info');
+
+  // Sequencial para evitar rate limit nos proxies (11 req paralelas causam bloqueio)
+  for(const c of _carteira){
+    if(info) info.textContent=`Carregando ${c.ticker} (${loaded+failed+1}/${_carteira.length})...`;
     try{
       const data=await fetchYFMonthlyPrices(`${c.ticker}.SA`,startYM,endYM);
       fundDataLocal[c.ticker]=data;
       _benchFundData[c.ticker]=data;
-    }catch(e){console.warn(`[benchmarks] ${c.ticker}:`,e.message);}
-  }));
+      loaded++;
+    }catch(e){
+      console.warn(`[benchmarks] ${c.ticker} falhou:`,e.message);
+      failed++;
+    }
+    // Pequena pausa entre requisições para não sobrecarregar o proxy
+    await new Promise(r=>setTimeout(r,300));
+  }
+
+  if(info) info.textContent=`${loaded} fundos carregados${failed>0?` · ${failed} falharam`:''}`;
+
   const monthSet=new Set();
   Object.values(fundDataLocal).forEach(s=>s.forEach(p=>monthSet.add(p.date)));
   const months=[...monthSet].sort().filter(m=>m>=startYM&&m<=endYM);
+
   return months.map(month=>{
     let wRet=0,wTotal=0;
     _carteira.forEach(c=>{
@@ -7120,22 +7173,40 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
 async function loadAllBenchmarkData(startYM,endYM){
   setBenchLoading(true);
   const info=document.getElementById('bench-update-info');
-  if(info) info.textContent='Buscando dados...';
+  if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB)...';
   try{
-    const[cdi,ipca,selic,ifix,ibov,carteira]=await Promise.allSettled([
+    // 1. BCB (sem proxy — API pública, sem CORS) — paralelo
+    const[cdi,ipca,selic]=await Promise.allSettled([
       fetchBCBSeries(BCB_SERIES_IDS.cdi,startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.ipca,startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.selic,startYM,endYM),
-      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ifix,startYM,endYM),
-      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ibov,startYM,endYM),
-      calcPortfolioMonthlyReturns(startYM,endYM)
     ]);
     const ok=r=>r.status==='fulfilled'?r.value:[];
-    _benchData={carteira:ok(carteira),cdi:ok(cdi),ipca:ok(ipca),selic:ok(selic),ifix:ok(ifix),ibov:ok(ibov)};
-    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX indisponível no YF:',ifix.reason?.message);
+    _benchData.cdi   =ok(cdi);
+    _benchData.ipca  =ok(ipca);
+    _benchData.selic =ok(selic);
+
+    // Renderizar parcialmente com BCB (já visível enquanto YF carrega)
+    renderAllBenchmarks();
+
+    // 2. Yahoo Finance — índices
+    if(info) info.textContent='Buscando IFIX e IBOV (Yahoo Finance)...';
+    const[ifix,ibov]=await Promise.allSettled([
+      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ifix,startYM,endYM),
+      fetchYFMonthlyPrices(YF_BENCH_TICKERS.ibov,startYM,endYM),
+    ]);
+    _benchData.ifix=ok(ifix);
+    _benchData.ibov=ok(ibov);
+    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX:',ifix.reason?.message);
+
+    // 3. Yahoo Finance — carteira (sequencial para evitar rate limit)
+    if(info) info.textContent='Buscando retornos dos fundos da carteira...';
+    _benchData.carteira=await calcPortfolioMonthlyReturns(startYM,endYM);
+
     _benchLoaded=true;
     const now=new Date();
-    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    const failedCount=[ifix,ibov].filter(r=>r.status==='rejected').length;
+    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}${failedCount?' · alguns índices indisponíveis':''}`;
     renderAllBenchmarks();
   }catch(e){
     console.error('[loadAllBenchmarkData]',e);
