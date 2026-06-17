@@ -433,8 +433,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <!-- ══ VISÃO GERAL ══ -->
 <div class="tab active" id="tab-visao">
   <div class="section-hdr">
-    <h2>Visão Geral — 02/06/2026</h2>
-    <p>Filtragem semanal BTG FII Guide · 21 semanas de trackrecord · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15 | MktCap &gt; R$200M</p>
+    <h2 id="visao-h2">Visão Geral — 02/06/2026</h2>
+    <p id="visao-sub">Filtragem semanal BTG FII Guide · 21 semanas de trackrecord · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15 | MktCap &gt; R$200M</p>
   </div>
   <!-- LINHA 1 — Análise dos fundos (dinâmica, clicável) -->
   <div class="kpi-grid-top" id="kpi-row-analitico">
@@ -1059,7 +1059,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
   <div class="section-hdr" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div>
       <h2>Ranking</h2>
-      <p>146 fundos elegíveis ao menos 1x · Período: 05/01/2026 a 02/06/2026 · 21 semanas</p>
+      <p id="ranking-sub">146 fundos elegíveis ao menos 1x · Período: 05/01/2026 a 02/06/2026 · 21 semanas</p>
     </div>
     <button onclick="supaLoad()" style="padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⟳ Sincronizar</button>
   </div>
@@ -2557,8 +2557,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 <!-- ══ FUNDOS ELEGÍVEIS ══ -->
 <div class="tab" id="tab-fundos">
   <div class="section-hdr">
-    <h2>Fundos Elegíveis — 127 fundos</h2>
-    <p>Dados BTG FII Guide · 02/06/2026 · Clique nas colunas para ordenar · "Status Invest" para o relatório gerencial</p>
+    <h2 id="fundos-h2">Fundos Elegíveis</h2>
+    <p id="fundos-sub">Dados BTG FII Guide · <span id="fundos-sub-data">02/06/2026</span> · Clique nas colunas para ordenar · "Status Invest" para o relatório gerencial</p>
   </div>
   <div class="disclaimer">⚠️ <strong>Dados complementares (CVM/Yahoo Finance)</strong> — PL, Alavancagem, Cotistas, Vacância e DY12m serão incorporados em versão futura.</div>
   <div class="search-bar">
@@ -6278,16 +6278,33 @@ function renderizarSemana(semana, fundos){
   const fc=document.getElementById('fund-count');
   if(fc)fc.textContent=el.length+' fundos';
 
-  // Atualizar section-hdr
-  document.querySelectorAll('.section-hdr h2').forEach((el2,i)=>{
-    if(i===0)el2.textContent='Visão Geral — '+semana.semana_data;
-    if(i===1)el2.innerHTML='Fundos Elegíveis — <span>'+el.length+'</span> fundos';
-  });
-
   injectPreAnaliseBadges();
+
+  // ── Atualizar títulos das abas por ID (não por índice) ────────
+  // Usar querySelectorAll com índice fixo quebra quando novas abas são adicionadas.
+  // Cada título tem agora um id próprio para atualização segura.
+  const totalSems = _currentSemana?.num_semana || '—';
+  const dataAtual = semana.semana_data;
+
+  const visaoH2 = document.getElementById('visao-h2');
+  if(visaoH2) visaoH2.textContent = 'Visão Geral — ' + dataAtual;
+
+  const fundosH2 = document.getElementById('fundos-h2');
+  if(fundosH2) fundosH2.innerHTML = 'Fundos Elegíveis — <span>' + el.length + '</span> fundos';
+
+  const fundosSubData = document.getElementById('fundos-sub-data');
+  if(fundosSubData) fundosSubData.textContent = dataAtual;
+
+  // Atualizar Ranking subtitle com totais do histórico
+  const rankSub = document.getElementById('ranking-sub');
+  if(rankSub && analyses) {
+    const uniqueTickers = Object.keys(analyses).length;
+    rankSub.textContent = uniqueTickers + ' fundos elegíveis ao menos 1x · Dados até ' + dataAtual;
+  }
+
   // Armazenar dados globalmente para uso na aba Por Segmento
-  _currentFundos=fundos;
-  _currentSemana=semana;
+  _currentFundos = fundos;
+  _currentSemana = semana;
   renderSegmentos();
   console.log('✅ Dashboard atualizado com dados de '+semana.semana_data);
 }
