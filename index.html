@@ -4376,7 +4376,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 </div>
 
 <div class="footer">
-  <strong>APEX Partners</strong> · FII Universe · Uso Interno · 02/06/2026 · Semana 16 de 21<br>
+  <strong>APEX Partners</strong> · FII Universe · Uso Interno · <span id="footer-data">02/06/2026</span> · <span id="footer-semana">Semana 16 de 21</span><br>
   Fonte: BTG Pactual FII Guide · Critérios: Vol.90d &gt; R$400k | Yield &gt; 8% | P/VP &lt; 1,15x | MktCap &gt; R$200M
 </div>
 
@@ -8236,6 +8236,12 @@ async function atualizarHeaderSemana(){
     const hSem  = document.getElementById('header-semana');
     if(hDate) hDate.textContent = dataUltima;
     if(hSem)  hSem.textContent  = 'FII Universe · Uso Interno · Semana '+numSemana+' de '+totalSems;
+
+    // Atualizar footer (mesmos dados, antes estático)
+    const fData = document.getElementById('footer-data');
+    const fSem  = document.getElementById('footer-semana');
+    if(fData) fData.textContent = dataUltima;
+    if(fSem)  fSem.textContent  = 'Semana '+numSemana+' de '+totalSems;
 
     console.log('Header atualizado: Semana '+numSemana+' de '+totalSems+' ('+dataUltima+')');
   }catch(e){
