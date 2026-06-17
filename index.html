@@ -825,6 +825,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
       </div>
       <!-- Toggles de séries -->
       <div id="bench-series-toggles" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--apex-mist)"></div>
+      <!-- Status de carregamento por série -->
+      <div id="bench-data-status" style="margin-top:8px;font-size:10px;color:#6b7a9a;line-height:1.7"></div>
     </div>
 
     <!-- Loading -->
@@ -7054,10 +7056,17 @@ const BENCH_COLORS={carteira:'#000123',cdi:'#27ae60',ipca:'#e67e22',selic:'#8e44
 const BENCH_LABELS={carteira:'Carteira APX',cdi:'CDI',ipca:'IPCA',selic:'SELIC',ifix:'IFIX',ibov:'IBOV'};
 const BCB_SERIES_IDS={cdi:4391,ipca:433,selic:4390};
 
+
 const YF_BENCH_TICKERS={ifix:'%5EIFIX',ibov:'%5EBVSP'};
+
+// Tickers brapi.dev para índices — brapi usa tickers B3 nativos
+// IBOV: BOVA11 é o ETF que rastreia o Ibovespa (1:1 com ^BVSP)
+// IFIX: não há ETF perfeito; usamos XFIX11 como proxy. Se falhar: manual.
+const BRAPI_INDEX_MAP={ibov:'BOVA11',ifix:'XFIX11'};
 
 let _benchData={};
 let _benchFundData={};
+let _benchDataStatus={}; // {key: 'ok'|'failed'|'loading'|'empty'}
 let _benchPeriodStart='';
 let _benchPeriodEnd='';
 let _benchVisible=new Set(['carteira','cdi','ipca','ifix','ibov']);
@@ -7084,7 +7093,7 @@ function updateBenchmarkPeriod(){
   if(!s||!e){toast('Selecione o período','warning');return;}
   if(s>e){toast('A data de início deve ser anterior ao fim','warning');return;}
   _benchPeriodStart=s;_benchPeriodEnd=e;
-  _benchLoaded=false;_benchData={};_benchFundData={};
+  _benchLoaded=false;_benchData={};_benchFundData={};_benchDataStatus={};
   loadAllBenchmarkData(s,e);
 }
 
@@ -7105,8 +7114,8 @@ async function fetchBCBSeries(codigo,startYM,endYM){
 
 /**
  * Calcula retorno mensal ponderado da Carteira APX usando brapi.dev.
- * Preços ajustados (adjustedClose) incluem dividendos — retorno total real.
- * Tickers sem .SA: brapi.dev usa padrão B3 nativo.
+ * Preços adjustedClose (inclui dividendos = retorno total real).
+ * Tickers sem .SA — brapi.dev usa padrão B3 nativo.
  */
 async function calcPortfolioMonthlyReturns(startYM,endYM){
   if(!_carteira.length) return[];
@@ -7119,22 +7128,23 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
   const info=document.getElementById('bench-update-info');
 
   for(const c of _carteira){
-    if(info) info.textContent=`Buscando ${c.ticker} (${loaded+failed+1}/${_carteira.length}) via brapi.dev...`;
+    if(info) info.textContent=`Buscando ${c.ticker} (${loaded+failed+1}/${_carteira.length})...`;
     try{
-      // brapi.dev: sem .SA, sem proxy
       const data=await fetchBrapiMonthly(c.ticker,startYM,endYM);
+      if(data.length===0) throw new Error('Histórico vazio');
       fundDataLocal[c.ticker]=data;
       _benchFundData[c.ticker]=data;
+      _benchDataStatus[c.ticker]='ok';
       loaded++;
-      console.log(`[benchmarks] ${c.ticker}: ${data.length} meses OK`);
     }catch(e){
-      console.warn(`[benchmarks] ${c.ticker} falhou:`,e.message);
+      console.warn(`[benchmarks] ${c.ticker}:`,e.message);
+      _benchDataStatus[c.ticker]='failed';
       failed++;
     }
     await new Promise(r=>setTimeout(r,200));
   }
 
-  if(info) info.textContent=`${loaded}/${_carteira.length} fundos carregados${failed>0?` (${failed} falharam)`:''}`;
+  if(info) info.textContent=`${loaded}/${_carteira.length} fundos OK${failed>0?` · ${failed} falharam`:''}`;
 
   const monthSet=new Set();
   Object.values(fundDataLocal).forEach(s=>s.forEach(p=>monthSet.add(p.date)));
@@ -7154,42 +7164,81 @@ async function loadAllBenchmarkData(startYM,endYM){
   setBenchLoading(true);
   const info=document.getElementById('bench-update-info');
   if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB)...';
+
+  // Marcar tudo como carregando
+  ['cdi','ipca','selic','carteira','ifix','ibov'].forEach(k=>{_benchDataStatus[k]='loading';});
+
   try{
-    // 1. BCB — paralelo (sem CORS, API pública oficial)
+    // 1. BCB — paralelo, sem CORS, API pública oficial
     const[cdi,ipca,selic]=await Promise.allSettled([
       fetchBCBSeries(BCB_SERIES_IDS.cdi,startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.ipca,startYM,endYM),
       fetchBCBSeries(BCB_SERIES_IDS.selic,startYM,endYM),
     ]);
     const ok=r=>r.status==='fulfilled'?r.value:[];
-    _benchData.cdi   =ok(cdi);
-    _benchData.ipca  =ok(ipca);
-    _benchData.selic =ok(selic);
-    renderAllBenchmarks(); // exibir BCB enquanto o resto carrega
+    _benchData.cdi   =ok(cdi);   _benchDataStatus.cdi  =cdi.status==='fulfilled'?'ok':'failed';
+    _benchData.ipca  =ok(ipca);  _benchDataStatus.ipca =ipca.status==='fulfilled'?'ok':'failed';
+    _benchData.selic =ok(selic); _benchDataStatus.selic=selic.status==='fulfilled'?'ok':'failed';
+    renderBenchToggles();
+    renderBenchChart();
 
-    // 2. brapi.dev — IBOV e IFIX (sem proxy)
+    // 2. brapi.dev — IBOV (via BOVA11 ETF) e IFIX (via XFIX11)
     if(info) info.textContent='Buscando IBOV e IFIX via brapi.dev...';
     const[ibov,ifix]=await Promise.allSettled([
-      fetchBrapiMonthly('%5EBVSP',startYM,endYM),
-      fetchBrapiMonthly('%5EIFIX',startYM,endYM),
+      fetchBrapiMonthly(BRAPI_INDEX_MAP.ibov,startYM,endYM),
+      fetchBrapiMonthly(BRAPI_INDEX_MAP.ifix,startYM,endYM),
     ]);
-    _benchData.ibov=ok(ibov);
-    _benchData.ifix=ok(ifix);
-    if(ibov.status==='rejected') console.warn('[benchmarks] IBOV:',ibov.reason?.message);
-    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX:',ifix.reason?.message);
+    _benchData.ibov=ok(ibov); _benchDataStatus.ibov=ibov.status==='fulfilled'&&ok(ibov).length>0?'ok':'failed';
+    _benchData.ifix=ok(ifix); _benchDataStatus.ifix=ifix.status==='fulfilled'&&ok(ifix).length>0?'ok':'failed';
+    if(ibov.status==='rejected') console.warn('[benchmarks] IBOV/BOVA11:',ibov.reason?.message);
+    if(ifix.status==='rejected') console.warn('[benchmarks] IFIX/XFIX11:',ifix.reason?.message);
 
-    // 3. brapi.dev — fundos da carteira (sequencial, 200ms entre req)
-    if(info) info.textContent='Buscando retornos dos fundos da carteira...';
+    // 3. brapi.dev — fundos da carteira (sequencial)
+    if(info) info.textContent='Buscando retornos dos fundos...';
     _benchData.carteira=await calcPortfolioMonthlyReturns(startYM,endYM);
+    _benchDataStatus.carteira=_benchData.carteira.length>0?'ok':'failed';
 
     _benchLoaded=true;
-    const now=new Date();
-    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
     renderAllBenchmarks();
+
+    const now=new Date();
+    const nOk=Object.values(_benchDataStatus).filter(v=>v==='ok').length;
+    const nFail=Object.values(_benchDataStatus).filter(v=>v==='failed').length;
+    if(info) info.textContent=`Atualizado: ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${nOk} séries OK${nFail>0?' · '+nFail+' falharam':''}`;
   }catch(e){
     console.error('[loadAllBenchmarkData]',e);
     toast('Erro ao carregar benchmarks: '+e.message,'error');
   }finally{setBenchLoading(false);}
+}
+
+/**
+ * Toggles uma série no gráfico.
+ * Se a série está ativa mas sem dados, avisa o usuário com um toast.
+ */
+function toggleBenchSeries(key,btn){
+  const activating=!_benchVisible.has(key);
+  if(activating){
+    // Verificar se tem dados antes de ativar
+    const hasData=BENCH_LABELS[key]
+      ?(_benchData[key]?.length>0)
+      :(_benchFundData[key]?.length>0);
+    if(!hasData){
+      const status=_benchDataStatus[key];
+      if(status==='loading')  toast(`${BENCH_LABELS[key]||key} ainda está carregando...`,'info',2500);
+      else if(status==='failed') toast(`${BENCH_LABELS[key]||key}: dados não disponíveis. Verifique o console para detalhes.`,'warning');
+      else                       toast(`${BENCH_LABELS[key]||key}: nenhum dado carregado ainda. Clique em Atualizar.`,'warning');
+      return; // não ativa série sem dados
+    }
+  }
+  if(_benchVisible.has(key))_benchVisible.delete(key);
+  else _benchVisible.add(key);
+  const cor=BENCH_COLORS[key]||'#999';
+  const active=_benchVisible.has(key);
+  btn.classList.toggle('active',active);
+  btn.style.background=active?cor:'transparent';
+  btn.style.color=active?'#fff':cor;
+  renderBenchChart();
+  renderBenchStats();
 }
 
 function setBenchLoading(on){
@@ -7201,6 +7250,7 @@ function setBenchLoading(on){
 
 function renderAllBenchmarks(){
   renderBenchToggles();
+  renderBenchDataStatus(); // painel de status
   renderBenchChart();
   renderBenchKPIs();
   renderBenchAnnualTable();
@@ -7208,17 +7258,58 @@ function renderAllBenchmarks(){
   renderBenchStats();
 }
 
+/** Mostra resumo do que foi carregado vs o que falhou */
+function renderBenchDataStatus(){
+  const el=document.getElementById('bench-data-status');
+  if(!el) return;
+  const all=['carteira','cdi','ipca','selic','ifix','ibov',..._carteira.map(c=>c.ticker)];
+  const ok=all.filter(k=>_benchDataStatus[k]==='ok');
+  const fail=all.filter(k=>_benchDataStatus[k]==='failed');
+  if(!ok.length&&!fail.length){ el.textContent=''; return; }
+  const okLabels=ok.map(k=>BENCH_LABELS[k]||k).join(', ');
+  const failLabels=fail.map(k=>BENCH_LABELS[k]||k).join(', ');
+  let html='';
+  if(ok.length)   html+=`<span style="color:var(--success)">✅ Carregados: ${okLabels}</span>`;
+  if(ok.length&&fail.length) html+=' &nbsp;·&nbsp; ';
+  if(fail.length) html+=`<span style="color:var(--danger)">✕ Falhou: ${failLabels}</span>`;
+  if(fail.length) html+=` <span style="color:#6b7a9a">(IBOV usa BOVA11 · IFIX usa XFIX11 como proxy)</span>`;
+  el.innerHTML=html;
+}
+
 function renderBenchToggles(){
   const wrap=document.getElementById('bench-series-toggles');
   if(!wrap) return;
   const fixed=['carteira','cdi','ipca','selic','ifix','ibov'];
   const fundKeys=_carteira.map(c=>c.ticker);
+
   wrap.innerHTML=[...fixed,...fundKeys].map(key=>{
     const cor=BENCH_COLORS[key]||SEG_COLORS[_carteiraPrecos[key]?.seg||'Outros']||'#999';
     const active=_benchVisible.has(key);
     const label=BENCH_LABELS[key]||key;
-    return`<button class="bench-toggle${active?' active':''}" onclick="toggleBenchSeries('${key}',this)"
-      style="border-color:${cor};background:${active?cor:'transparent'};color:${active?'#fff':cor}">${label}</button>`;
+    const status=_benchDataStatus[key];
+
+    // Dados disponíveis?
+    const hasData=BENCH_LABELS[key]
+      ?(_benchData[key]?.length>0)
+      :(_benchFundData[key]?.length>0);
+
+    // Ícone de status ao lado do label
+    const icon=status==='loading'?'⟳ ':
+               status==='failed'?'✕ ':
+               (!status||!hasData)?'':
+               ''; // ok = sem ícone extra
+
+    // Estilo: opaco se não tem dados e não está carregando
+    const opacity=(!hasData&&status!=='loading'&&status)?'0.45':'1';
+    const title=status==='failed'?`${label}: dados não disponíveis`:
+                status==='loading'?`${label}: carregando...`:
+                hasData?`${label}: ${_benchData[key]?.length||_benchFundData[key]?.length||0} meses`:
+                `${label}: clique em Atualizar`;
+
+    return`<button class="bench-toggle${active&&hasData?' active':''}"
+      onclick="toggleBenchSeries('${key}',this)"
+      style="border-color:${cor};background:${active&&hasData?cor:'transparent'};color:${active&&hasData?'#fff':cor};opacity:${opacity}"
+      title="${title}">${icon}${label}</button>`;
   }).join('');
 }
 
