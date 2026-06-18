@@ -4136,12 +4136,13 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
         <select class="form-select" id="sel-fundo" onchange="onFundoSelect()"><option value="">— Selecione o fundo —</option></select></div>
       <div class="form-group"><label class="form-label">Tipo do Fundo</label>
         <select class="form-select" id="sel-tipo" onchange="onTipoChange()">
-          <option value="">— Selecione o tipo —</option>
+          <option value=\"\">— Selecione o tipo —</option>
           <option value="papel-ipca">Papel (IPCA)</option>
           <option value="papel-cdi">Papel (CDI)</option>
           <option value="tijolo">Tijolo</option>
           <option value="hibrido">Híbrido</option>
           <option value="fi-infra">FI-Infra</option>
+          <option value="fiagro">FIAgro</option>
           <option value="hedge">Hedge Fund</option>
         </select></div>
       <div class="form-group"><label class="form-label">Analista Responsável</label>
@@ -4608,7 +4609,7 @@ const QUALI_CRITERIA=[
   {id:'q7',peso:5.7,nome:'Dividendos × Média de Mercado',desc:'Comparar DY (12M, YTD, último mês) com a média dos pares',ranges:['DY abaixo da média do mercado','DY competitivo vs CDI e pares, porém inconsistente','DY constante acima da média, sem agredir o financeiro']}
 ];
 const QUANTI_CRITERIA=[
-  {id:'n1',peso:5.0,nome:'DY 12m',desc:'Avaliar histórico de dividendos e crescimento',getRange:(t)=>{if(t==='papel-cdi')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-14%'},{label:'7–10',txt:'> 14%'}];if(t==='tijolo'||t==='hibrido')return[{label:'0–3',txt:'< 8%'},{label:'4–6',txt:'8-10%'},{label:'7–10',txt:'> 10%'}];if(t==='fi-infra'||t==='hedge')return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-14%'},{label:'7–10',txt:'> 14%'}];return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-12%'},{label:'7–10',txt:'> 12%'}];},applicavel:true},
+  {id:'n1',peso:5.0,nome:'DY 12m',desc:'Avaliar histórico de dividendos e crescimento',getRange:(t)=>{if(t==='papel-cdi')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-14%'},{label:'7–10',txt:'> 14%'}];if(t==='tijolo'||t==='hibrido')return[{label:'0–3',txt:'< 8%'},{label:'4–6',txt:'8-10%'},{label:'7–10',txt:'> 10%'}];if(t==='fi-infra'||t==='hedge')return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-14%'},{label:'7–10',txt:'> 14%'}];if(t==='fiagro')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-15%'},{label:'7–10',txt:'> 15%'}];return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-12%'},{label:'7–10',txt:'> 12%'}];},applicavel:true},
   {id:'n2',peso:5.0,nome:'Performance 12m',desc:'Performance vs IFIX',ranges:[{label:'0–3',txt:'< IFIX−0,5dp'},{label:'4–6',txt:'IFIX ± 0,5dp'},{label:'7–10',txt:'> IFIX+0,5dp'}],applicavel:true},
   {id:'n3',peso:5.0,nome:'Alavancagem',desc:'Grau de alavancagem vs média de mercado',ranges:[{label:'0–3',txt:'> 15%'},{label:'4–6',txt:'10-15%'},{label:'7–10',txt:'< 10%'}],applicavel:true},
   {id:'n4',peso:5.0,nome:'Spread Over / Prazo',desc:'Spread do DY vs média de mercado',ranges:[{label:'N/A',txt:'—'},{label:'N/A',txt:'—'},{label:'N/A',txt:'—'}],applicavel:false,checkAplic:true},
@@ -5243,6 +5244,7 @@ function preencherDadosBTG(ticker, tipo){
   let n1Limites;
   if(tipo==='papel-cdi'||tipo==='hedge') n1Limites=[{max:0.12,nota:2},{max:0.14,nota:5},{max:99,nota:8}];
   else if(tipo==='tijolo'||tipo==='hibrido') n1Limites=[{max:0.08,nota:2},{max:0.10,nota:5},{max:99,nota:8}];
+  else if(tipo==='fiagro') n1Limites=[{max:0.12,nota:2},{max:0.15,nota:5},{max:99,nota:8}];
   else n1Limites=[{max:0.10,nota:2},{max:0.12,nota:5},{max:99,nota:8}]; // ipca, fi-infra
   const n1Score = dy>0.14?10 : dy>0.12?9 : dy>0.10?8 : dy>0.09?7 : dy>0.08?6 : dy>0.07?5 : dy>0.06?4 : dy>0.05?3 : 2;
 
