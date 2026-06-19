@@ -13,7 +13,7 @@
 <style>
 :root{
   --apex-dark:#000123;--apex-navy:#002060;--apex-blue:#0076D2;
-  --apex-mist:#DAE3F3;--apex-light:#F6F6F6;--apex-white:#FFFFFF;--apex-blue-lt:#EBF4FB;
+  --apex-mist:#DDE5F0;--apex-light:#EBF0F7;--apex-white:#FFFFFF;--apex-blue-lt:#EBF4FB;
   --success:#1b8a52;--warning:#a06800;--danger:#c0392b;
   --success-bg:#e6f4ed;--warning-bg:#fef9ec;--danger-bg:#fdecea;
   --seg-rec-bg:#D2E5FF;--seg-rec-c:#1a6fa8;--seg-gal-bg:#EAF3DE;--seg-gal-c:#3B6D11;
@@ -26,30 +26,30 @@
   --seg-edu-bg:#e1e8f5;--seg-edu-c:#002244;--seg-out-bg:#f0f0f0;--seg-out-c:#444444;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Manrope',sans-serif}
-body{background:var(--apex-light);min-height:100vh;color:var(--apex-navy)}
+body{background:var(--apex-light);min-height:100vh;color:var(--apex-navy);font-family:'Manrope',sans-serif}
 .header{background:var(--apex-dark);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .header-right{color:#a0c4f0;font-size:11px;text-align:right;line-height:1.6}
 .header-date{color:#fff;font-weight:700;font-size:13px}
-.nav{background:var(--apex-navy);padding:0 28px;display:flex;overflow-x:auto;border-bottom:2px solid rgba(0,118,210,.4);scrollbar-width:none;gap:2px}
+.nav{background:#FFFFFF;padding:0 28px;display:flex;overflow-x:auto;border-bottom:3px solid var(--apex-mist);scrollbar-width:none;gap:0;box-shadow:0 3px 10px rgba(0,1,35,.07)}
 .nav::-webkit-scrollbar{display:none}
-.nav-tab{padding:14px 22px;color:#a0c4f0;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;letter-spacing:.6px;text-transform:uppercase}
-.nav-tab:hover{color:#fff;background:rgba(255,255,255,.06)}
-.nav-tab.active{color:#fff;border-bottom-color:var(--apex-blue);background:rgba(0,118,210,.12)}
+.nav-tab{padding:0 18px;color:#8A9BB8;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-3px;transition:color .15s;letter-spacing:.4px;text-transform:uppercase;height:50px;display:flex;align-items:center}
+.nav-tab:hover{color:var(--apex-navy);background:transparent}
+.nav-tab.active{color:var(--apex-navy);border-bottom-color:var(--apex-blue);background:transparent;font-weight:800}
 .content{padding:28px;max-width:1320px;margin:0 auto}
 .tab{display:none}.tab.active{display:block}
-.section-hdr{margin-bottom:20px}
-.section-hdr h2{font-size:18px;font-weight:800;color:var(--apex-navy);margin-bottom:4px}
-.section-hdr p{font-size:12px;color:#5a6e8a}
+.section-hdr{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #D0D8E8}
+.section-hdr h2{font-size:22px;font-weight:800;color:var(--apex-navy);margin-bottom:4px;letter-spacing:-.3px}
+.section-hdr p{font-size:12px;color:#5a6e8a;font-weight:500}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:26px}
-.kpi{background:#fff;border-radius:10px;padding:16px 18px;border:1px solid var(--apex-mist);border-top:3px solid var(--apex-blue);box-shadow:0 1px 4px rgba(0,32,96,.06)}
-.kpi.green{border-top-color:var(--success)}.kpi.red{border-top-color:var(--danger)}.kpi.amber{border-top-color:var(--warning)}
-.kpi-lbl{font-size:10px;color:#6b7a9a;text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:8px}
-.kpi-val{font-size:28px;font-weight:800;color:var(--apex-navy)}
-.kpi-sub{font-size:10px;color:var(--apex-blue);margin-top:4px;font-weight:500}
+.kpi{background:#fff;border-radius:12px;padding:20px 18px 16px;border:1px solid var(--apex-mist);box-shadow:0 4px 20px rgba(0,2,40,.10),0 1px 4px rgba(0,2,40,.05);transition:transform .2s,box-shadow .2s}
+.kpi.green{border-top:2px solid var(--success)}.kpi.red{border-top:2px solid var(--danger)}.kpi.amber{border-top:2px solid var(--warning)}
+.kpi-lbl{font-size:9px;color:#8a9bb8;text-transform:uppercase;letter-spacing:.9px;font-weight:700;margin-bottom:10px}
+.kpi-val{font-size:40px;font-weight:800;color:var(--apex-navy);line-height:1}
+.kpi-sub{font-size:10px;color:var(--apex-blue);margin-top:8px;font-weight:600}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:26px}
 @media(max-width:700px){.two-col{grid-template-columns:1fr}}
-.card{background:#fff;border-radius:10px;padding:18px;border:1px solid var(--apex-mist);margin-bottom:18px;box-shadow:0 1px 4px rgba(0,32,96,.06)}
-.card-title{font-size:11px;font-weight:700;color:var(--apex-navy);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--apex-mist)}
+.card{background:#fff;border-radius:12px;padding:20px;border:1px solid var(--apex-mist);margin-bottom:18px;box-shadow:0 4px 20px rgba(0,2,40,.10),0 1px 4px rgba(0,2,40,.05)}
+.card-title{font-size:9px;font-weight:800;color:var(--apex-navy);text-transform:uppercase;letter-spacing:.8px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--apex-mist)}
 .crit-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f4fa}
 .crit-row:last-child{border:none}
 .crit-name{font-size:12px;color:var(--apex-navy);font-weight:600}
@@ -70,16 +70,16 @@ body{background:var(--apex-light);min-height:100vh;color:var(--apex-navy)}
 .dot-in{background:var(--success)}.dot-out{background:var(--danger)}
 .mov-seg{margin-left:auto;font-size:10px;color:#6b7a9a}
 .crit-fail{font-size:9px;padding:2px 7px;background:var(--danger-bg);color:var(--danger);border-radius:4px;font-weight:700;margin-left:4px}
-.disclaimer{background:var(--apex-blue-lt);border-radius:8px;padding:12px 16px;font-size:11px;color:var(--apex-navy);margin-bottom:16px;border-left:3px solid var(--apex-blue);font-weight:500}
-.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--apex-mist);margin-bottom:14px;box-shadow:0 1px 4px rgba(0,32,96,.04)}
+.disclaimer{background:rgba(0,118,210,.05);border-radius:8px;padding:12px 16px;font-size:11px;color:var(--apex-navy);margin-bottom:16px;border-left:3px solid rgba(0,118,210,.3);font-weight:500}
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--apex-mist);margin-bottom:14px;box-shadow:0 4px 20px rgba(0,2,40,.10),0 1px 4px rgba(0,2,40,.05)}
 table{width:100%;border-collapse:collapse;font-size:11px}
-thead th{background:var(--apex-navy);color:#fff;padding:10px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none}
-thead th:hover{background:#003080}
-thead th.sorted{background:var(--apex-blue)}
-.sort-arrow{float:right;opacity:.6;font-size:10px;margin-left:4px}
-tbody td{padding:8px 11px;border-bottom:1px solid #eef2fa;color:var(--apex-navy);vertical-align:middle}
-tbody tr:nth-child(even) td{background:#f4f8fd}
-tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
+thead th{background:#F0F4FA;color:#4A5B7A;padding:10px 14px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.7px;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--apex-mist)}
+thead th:hover{background:#E4EBF5;color:var(--apex-navy)}
+thead th.sorted{background:#E0EAF8;color:var(--apex-navy)}
+.sort-arrow{float:right;opacity:.5;font-size:10px;margin-left:4px;color:#4A5B7A}
+tbody td{padding:10px 14px;border-bottom:1px solid #eef2fa;color:var(--apex-navy);vertical-align:middle;font-size:12px}
+tbody tr:nth-child(even) td{background:#F5F8FD}
+tbody tr:hover td{background:#E8F0FB;cursor:default}
 .seg-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
 .search-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
 .search-bar input,.search-bar select{padding:9px 13px;border:1.5px solid var(--apex-mist);border-radius:8px;font-size:12px;color:var(--apex-navy);background:#fff;outline:none;font-family:'Manrope',sans-serif;font-weight:500}
@@ -88,10 +88,10 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .fund-count{padding:7px 0;font-size:12px;color:#6b7a9a;white-space:nowrap;font-weight:600}
 .btn-csv{padding:9px 16px;background:var(--apex-navy);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
 .btn-csv:hover{background:var(--apex-blue)}
-.sub-tabs{display:flex;gap:4px;margin-bottom:20px;background:#fff;border-radius:10px;padding:6px;border:1px solid var(--apex-mist);width:fit-content;box-shadow:0 1px 4px rgba(0,32,96,.06)}
-.sub-tab{padding:8px 20px;font-size:11px;font-weight:700;cursor:pointer;border-radius:7px;color:#6b7a9a;transition:all .2s;letter-spacing:.4px;text-transform:uppercase}
-.sub-tab.active{background:var(--apex-navy);color:#fff;box-shadow:0 2px 6px rgba(0,32,96,.2)}
-.sub-tab:hover:not(.active){background:var(--apex-mist);color:var(--apex-navy)}
+.sub-tabs{display:flex;gap:0;margin-bottom:20px;background:transparent;border-radius:0;padding:0;border:none;border-bottom:2px solid var(--apex-mist);width:fit-content}
+.sub-tab{padding:8px 20px;font-size:11px;font-weight:600;cursor:pointer;border-radius:0;color:#8A9BB8;transition:color .15s;letter-spacing:.3px;text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-2px}
+.sub-tab.active{background:transparent;color:var(--apex-navy);border-bottom-color:var(--apex-blue);box-shadow:none;font-weight:800}
+.sub-tab:hover:not(.active){background:transparent;color:var(--apex-navy)}
 .sub-content{display:none}.sub-content.active{display:block}
 .tag-pending{display:inline-flex;align-items:center;gap:5px;background:#fef9ec;color:#a06800;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;border:1px solid #fde68a;cursor:pointer;white-space:nowrap}
 .tag-pending:hover{background:#fde68a}
@@ -206,14 +206,14 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--apex-mist);font-size:11px;color:#6b7a9a;text-align:right;flex-shrink:0;background:#fafcff}
 /* ── KPI CARDS CLICÁVEIS ── */
 .kpi-click{cursor:pointer;transition:all .18s;position:relative}
-.kpi-click:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,32,96,.13)}
+.kpi-click:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,2,40,.16)}
 .kpi-click:active{transform:translateY(0)}
 .kpi-click::after{content:'↗';position:absolute;top:10px;right:12px;font-size:10px;color:var(--apex-blue);opacity:0;transition:opacity .2s}
 .kpi-click:hover::after{opacity:1}
 /* ── KPI ROW 1 (analítico) ── */
 .kpi-grid-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
-.kpi.aprovado{border-top-color:var(--success)}.kpi.em-aval{border-top-color:var(--warning)}.kpi.reprovado{border-top-color:var(--danger)}
-.com-item{border:1px solid var(--apex-mist);border-radius:10px;padding:14px;margin-bottom:10px;background:#fff}
+.kpi.aprovado{border-top:2px solid var(--success)}.kpi.em-aval{border-top:2px solid var(--warning)}.kpi.reprovado{border-top:2px solid var(--danger)}
+.com-item{border:1px solid var(--apex-mist);border-radius:12px;padding:16px;margin-bottom:10px;background:#fff;box-shadow:0 2px 10px rgba(0,2,40,.06)}
 .com-item.questionamento{border-left:3px solid var(--warning)}
 .com-item.comentario{border-left:3px solid var(--apex-blue)}
 .com-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
@@ -297,19 +297,19 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .bench-toggle.active{color:#fff}
 .bench-toggle:not(.active){opacity:.55}
 .bench-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-.bench-kpi-card{background:#fff;border:1.5px solid var(--apex-mist);border-radius:10px;padding:12px 14px;text-align:center}
+.bench-kpi-card{background:#fff;border:1px solid var(--apex-mist);border-radius:12px;padding:12px 14px;text-align:center;box-shadow:0 2px 10px rgba(0,2,40,.06)}
 .bench-kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:4px}
 .bench-kpi-val{font-size:18px;font-weight:800;margin-bottom:2px}
 .bench-kpi-sub{font-size:9px;color:#6b7a9a}
 .bench-stats-table{width:100%;border-collapse:collapse;font-size:11px}
-.bench-stats-table th{padding:8px 12px;background:var(--apex-navy);color:#fff;font-size:10px;font-weight:700;white-space:nowrap;text-align:right}
+.bench-stats-table th{padding:8px 12px;background:#F0F4FA;color:#4A5B7A;font-size:9px;font-weight:700;white-space:nowrap;text-align:right;border-bottom:1px solid var(--apex-mist)}
 .bench-stats-table th:first-child{text-align:left}
 .bench-stats-table td{padding:8px 12px;border-bottom:1px solid #f0f4fa;font-weight:600;text-align:right;white-space:nowrap}
 .bench-stats-table td:first-child{text-align:left;font-weight:700;color:var(--apex-navy)}
 .bench-stats-table tr:hover td{background:#f4f8fd}
 .hm-cell{padding:5px 7px;text-align:center;font-size:10px;font-weight:600;white-space:nowrap}
 .bench-annual-table{width:100%;border-collapse:collapse;font-size:11px}
-.bench-annual-table th{padding:8px 12px;background:var(--apex-navy);color:#fff;font-size:10px;font-weight:700;white-space:nowrap;text-align:center}
+.bench-annual-table th{padding:8px 12px;background:#F0F4FA;color:#4A5B7A;font-size:9px;font-weight:700;white-space:nowrap;text-align:center;border-bottom:1px solid var(--apex-mist)}
 .bench-annual-table th:first-child{text-align:left}
 .bench-annual-table td{padding:7px 12px;border-bottom:1px solid #f0f4fa;font-weight:600;text-align:center;white-space:nowrap}
 .bench-annual-table td:first-child{text-align:left;font-weight:700}
@@ -317,7 +317,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .ctab{padding:8px 18px;background:transparent;color:#6b7a9a;border:none;border-bottom:3px solid transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;letter-spacing:.4px;text-transform:uppercase;transition:all .15s;margin-bottom:-2px}
 .ctab:hover{color:var(--apex-navy);background:var(--apex-blue-lt)}
 .ctab.active{color:var(--apex-blue);border-bottom-color:var(--apex-blue);background:var(--apex-blue-lt)}
-#tbl-carteira th{font-size:10px;padding:8px 10px;white-space:nowrap;border:none}
+#tbl-carteira th{font-size:9px;padding:9px 12px;white-space:nowrap;border:none;background:#F0F4FA;color:#4A5B7A;font-weight:700;letter-spacing:.6px;border-bottom:1px solid var(--apex-mist)}
 #tbl-carteira td{font-size:11px;padding:8px 10px;white-space:nowrap;border-bottom:1px solid #f0f4fa}
 #tbl-carteira tbody tr:hover{background:#f4f8fd}
 #tbl-carteira tbody tr.carteira-edit-row td{background:#fffbef}
@@ -336,7 +336,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .ret-pos{background:#d4edda;color:#155724;font-weight:700}
 .ret-neg{background:#f8d7da;color:#721c24;font-weight:700}
 .ret-neu{background:#f8f9fa;color:#6b7a9a}
-#tbl-cart-retornos th{font-size:10px;padding:7px 12px;background:var(--apex-navy);color:#fff;border:none;white-space:nowrap}
+#tbl-cart-retornos th{font-size:9px;padding:8px 14px;background:#F0F4FA;color:#4A5B7A;border:none;border-bottom:1px solid var(--apex-mist);white-space:nowrap;font-weight:700;letter-spacing:.5px}
 #tbl-cart-retornos td{font-size:11px;padding:7px 12px;border-bottom:1px solid #f0f4fa;font-weight:600;white-space:nowrap}
 #tbl-cart-retornos tr:first-child td{background:#f4f8fd}
 .seg-toggle{padding:5px 12px;background:#f0f4fa;color:#5a6e8a;border:1.5px solid var(--apex-mist);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s}
@@ -346,8 +346,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .seg-bar-header{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-radius:8px;transition:background .15s}
 .seg-bar-header:hover{background:var(--apex-blue-lt)}
 .seg-bar-chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:8px;white-space:nowrap;flex-shrink:0;min-width:130px}
-.seg-bar-track{flex:1;height:8px;background:var(--apex-mist);border-radius:4px;overflow:hidden;position:relative}
-.seg-bar-fill{height:8px;border-radius:4px;transition:width .5s ease}
+.seg-bar-track{height:24px;background:#F0F4FA;border-radius:6px;overflow:hidden;position:relative;width:100%}
+.seg-bar-fill{height:24px;border-radius:6px;transition:width .6s ease}
 .seg-bar-val{font-size:11px;font-weight:700;color:var(--apex-navy);white-space:nowrap;min-width:60px;text-align:right}
 .seg-bar-trend{font-size:10px;font-weight:700;white-space:nowrap;min-width:36px;text-align:right}
 .trend-up{color:var(--success)}.trend-dn{color:var(--danger)}.trend-neu{color:#aaa}
@@ -405,6 +405,9 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 .toast.leaving{opacity:0;transform:translateX(20px);transition:all .25s ease}
 @media(max-width:640px){.content{padding:14px}.nav-tab{padding:11px 13px;font-size:10px}.kpi-val{font-size:22px}.header{padding:0 14px}}
+
+.seg-chip-card{background:#fff;border-radius:10px;border:1px solid var(--apex-mist);padding:12px 14px;box-shadow:0 2px 10px rgba(0,2,40,.07);transition:transform .18s,box-shadow .18s;cursor:default}
+.seg-chip-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,2,40,.12)}
 </style>
 </head>
 <body>
@@ -415,6 +418,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <div class="header-date" id="header-date">—</div>
     <div id="header-semana">FII Universe · Uso Interno · Carregando...</div>
     <div id="sync-status" style="font-size:9px;margin-top:2px;color:#a0c4f0">⟳ Sincronizando...</div>
+  </div>
   </div>
 </div>
 
@@ -970,6 +974,9 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
     <h2 id="seg-hdr-title">Análise por Segmento</h2>
     <p id="seg-hdr-sub">Carregando dados...</p>
   </div>
+
+  <!-- ── CHIPS por segmento ────────────────────────────────────── -->
+  <div id="seg-chips-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:18px"></div>
 
   <!-- ── SEÇÃO 1: Barras com toggle + expansão ─────────────────── -->
   <div class="card" style="margin-bottom:18px">
@@ -7679,18 +7686,25 @@ function renderBenchStats(){
 
 
 const SEG_COLORS={
-  'Recebível':'#1a6fa8','Galpão Logístico':'#3B6D11','Shopping Center':'#854F0B',
-  'Laje Corporativa':'#3C3489','Fundo de Fundos':'#085041','FI-Infra':'#7a1a6b',
-  'FIAgro - FII':'#5e3a00','Hedge Fund':'#8B0000','Renda Urbana':'#0a5f7a',
-  'Híbrido':'#4a4a00','Agronegócio':'#2d5a00','Desenvolvimento':'#003366',
-  'Agência Bancária':'#333300','Hotel':'#552200','Educacional':'#002244','Outros':'#444444'
+  'Recebível':'#1D4ED8','Galpão Logístico':'#059669','Shopping Center':'#D97706',
+  'Laje Corporativa':'#7C3AED','Fundo de Fundos':'#0891B2','FI-Infra':'#DB2777',
+  'FIAgro - FII':'#65A30D','Hedge Fund':'#DC2626','Renda Urbana':'#EA580C',
+  'Híbrido':'#0D9488','Agronegócio':'#16A34A','Desenvolvimento':'#2563EB',
+  'Agência Bancária':'#78716C','Hotel':'#B45309','Educacional':'#4338CA','Outros':'#6B7280'
 };
 const SEG_BG={
-  'Recebível':'#D2E5FF','Galpão Logístico':'#EAF3DE','Shopping Center':'#FAEEDA',
-  'Laje Corporativa':'#EEEDFE','Fundo de Fundos':'#E1F5EE','FI-Infra':'#f5e1f7',
-  'FIAgro - FII':'#fff3cd','Hedge Fund':'#FCEBEB','Renda Urbana':'#e1f5fb',
-  'Híbrido':'#fffff0','Agronegócio':'#e8f5e1','Desenvolvimento':'#e1eaf5',
-  'Agência Bancária':'#f5f5dc','Hotel':'#f5ebe1','Educacional':'#e1e8f5','Outros':'#f0f0f0'
+  'Recebível':'#DBEAFE','Galpão Logístico':'#D1FAE5','Shopping Center':'#FEF3C7',
+  'Laje Corporativa':'#EDE9FE','Fundo de Fundos':'#CFFAFE','FI-Infra':'#FCE7F3',
+  'FIAgro - FII':'#ECFCCB','Hedge Fund':'#FEE2E2','Renda Urbana':'#FFEDD5',
+  'Híbrido':'#CCFBF1','Agronegócio':'#DCFCE7','Desenvolvimento':'#DBEAFE',
+  'Agência Bancária':'#F5F5F4','Hotel':'#FEF3C7','Educacional':'#E0E7FF','Outros':'#F3F4F6'
+};
+const SEG_GRADIENT={
+  'Recebível':'#3B82F6','Galpão Logístico':'#10B981','Shopping Center':'#F59E0B',
+  'Laje Corporativa':'#8B5CF6','Fundo de Fundos':'#06B6D4','FI-Infra':'#EC4899',
+  'FIAgro - FII':'#84CC16','Hedge Fund':'#EF4444','Renda Urbana':'#F97316',
+  'Híbrido':'#14B8A6','Agronegócio':'#22C55E','Desenvolvimento':'#60A5FA',
+  'Agência Bancária':'#A8A29E','Hotel':'#D97706','Educacional':'#818CF8','Outros':'#9CA3AF'
 };
 
 let _segBarMetric='count';
@@ -7750,6 +7764,7 @@ function renderSegmentos(){
   if(h) h.textContent='Análise por Segmento';
   if(p) p.textContent=`Médias calculadas sobre ${el} fundos elegíveis · Referência: ${d}`;
 
+  renderSegChips();
   renderSegBars();
   renderSegRankingCruzado();
   renderSegTable();
@@ -7794,12 +7809,15 @@ function renderSegBars(){
   };
 
   const maxVal=Math.max(...segs.map(([,s])=>getVal(s)))||1;
+  const avgVal=segs.reduce((a,[,s])=>a+getVal(s),0)/segs.length;
+  const avgPct=Math.round(avgVal/maxVal*100);
 
   cont.innerHTML=segs.map(([nome,s])=>{
     const val=getVal(s);
     const pct=Math.max(3,Math.round(val/maxVal*100));
     const cor=SEG_COLORS[nome]||'#555';
     const bg=SEG_BG[nome]||'#eee';
+    const g2=SEG_GRADIENT[nome]||cor;
     const trendHtml=()=>{
       if(s.entraram>0&&s.sairam>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram} ▼${s.sairam}</span>`;
       if(s.entraram>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram}</span>`;
@@ -7818,8 +7836,11 @@ function renderSegBars(){
     return`<div class="seg-bar-row">
       <div class="seg-bar-header" onclick="toggleSegExpand('${expandId}',this)" id="${rowId}">
         <span class="seg-bar-chip" style="background:${bg};color:${cor}">${nome}</span>
-        <div class="seg-bar-track">
-          <div class="seg-bar-fill" style="width:${pct}%;background:${cor}"></div>
+        <div style="flex:1;position:relative;">
+          <div class="seg-bar-track">
+            <div class="seg-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${cor},${g2})"></div>
+          </div>
+          <div style="position:absolute;left:calc(${avgPct}% - 1px);top:-2px;bottom:-2px;width:1.5px;background:#8A9BB8;border-radius:1px;pointer-events:none;"></div>
         </div>
         <span class="seg-bar-val">${fmtVal(s,val)}</span>
         ${trendHtml()}
@@ -7936,12 +7957,14 @@ function renderSegScatter(){
 
   let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px;font-family:Manrope,sans-serif">`;
 
-  // Background
+  // 4 Quadrant backgrounds
   svg+=`<rect x="${PAD.l}" y="${PAD.t}" width="${pw}" height="${ph}" fill="#fafcff" rx="4"/>`;
-
-  // Ideal quadrant (low P/VP + high DY) highlight
-  const qx1=PAD.l, qx2=sx(1.0), qy1=sy(yMax), qy2=sy(0.10);
-  if(qx2>qx1&&qy2>qy1) svg+=`<rect x="${qx1}" y="${qy1}" width="${Math.max(0,qx2-qx1)}" height="${Math.max(0,qy2-qy1)}" fill="rgba(27,138,82,.06)" rx="2"/>`;
+  const qMidX=1.0>=xMin&&1.0<=xMax?sx(1.0):PAD.l+pw*0.5;
+  const qMidY=0.10>=yMin&&0.10<=yMax?sy(0.10):PAD.t+ph*0.5;
+  svg+=`<rect x="${PAD.l}" y="${PAD.t}" width="${Math.max(0,qMidX-PAD.l)}" height="${Math.max(0,qMidY-PAD.t)}" fill="rgba(5,150,105,.07)" rx="2"/>`;
+  svg+=`<rect x="${qMidX}" y="${PAD.t}" width="${Math.max(0,PAD.l+pw-qMidX)}" height="${Math.max(0,qMidY-PAD.t)}" fill="rgba(217,119,6,.05)" rx="2"/>`;
+  svg+=`<rect x="${PAD.l}" y="${qMidY}" width="${Math.max(0,qMidX-PAD.l)}" height="${Math.max(0,PAD.t+ph-qMidY)}" fill="rgba(8,145,178,.05)" rx="2"/>`;
+  svg+=`<rect x="${qMidX}" y="${qMidY}" width="${Math.max(0,PAD.l+pw-qMidX)}" height="${Math.max(0,PAD.t+ph-qMidY)}" fill="rgba(220,38,38,.05)" rx="2"/>`;
 
   // Grid
   gridX.forEach(v=>{
@@ -7958,13 +7981,13 @@ function renderSegScatter(){
   // Reference lines P/VP=1.0 and DY=10%
   if(1.0>=xMin&&1.0<=xMax){
     const xr=sx(1.0);
-    svg+=`<line x1="${xr}" y1="${PAD.t}" x2="${xr}" y2="${PAD.t+ph}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-    svg+=`<text x="${xr+4}" y="${PAD.t+10}" font-size="9" fill="#002060" font-weight="700">P/VP=1,0</text>`;
+    svg+=`<line x1="${xr}" y1="${PAD.t}" x2="${xr}" y2="${PAD.t+ph}" stroke="#9AABCA" stroke-width="1" stroke-dasharray="4,3"/>`;
+    svg+=`<text x="${xr+3}" y="${PAD.t+9}" font-size="8" fill="#5A6E8A" font-weight="600">P/VP=1,0</text>`;
   }
   if(0.10>=yMin&&0.10<=yMax){
     const yr=sy(0.10);
-    svg+=`<line x1="${PAD.l}" y1="${yr}" x2="${PAD.l+pw}" y2="${yr}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-    svg+=`<text x="${PAD.l+4}" y="${yr-4}" font-size="9" fill="#002060" font-weight="700">DY=10%</text>`;
+    svg+=`<line x1="${PAD.l}" y1="${yr}" x2="${PAD.l+pw}" y2="${yr}" stroke="#9AABCA" stroke-width="1" stroke-dasharray="4,3"/>`;
+    svg+=`<text x="${PAD.l+4}" y="${yr-3}" font-size="8" fill="#5A6E8A" font-weight="600">DY=10%</text>`;
   }
 
   // Quadrant labels
@@ -8065,7 +8088,7 @@ function renderSegRadar(){
 
   const axes=_radarAxes.map(k=>RADAR_AXIS_OPTIONS.find(o=>o.key===k)||RADAR_AXIS_OPTIONS[0]);
   const N=axes.length;
-  const SIZE=320, CX=SIZE/2, CY=SIZE/2, R=120, LEVELS=4;
+  const SIZE=420, CX=SIZE/2, CY=SIZE/2, R=160, LEVELS=4;
 
   // Normalizar: para cada eixo, pegar min/max entre TODOS os segmentos (não só os selecionados)
   const allSegs=Object.values(_segData);
@@ -8084,7 +8107,7 @@ function renderSegRadar(){
   for(let l=1;l<=LEVELS;l++){
     const lr=R*l/LEVELS;
     const pts=Array.from({length:N},(_, i)=>pt(i,lr).join(',')).join(' ');
-    svg+=`<polygon points="${pts}" fill="none" stroke="#e0e8f4" stroke-width="1"/>`;
+    svg+=`<polygon points="${pts}" fill="${l===LEVELS?'rgba(235,240,247,.5)':'none'}" stroke="#DDE5F0" stroke-width="1"/>`;
     // Level label (inner ring only)
     if(l===LEVELS){
       const [lx,ly]=pt(0,lr);
@@ -8096,9 +8119,9 @@ function renderSegRadar(){
   axes.forEach((ax,i)=>{
     const[x2,y2]=pt(i,R+16);
     const[xa,ya]=pt(i,R);
-    svg+=`<line x1="${CX}" y1="${CY}" x2="${xa}" y2="${ya}" stroke="#d0d8ea" stroke-width="1.5"/>`;
+    svg+=`<line x1="${CX}" y1="${CY}" x2="${xa}" y2="${ya}" stroke="#DDE5F0" stroke-width="1"/>`;
     const anchor=x2<CX-4?'end':x2>CX+4?'start':'middle';
-    svg+=`<text x="${x2}" y="${y2+3}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="#5a6e8a">${ax.label}</text>`;
+    svg+=`<text x="${x2}" y="${y2+3}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="#001E50">${ax.label}</text>`;
   });
 
   // Segment polygons
@@ -8111,7 +8134,7 @@ function renderSegRadar(){
       const r2=Math.max(0.04,nr)*R;
       return pt(i,r2).join(',');
     }).join(' ');
-    svg+=`<polygon points="${pts}" fill="${cor}" fill-opacity=".15" stroke="${cor}" stroke-width="2" stroke-linejoin="round">
+    svg+=`<polygon points="${pts}" fill="${cor}" fill-opacity=".18" stroke="${cor}" stroke-width="2.5" stroke-linejoin="round">
       <title>${nome}</title></polygon>`;
     // Dots on vertices
     axes.forEach((ax,i)=>{
@@ -8119,28 +8142,54 @@ function renderSegRadar(){
       const nr=(raw-norm[i].mn)/norm[i].range;
       const r2=Math.max(0.04,nr)*R;
       const[dx,dy]=pt(i,r2);
-      svg+=`<circle cx="${dx}" cy="${dy}" r="3" fill="${cor}" stroke="#fff" stroke-width="1"><title>${nome}: ${ax.fmt(raw)}</title></circle>`;
+      svg+=`<circle cx="${dx}" cy="${dy}" r="4" fill="${cor}" stroke="#fff" stroke-width="1.5"><title>${nome}: ${ax.fmt(raw)}</title></circle>`;
     });
   });
 
   // Center dot
-  svg+=`<circle cx="${CX}" cy="${CY}" r="3" fill="#002060"/>`;
+  svg+=`<circle cx="${CX}" cy="${CY}" r="3" fill="#DDE5F0"/>`;
   svg+='</svg>';
 
   // Legend
   const legend=selectedSegs.map(nome=>{
     const cor=SEG_COLORS[nome]||'#555';
-    return`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-      <div style="width:12px;height:3px;background:${cor};border-radius:2px;flex-shrink:0"></div>
-      <span style="font-size:10px;color:var(--apex-navy)">${nome}</span>
+    const bg=SEG_BG[nome]||'#eee';
+    return`<div style="display:inline-flex;align-items:center;gap:5px;background:${bg};padding:3px 9px;border-radius:8px;margin:2px">
+      <div style="width:14px;height:3px;background:${cor};border-radius:2px;flex-shrink:0"></div>
+      <span style="font-size:10px;color:${cor};font-weight:700">${nome}</span>
     </div>`;
   }).join('');
 
-  wrap.innerHTML=`<div>${svg}</div>
-    <div style="margin-top:10px;max-height:120px;overflow-y:auto">${legend}</div>`;
+  wrap.innerHTML=`<div style="overflow-x:auto">${svg}</div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:4px">${legend}</div>`;
 }
 
-
+function renderSegChips(){
+  const cont=document.getElementById('seg-chips-container');
+  if(!cont)return;
+  const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
+  let html='';
+  segs.forEach(([nome,s])=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    const bg=SEG_BG[nome]||'#eee';
+    const dy=s.dy_anual?(s.dy_anual*100).toFixed(1)+'%':'\u2014';
+    const pvp=s.pvp_atual?s.pvp_atual.toFixed(2)+'x':'\u2014';
+    const ret=s.ret_mes!=null?((s.ret_mes>=0?'+':'')+(s.ret_mes*100).toFixed(1)+'%'):'\u2014';
+    const retCor=s.ret_mes>=0?'var(--success)':'var(--danger)';
+    html+=
+      '<div class="seg-chip-card" style="border-left:4px solid '+cor+'">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+      '<div style="font-size:12px;font-weight:800;color:#001E50">'+nome+'</div>' +
+      '<div style="background:'+bg+';color:'+cor+';font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">'+s.count+' fundos</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">' +
+      '<div><div style="font-size:8px;color:#8A9BB8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">DY</div><div style="font-size:13px;font-weight:800;color:'+cor+'">'+dy+'</div></div>' +
+      '<div><div style="font-size:8px;color:#8A9BB8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">P/VP</div><div style="font-size:13px;font-weight:800;color:#001E50">'+pvp+'</div></div>' +
+      '<div><div style="font-size:8px;color:#8A9BB8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Ret. M\u00eas</div><div style="font-size:13px;font-weight:800;color:'+retCor+'">'+ret+'</div></div>' +
+      '</div></div>';
+  });
+  cont.innerHTML=html;
+}
 /**
  * Renderiza o chip colorido de um segmento de FII.
  * Unifica as antigas segChipInline() e segChipMini() (A2) numa só função,
