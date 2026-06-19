@@ -6,6 +6,8 @@
 <title>APEX Partners — FII Universe</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -4961,6 +4963,56 @@ async function finalizarAnalise(){
   // Limpar rascunho após finalizar
   await limparRascunhoAoFinalizar(ticker, analista);
   pararAutoSaveTimer();
+  // Limpar formulário e voltar ao estado inicial
+  resetAnaliseFundo();
+}
+/**
+ * Limpa o formulário de análise e retorna ao estado inicial (fundo não selecionado).
+ * Chamado automaticamente após finalizar uma análise com sucesso.
+ * Quando o analista selecionar o mesmo fundo novamente, onFundoSelect() → reloadAnalise()
+ * recarregará automaticamente os dados salvos.
+ */
+function resetAnaliseFundo(){
+  currentTicker='';
+
+  // Voltar seletor de fundo para o estado inicial
+  const fundoEl=document.getElementById('sel-fundo');
+  if(fundoEl) fundoEl.value='';
+
+  // Ocultar todos os cards de análise
+  ['card-quali','card-quanti','card-summary','pa-alert',
+   'fundo-status-banner','draft-banner-top','btn-forum-analise'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+
+  // Limpar todos os inputs de score qualitativo
+  QUALI_CRITERIA.forEach(c=>{
+    const note=document.getElementById('quali-note-'+c.id);
+    const just=document.getElementById('quali-just-'+c.id);
+    if(note) note.value='';
+    if(just) just.value='';
+    const sug=document.getElementById('quali-sug-'+c.id);
+    if(sug) sug.textContent='';
+  });
+
+  // Limpar todos os inputs de score quantitativo
+  QUANTI_CRITERIA.forEach(c=>{
+    const note=document.getElementById('quanti-note-'+c.id);
+    const just=document.getElementById('quanti-just-'+c.id);
+    if(note) note.value='';
+    if(just) just.value='';
+    // Reabilitar checkboxes de aplicabilidade
+    const cb=document.getElementById('aplic-'+c.id);
+    if(cb) cb.checked=false;
+  });
+
+  // Atualizar painéis dependentes
+  injectAnalyseTags();       // atualiza tags na tabela de fundos
+  injectPreAnaliseBadges();  // atualiza badges pré-análise
+  renderScoreRanking();      // atualiza ranking de scores
+  updateKpiRow();            // atualiza KPIs da visão geral
+  renderAtvVisaoGeral();     // atualiza feed de atividade
 }
 function reloadAnalise(ticker){
   const btnForum=document.getElementById('btn-forum-analise');
@@ -5009,178 +5061,250 @@ function exportCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='FII_Elegiveis_02062026.csv';a.click();URL.revokeObjectURL(url);
 }
-function exportarPDF(ticker){
-  const t=ticker||currentTicker;
-  const a=analyses[t];if(!a){toast('Análise não encontrada para este fundo.', 'error');return;}
-  const w=window.open('','_blank');
-  const dataGeracao=new Date().toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'});
-  const scoreColor=a.scoreTotal>=7?'#1b8a52':a.scoreTotal>=5?'#a06800':'#c0392b';
-  const scoreBg=a.scoreTotal>=7?'#e6f4ed':a.scoreTotal>=5?'#fef9ec':'#fdecea';
-  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-  <meta charset="UTF-8">
-  <title>Análise ${a.ticker} — APEX Partners</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Manrope',sans-serif;background:#F6F6F6;color:#002060;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{max-width:860px;margin:0 auto;background:#fff}
+function exportarPDF(tickerParam){
+  // Verificar se jsPDF foi carregado
+  if(typeof window.jspdf==='undefined'){
+    toast('Biblioteca PDF não carregada. Aguarde alguns segundos e tente novamente.','warning');
+    return;
+  }
+  const t=tickerParam||currentTicker;
+  const a=analyses[t];
+  if(!a){toast('Análise não encontrada para este fundo.','error');return;}
 
-    /* ── CAPA ── */
-    .capa{background:#000123;padding:36px 40px 28px;display:flex;justify-content:space-between;align-items:flex-start}
-    .capa-left{display:flex;flex-direction:column;gap:20px}
-    .capa-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0076D2}
-    .capa-titulo{font-size:28px;font-weight:800;color:#fff;line-height:1.1}
-    .capa-subtitulo{font-size:13px;color:#a0c4f0;margin-top:4px;font-weight:400}
-    .capa-right{text-align:right}
-    .capa-meta{font-size:11px;color:#a0c4f0;line-height:2}
-    .capa-meta strong{color:#fff}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+  const W=210,H=297;
 
-    /* ── FAIXA SCORE ── */
-    .score-strip{background:#002060;padding:20px 40px;display:grid;grid-template-columns:1fr 1fr 1.8fr;gap:1px}
-    .score-item{text-align:center;padding:12px 20px;border-right:1px solid rgba(255,255,255,.12)}
-    .score-item:last-child{border:none}
-    .score-val{font-size:38px;font-weight:800;color:#fff;line-height:1}
-    .score-val.destaque{font-size:52px;color:${scoreColor}}
-    .score-lbl{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#a0c4f0;margin-top:6px}
-    .score-peso{font-size:10px;color:#0076D2;margin-top:2px;font-weight:500}
+  // Paleta Apex
+  const DARK =[0,1,35];
+  const NAVY =[0,32,96];
+  const BLUE =[0,118,210];
+  const WHITE=[255,255,255];
+  const LIGHT=[160,196,240];
+  const scoreRGB=a.scoreTotal>=7?[27,138,82]:a.scoreTotal>=4?[160,104,0]:[192,57,43];
+  const scoreTxt=a.scoreTotal>=7?'APROVADO':a.scoreTotal>=4?'EM AVALIAÇÃO':'REPROVADO';
 
-    /* ── CONTEÚDO ── */
-    .conteudo{padding:32px 40px}
-    .secao-titulo{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0076D2;margin:24px 0 12px;padding-bottom:8px;border-bottom:1.5px solid #DAE3F3}
-    .secao-titulo:first-child{margin-top:0}
+  const fund=ELIGIBLE_FUNDS.find(f=>f.ticker===t)||{};
+  const fd=fundDataMap[t]||{};
+  const hoje=new Date();
+  const dataStr=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
 
-    /* ── FICHA DO FUNDO ── */
-    .ficha{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#DAE3F3;border-radius:8px;overflow:hidden;margin-bottom:4px}
-    .ficha-item{background:#fff;padding:12px 14px}
-    .ficha-lbl{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#0076D2;margin-bottom:4px}
-    .ficha-val{font-size:13px;font-weight:700;color:#002060}
+  // ── HEADER ────────────────────────────────────────────────────
+  doc.setFillColor(...DARK);
+  doc.rect(0,0,W,55,'F');
 
-    /* ── TABELAS ── */
-    table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px}
-    thead tr{background:#002060}
-    thead th{color:#fff;padding:9px 12px;text-align:left;font-weight:700;font-size:10px;letter-spacing:.4px}
-    thead th.center{text-align:center}
-    tbody td{padding:9px 12px;border-bottom:1px solid #eef2fa;vertical-align:top;color:#002060}
-    tbody tr:nth-child(even) td{background:#f4f8fd}
-    .col-criterio{width:200px;font-weight:600}
-    .col-nota{width:60px;text-align:center}
-    .col-peso{font-size:9px;color:#6b7a9a;font-weight:400;margin-top:2px}
-    .just{color:#5a6e8a;line-height:1.55}
+  // Logotipo simplificado Apex (losango azul + texto branco)
+  doc.setFillColor(0,120,210);
+  doc.rect(10,8,24,24,'F');
+  doc.setFillColor(...WHITE);
+  // Losango: top, right, bottom, left
+  const lx=22,ly=20;
+  const pts=[[lx,ly-8],[lx+9,ly],[lx,ly+8],[lx-9,ly]];
+  // Desenhar losango via linhas
+  doc.setDrawColor(...WHITE);doc.setLineWidth(0.5);
+  for(let i=0;i<pts.length;i++){
+    const n=pts[(i+1)%pts.length];
+    doc.line(pts[i][0],pts[i][1],n[0],n[1]);
+  }
+  doc.setFillColor(...WHITE);
+  // Preencher losango com triangulos
+  doc.triangle(pts[0][0],pts[0][1],pts[1][0],pts[1][1],pts[3][0],pts[3][1],'F');
+  doc.triangle(pts[2][0],pts[2][1],pts[1][0],pts[1][1],pts[3][0],pts[3][1],'F');
 
-    /* ── BADGES ── */
-    .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:800}
-    .badge-verde{background:#e6f4ed;color:#155a34}
-    .badge-ambar{background:#fef9ec;color:#a06800}
-    .badge-verm{background:#fdecea;color:#c0392b}
-    .badge-na{background:#f0f0f0;color:#888;font-style:italic;font-weight:400;font-size:10px}
+  // Texto APEX Partners
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica','bold');doc.setFontSize(16);
+  doc.text('APEX',38,18);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.setTextColor(...LIGHT);
+  doc.text('Partners',38,24);
 
-    /* ── RODAPÉ ── */
-    .rodape{background:#000123;padding:14px 40px;display:flex;justify-content:space-between;align-items:center;margin-top:0}
-    .rodape-esq{font-size:9px;color:#a0c4f0;letter-spacing:.3px}
-    .rodape-dir{font-size:9px;color:#a0c4f0}
+  // Tag confidencial
+  doc.setFontSize(7);doc.setFont('helvetica','bold');
+  doc.setTextColor(0,118,210);
+  doc.text('ANÁLISE DE FII — USO INTERNO · CONFIDENCIAL',10,37);
 
-    @media print{
-      body{background:#fff}
-      .page{max-width:100%}
-      .capa,.score-strip,.rodape{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  // Ticker grande
+  doc.setFontSize(24);doc.setFont('helvetica','bold');
+  doc.setTextColor(...WHITE);
+  doc.text(a.ticker,10,50);
+
+  // Nome e meta (direita)
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.setTextColor(...LIGHT);
+  const nomeT=(a.nome||'').length>50?(a.nome||'').slice(0,49)+'…':(a.nome||'');
+  doc.text(nomeT,W-10,40,{align:'right'});
+  doc.text('Analista: '+a.analista,W-10,47,{align:'right'});
+  doc.text('Data: '+a.data,W-10,54,{align:'right'});
+
+  // ── SCORE STRIP ───────────────────────────────────────────────
+  doc.setFillColor(...NAVY);
+  doc.rect(0,55,W,28,'F');
+  doc.setDrawColor(...LIGHT);doc.setLineWidth(0.2);
+  doc.line(70,58,70,80);doc.line(140,58,140,80);
+
+  const scoreItems=[
+    {lbl:'SCORE QUALITATIVO',val:(a.scoreQuali??0).toFixed(1),sub:'peso 40%',cx:35},
+    {lbl:'SCORE QUANTITATIVO',val:(a.scoreQuanti??0).toFixed(1),sub:'peso 60%',cx:105},
+    {lbl:'SCORE FINAL',val:(a.scoreTotal??0).toFixed(1),sub:scoreTxt,cx:175,dest:true},
+  ];
+  scoreItems.forEach(s=>{
+    doc.setFontSize(7);doc.setFont('helvetica','bold');
+    doc.setTextColor(...LIGHT);
+    doc.text(s.lbl,s.cx,62,{align:'center'});
+    doc.setFontSize(s.dest?22:18);
+    doc.setTextColor(s.dest?scoreRGB[0]:255,s.dest?scoreRGB[1]:255,s.dest?scoreRGB[2]:255);
+    doc.text(s.val,s.cx,74,{align:'center'});
+    doc.setFontSize(8);doc.setFont('helvetica','normal');
+    doc.setTextColor(0,118,210);
+    doc.text(s.sub,s.cx,80,{align:'center'});
+  });
+
+  let y=91;
+
+  // ── DADOS DO FUNDO ────────────────────────────────────────────
+  doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.setTextColor(0,118,210);
+  doc.text('DADOS DO FUNDO',10,y);
+  doc.setDrawColor(0,118,210);doc.setLineWidth(0.3);
+  doc.line(10,y+1.5,200,y+1.5);
+  y+=5;
+
+  const fichaItens=[
+    ['Segmento',a.seg||fund.seg||'—'],
+    ['Tipo de Fundo',a.tipo||'—'],
+    ['Analista',a.analista],
+    ['Data da Análise',a.data],
+    ['Preço',fd.preco?'R$ '+parseFloat(fd.preco).toFixed(2):'—'],
+    ['DY Anualizado',fd.yield?(fd.yield*100).toFixed(2)+'%':'—'],
+    ['P/VP',fd.pvp?parseFloat(fd.pvp).toFixed(2)+'x':'—'],
+    ['MktCap',fd.mkt?'R$ '+((fd.mkt/1e6).toFixed(0))+'M':'—'],
+  ];
+  const cW=47.5;
+  fichaItens.forEach((item,i)=>{
+    const col=i%4,row=Math.floor(i/4);
+    const fx=10+col*cW,fy=y+row*12;
+    doc.setFillColor(244,248,253);
+    doc.rect(fx,fy,cW-1,11,'F');
+    doc.setFontSize(7);doc.setFont('helvetica','bold');
+    doc.setTextColor(0,118,210);
+    doc.text(item[0].toUpperCase(),fx+2,fy+4);
+    doc.setFontSize(9);doc.setFont('helvetica','bold');
+    doc.setTextColor(...NAVY);
+    doc.text(String(item[1]),fx+2,fy+9.5);
+  });
+  y+=28;
+
+  // ── HISTÓRICO DE ELEGIBILIDADE ────────────────────────────────
+  if(typeof TRACKRECORD_DATA!=='undefined'){
+    const tr=TRACKRECORD_DATA.find(r=>r.ticker===t);
+    if(tr){
+      y+=2;
+      doc.setFontSize(8);doc.setFont('helvetica','bold');
+      doc.setTextColor(0,118,210);
+      doc.text('HISTÓRICO DE ELEGIBILIDADE',10,y);
+      doc.line(10,y+1.5,200,y+1.5);
+      y+=5;
+      const entries=Object.entries(tr).filter(([k])=>k!=='ticker'&&k!=='nome');
+      const bw=Math.min(8,190/entries.length);
+      entries.forEach(([,val],idx)=>{
+        const bx=10+idx*(bw+0.5);
+        const rgb=val==='S'?[27,138,82]:val==='N'?[192,57,43]:[200,200,200];
+        doc.setFillColor(...rgb);
+        doc.rect(bx,y,bw,6,'F');
+      });
+      y+=9;
+      doc.setFontSize(7);doc.setFont('helvetica','normal');
+      doc.setTextColor(120,120,120);
+      doc.text('Verde = Elegível  |  Vermelho = Não elegível  |  Cinza = sem dado',10,y);
+      y+=5;
     }
-  </style>
-  </head><body><div class="page">
+  }
 
-  <!-- CAPA -->
-  <div class="capa">
-    <div class="capa-left">
-      <svg xmlns="http://www.w3.org/2000/svg" width="140" height="26" viewBox="0 0 1650.05 313.2"><defs><clipPath id="cpPDF"><path transform="matrix(1,0,0,-1,0,313.2)" d="M0 313.2H1650.053V0H0Z"/></clipPath></defs><path transform="matrix(1,0,0,-1,0,313.2)" d="M256.136 296.6H16.135987V16.600007H256.136Z" fill="#0078d2"/><path transform="matrix(1,0,0,-1,136.1357,86.59981)" d="M0 0-80-70 0-140 80-70Z" fill="#fff"/><path transform="matrix(1,0,0,-1,644.8252,161.5935)" d="M0 0H48.953V13.052H0V55.279H65.691V67.98H-35.042V-59.913H68.829V-47.213H0Z" fill="#fff"/><g clip-path="url(#cpPDF)"><path transform="matrix(1,0,0,-1,519.187,165.71282)" d="M0 0C-11.296 0-14.016 1.03-14.016 1.03V61.649H2.333C24.997 61.649 33.861 47.779 33.861 29.459 33.861 11.138 21.907 0 0 0M15.587 72.099H-49.058V-55.794H-14.016V-11.152H18.933C49.896-11.152 67.679 4.111 67.679 30.512 67.679 52.822 56.32 72.099 15.587 72.099" fill="#fff"/><path transform="matrix(1,0,0,-1,855.2474,221.50632)" d="M0 0-50.713 73.836-9.519 127.892H-27.867L-59.411 86.5-87.84 127.892H-125.328L-79.128 60.625-125.328 0H-106.981L-70.431 47.962-37.49 0Z" fill="#fff"/><path transform="matrix(1,0,0,-1,353.2971,171.10532)" d="M0 0 17.994 42.702 35.715 0ZM38.74 77.491H18.604L-35.815-50.401H-21.238L-5.209-12.363H40.845L56.667-50.401H93.269Z" fill="#fff"/></g></svg>
-      <div>
-        <div class="capa-tag">Análise de FII — Uso Interno · Confidencial</div>
-        <div class="capa-titulo">${a.ticker}</div>
-        <div class="capa-subtitulo">${a.nome||''}</div>
-      </div>
-    </div>
-    <div class="capa-right">
-      <div class="capa-meta">
-        <div><strong>Segmento</strong> ${a.seg||'—'}</div>
-        <div><strong>Tipo</strong> ${(a.tipo||'—').replace(/-/g,' ').toUpperCase()}</div>
-        <div><strong>Analista</strong> ${a.analista||'—'}</div>
-        <div><strong>Data</strong> ${a.data||'—'}</div>
-      </div>
-    </div>
-  </div>
+  // ── ANÁLISE QUALITATIVA ───────────────────────────────────────
+  y+=2;
+  doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.setTextColor(0,118,210);
+  doc.text('ANÁLISE QUALITATIVA — Score: '+(a.scoreQuali??0).toFixed(1)+'/10 (peso 40%)',10,y);
+  doc.line(10,y+1.5,200,y+1.5);
+  y+=3;
 
-  <!-- SCORE STRIP -->
-  <div class="score-strip">
-    <div class="score-item">
-      <div class="score-val">${a.scoreQuali?.toFixed(1)||'—'}</div>
-      <div class="score-lbl">Score Qualitativo</div>
-      <div class="score-peso">Peso 40%</div>
-    </div>
-    <div class="score-item">
-      <div class="score-val">${a.scoreQuanti?.toFixed(1)||'—'}</div>
-      <div class="score-lbl">Score Quantitativo</div>
-      <div class="score-peso">Peso 60%</div>
-    </div>
-    <div class="score-item">
-      <div class="score-val destaque">${a.scoreTotal?.toFixed(1)||'—'}<span style="font-size:18px;color:#a0c4f0;font-weight:400">/10</span></div>
-      <div class="score-lbl">Score Final</div>
-      <div class="score-peso" style="color:${scoreColor};font-weight:700">${a.scoreTotal>=7?'✓ Aprovado':a.scoreTotal>=5?'→ Em avaliação':'✗ Reprovado'}</div>
-    </div>
-  </div>
+  doc.autoTable({
+    startY:y,
+    head:[['Critério','Nota','Justificativa / Observações']],
+    body:QUALI_CRITERIA.map(c=>{
+      const sc=a.qualiScores?.[c.id];
+      const jt=a.qualiJust?.[c.id]||'';
+      const notaBadge=sc!=null?String(sc):'N/A';
+      return[c.nome,notaBadge,jt];
+    }),
+    columnStyles:{0:{cellWidth:52,fontStyle:'bold'},1:{cellWidth:14,halign:'center'},2:{cellWidth:124}},
+    headStyles:{fillColor:NAVY,fontSize:8,fontStyle:'bold',textColor:WHITE},
+    bodyStyles:{fontSize:8,textColor:NAVY},
+    alternateRowStyles:{fillColor:[244,248,253]},
+    margin:{left:10,right:10},
+    didParseCell:function(data){
+      if(data.section==='body'&&data.column.index===1){
+        const v=parseFloat(data.cell.text[0]);
+        if(!isNaN(v)){
+          data.cell.styles.textColor=v>=7?[27,138,82]:v>=4?[160,104,0]:[192,57,43];
+          data.cell.styles.fontStyle='bold';
+        }
+      }
+    }
+  });
+  y=doc.lastAutoTable.finalY+5;
 
-  <!-- CONTEÚDO -->
-  <div class="conteudo">
+  // ── ANÁLISE QUANTITATIVA ──────────────────────────────────────
+  doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.setTextColor(0,118,210);
+  doc.text('ANÁLISE QUANTITATIVA — Score: '+(a.scoreQuanti??0).toFixed(1)+'/10 (peso 60%)',10,y);
+  doc.line(10,y+1.5,200,y+1.5);
+  y+=3;
 
-    <!-- FICHA DO FUNDO -->
-    <div class="secao-titulo">Ficha do Fundo</div>
-    <div class="ficha">
-      <div class="ficha-item"><div class="ficha-lbl">Ticker</div><div class="ficha-val">${a.ticker}</div></div>
-      <div class="ficha-item"><div class="ficha-lbl">Segmento</div><div class="ficha-val">${a.seg||'—'}</div></div>
-      <div class="ficha-item"><div class="ficha-lbl">Analista</div><div class="ficha-val">${a.analista||'—'}</div></div>
-      <div class="ficha-item"><div class="ficha-lbl">Data de Análise</div><div class="ficha-val">${a.data||'—'}</div></div>
-    </div>
+  doc.autoTable({
+    startY:y,
+    head:[['Indicador','Peso','Nota','Observações']],
+    body:QUANTI_CRITERIA.map(c=>{
+      const sc=a.quantiScores?.[c.id];
+      const jt=a.quantiJust?.[c.id]||'';
+      return[c.nome,c.peso.toFixed(1)+'%',sc!=null?String(sc):'N/A',jt];
+    }),
+    columnStyles:{0:{cellWidth:50,fontStyle:'bold'},1:{cellWidth:14,halign:'center'},2:{cellWidth:14,halign:'center'},3:{cellWidth:112}},
+    headStyles:{fillColor:NAVY,fontSize:8,fontStyle:'bold',textColor:WHITE},
+    bodyStyles:{fontSize:8,textColor:NAVY},
+    alternateRowStyles:{fillColor:[244,248,253]},
+    margin:{left:10,right:10},
+    didParseCell:function(data){
+      if(data.section==='body'&&data.column.index===2){
+        const v=parseFloat(data.cell.text[0]);
+        if(!isNaN(v)){
+          data.cell.styles.textColor=v>=7?[27,138,82]:v>=4?[160,104,0]:[192,57,43];
+          data.cell.styles.fontStyle='bold';
+        }
+      }
+    }
+  });
 
-    <!-- ANÁLISE QUALITATIVA -->
-    <div class="secao-titulo" style="margin-top:28px">Análise Qualitativa — 40%</div>
-    <table>
-      <thead><tr>
-        <th class="col-criterio">Critério</th>
-        <th class="col-nota center">Nota</th>
-        <th>Justificativa</th>
-      </tr></thead>
-      <tbody>${QUALI_CRITERIA.map(c=>{
-        const nota=a.qualiScores?.[c.id];
-        const na=nota===null||nota===undefined;
-        const badge=na?'<span class="badge badge-na">N/A</span>':nota>=7?`<span class="badge badge-verde">${nota}</span>`:nota>=4?`<span class="badge badge-ambar">${nota}</span>`:`<span class="badge badge-verm">${nota}</span>`;
-        return`<tr><td class="col-criterio">${c.nome}<div class="col-peso">${c.peso}% do total</div></td><td class="col-nota">${badge}</td><td class="just">${a.qualiJust?.[c.id]||'<em style="color:#aaa">Sem justificativa registrada</em>'}</td></tr>`;
-      }).join('')}</tbody>
-    </table>
+  // ── RODAPÉ EM TODAS AS PÁGINAS ────────────────────────────────
+  const total=doc.internal.getNumberOfPages();
+  for(let p=1;p<=total;p++){
+    doc.setPage(p);
+    doc.setFillColor(...DARK);
+    doc.rect(0,H-16,W,16,'F');
+    doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.setTextColor(...LIGHT);
+    doc.text('APEX Partners · FII Universe · Uso Interno · Confidencial',10,H-9);
+    doc.text('Gerado: '+dataStr+' · Pág. '+p+'/'+total,W-10,H-9,{align:'right'});
+    doc.setTextColor(100,130,170);
+    doc.text('Este material tem caráter exclusivamente informativo e não representa oferta ou recomendação de investimento.',10,H-4);
+  }
 
-    <!-- ANÁLISE QUANTITATIVA -->
-    <div class="secao-titulo" style="margin-top:28px">Análise Quantitativa — 60%</div>
-    <table>
-      <thead><tr>
-        <th class="col-criterio">Indicador</th>
-        <th class="col-nota center">Nota</th>
-        <th>Justificativa</th>
-      </tr></thead>
-      <tbody>${QUANTI_CRITERIA.map(c=>{
-        const nota=a.quantiScores?.[c.id];
-        const na=nota===null||nota===undefined;
-        const badge=na?'<span class="badge badge-na">N/A</span>':nota>=7?`<span class="badge badge-verde">${nota}</span>`:nota>=4?`<span class="badge badge-ambar">${nota}</span>`:`<span class="badge badge-verm">${nota}</span>`;
-        return`<tr><td class="col-criterio">${c.nome}<div class="col-peso">${c.peso}% do total</div></td><td class="col-nota">${badge}</td><td class="just">${a.quantiJust?.[c.id]||'<em style="color:#aaa">Sem justificativa registrada</em>'}</td></tr>`;
-      }).join('')}</tbody>
-    </table>
-
-  </div><!-- /conteudo -->
-
-  <!-- RODAPÉ -->
-  <div class="rodape">
-    <div class="rodape-esq">APEX Partners · FII Universe · Documento Confidencial · Uso Interno</div>
-    <div class="rodape-dir">Gerado em ${dataGeracao}</div>
-  </div>
-
-  </div></body></html>`);
-  w.document.close();setTimeout(()=>w.print(),500);
+  // ── DOWNLOAD ─────────────────────────────────────────────────
+  const dataFile=dataStr.replace(/\//g,'');
+  const filename=`${a.ticker}_${(a.analista||'Apex').replace(/\s+/g,'')}_${dataFile}.pdf`;
+  doc.save(filename);
+  toast('✅ PDF gerado: '+filename,'success');
 }
 // ── MAPA DE DADOS BTG POR FUNDO ───────────────────────────────
 const fundDataMap = {};
