@@ -7246,6 +7246,26 @@ async function fetchBCBSeries(codigo,startYM,endYM){
 }
 
 /**
+ * Busca uma série do BCB com novas tentativas automáticas.
+ * A API do Banco Central (SGS) costuma bloquear chamadas simultâneas —
+ * por isso as séries são buscadas uma de cada vez, e cada uma tenta de
+ * novo (com espera crescente) antes de desistir.
+ */
+async function fetchBCBSeriesRetry(codigo,startYM,endYM,nome,tentativas=3){
+  let ultimoErro=null;
+  for(let i=0;i<tentativas;i++){
+    try{
+      const r=await fetchBCBSeries(codigo,startYM,endYM);
+      if(r&&r.length>0) return r;
+      ultimoErro=new Error('resposta vazia');
+    }catch(e){ ultimoErro=e; }
+    await new Promise(res=>setTimeout(res,400*(i+1))); // espera 0,4s, 0,8s, 1,2s...
+  }
+  console.warn(`[BCB ${nome||codigo}] falhou após ${tentativas} tentativas:`,ultimoErro?.message);
+  return [];
+}
+
+/**
  * Calcula retorno mensal ponderado da Carteira APX direto do Supabase.
  * Usa fechamento semanal → retorno mês a mês por fundo → média ponderada.
  * Não depende de nenhuma API externa — 100% confiável.
@@ -7312,10 +7332,13 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
       dataIdx[f.semana_data][f.ticker]=f;
     });
 
-    // Calcular retorno mensal ponderado usando PREÇO DE FECHAMENTO
-    // ret = preco_mes_atual / preco_mes_anterior - 1
-    const results=[];
-    const precoAnterior={};
+    // Retorno mensal por fundo usando RETORNO TOTAL do mês (ret_mes do BTG,
+    // que já inclui preço + dividendos). Esse é o cálculo correto para FIIs,
+    // pois os rendimentos mensais são a maior parte do retorno.
+    // Fallback (só se ret_mes faltar): variação do preço de fechamento.
+    const perFund={};        // {ticker: [{date,ret}]} — séries individuais p/ o gráfico
+    const precoAnterior={};  // usado apenas no fallback
+    const results=[];        // série ponderada da carteira
 
     months.forEach(ym=>{
       const semana=lastWeekPerMonth[ym];
@@ -7324,25 +7347,45 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
 
       tickers.forEach(ticker=>{
         const f=weekData[ticker];
-        if(!f?.fechamento) return;
-        const preco=parseFloat(f.fechamento);
-        if(isNaN(preco)||preco<=0) return;
+        if(!f) return;
 
-        if(precoAnterior[ticker]&&precoAnterior[ticker]>0){
-          const ret=preco/precoAnterior[ticker]-1;
-          wRet+=ret*pesoMap[ticker];
-          wTotal+=pesoMap[ticker];
+        // 1) Retorno total do mês (preferido — inclui dividendos)
+        let ret=null;
+        if(f.ret_mes!=null){
+          const rm=parseFloat(f.ret_mes);
+          if(!isNaN(rm)) ret=rm;
         }
-        precoAnterior[ticker]=preco;
+        // 2) Fallback: variação de preço (sem dividendos)
+        const preco=parseFloat(f.fechamento);
+        if(ret==null && !isNaN(preco) && preco>0 && precoAnterior[ticker]>0){
+          ret=preco/precoAnterior[ticker]-1;
+        }
+        if(!isNaN(preco)&&preco>0) precoAnterior[ticker]=preco;
+
+        if(ret==null) return;
+
+        // série individual do fundo (alimenta os toggles do gráfico)
+        (perFund[ticker]||(perFund[ticker]=[])).push({date:ym,ret});
+
+        // contribuição ponderada para a carteira
+        wRet+=ret*(pesoMap[ticker]||0);
+        wTotal+=(pesoMap[ticker]||0);
       });
 
       if(wTotal>0) results.push({date:ym,ret:wRet/wTotal});
     });
 
+    // Publicar as séries individuais por fundo e seus status
+    tickers.forEach(t=>{
+      _benchFundData[t]=perFund[t]||[];
+      _benchDataStatus[t]=(perFund[t]&&perFund[t].length>0)?'ok':'failed';
+    });
+
     const n=results.length;
-    console.log(`[benchmarks] Carteira: ${n} meses calculados do Supabase`);
+    const nFundos=Object.keys(perFund).length;
+    console.log(`[benchmarks] Carteira: ${n} meses (retorno total) · ${nFundos} fundos individuais`);
     _benchDataStatus.carteira=n>0?'ok':'empty';
-    if(info) info.textContent=n>0?`Carteira: ${n} meses de retornos calculados`:'Carteira: dados insuficientes';
+    if(info) info.textContent=n>0?`Carteira: ${n} meses calculados (retorno total, c/ dividendos)`:'Carteira: dados insuficientes';
     return results;
 
   }catch(e){
@@ -7361,20 +7404,26 @@ async function loadAllBenchmarkData(startYM,endYM){
     .forEach(k=>{_benchDataStatus[k]='loading';});
 
   try{
-    // 1. BCB (CDI/IPCA/SELIC) + Carteira via Supabase — paralelo
+    // 1. BCB (CDI/IPCA/SELIC) + Carteira via Supabase
     if(info) info.textContent='Buscando CDI, IPCA, SELIC (BCB) + retornos da carteira (Supabase)...';
 
-    const[cdi,ipca,selic,carteira]=await Promise.allSettled([
-      fetchBCBSeries(BCB_SERIES_IDS.cdi,  startYM,endYM),
-      fetchBCBSeries(BCB_SERIES_IDS.ipca, startYM,endYM),
-      fetchBCBSeries(BCB_SERIES_IDS.selic,startYM,endYM),
-      calcPortfolioMonthlyReturns(startYM,endYM),
-    ]);
+    // Carteira (Supabase) roda em paralelo — não conflita com o BCB
+    const carteiraP=calcPortfolioMonthlyReturns(startYM,endYM);
+
+    // BCB SGS: buscar UMA série de cada vez. Chamadas simultâneas são
+    // bloqueadas pela API do Banco Central (era a causa do IPCA sumir).
+    const cdiV  =await fetchBCBSeriesRetry(BCB_SERIES_IDS.cdi,  startYM,endYM,'CDI');
+    const ipcaV =await fetchBCBSeriesRetry(BCB_SERIES_IDS.ipca, startYM,endYM,'IPCA');
+    const selicV=await fetchBCBSeriesRetry(BCB_SERIES_IDS.selic,startYM,endYM,'SELIC');
+
+    const carteiraR=await Promise.allSettled([carteiraP]);
     const ok=r=>r.status==='fulfilled'?r.value:[];
-    _benchData.cdi     =ok(cdi);     _benchDataStatus.cdi     =ok(cdi).length>0?'ok':'failed';
-    _benchData.ipca    =ok(ipca);    _benchDataStatus.ipca    =ok(ipca).length>0?'ok':'failed';
-    _benchData.selic   =ok(selic);   _benchDataStatus.selic   =ok(selic).length>0?'ok':'failed';
-    _benchData.carteira=ok(carteira);_benchDataStatus.carteira=ok(carteira).length>0?'ok':'failed';
+    const carteiraV=ok(carteiraR[0]);
+
+    _benchData.cdi     =cdiV;     _benchDataStatus.cdi     =cdiV.length>0?'ok':'failed';
+    _benchData.ipca    =ipcaV;    _benchDataStatus.ipca    =ipcaV.length>0?'ok':'failed';
+    _benchData.selic   =selicV;   _benchDataStatus.selic   =selicV.length>0?'ok':'failed';
+    _benchData.carteira=carteiraV;_benchDataStatus.carteira=carteiraV.length>0?'ok':(_benchDataStatus.carteira||'failed');
 
     // Renderizar imediatamente com o que temos
     renderAllBenchmarks();
