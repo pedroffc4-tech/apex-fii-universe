@@ -575,7 +575,7 @@ tbody tr:hover td{background:#E8F0FB;cursor:default}
   <div class="card" id="card-atv-visao">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Atividade desta semana</span>
-      <a onclick="[...document.querySelectorAll('.nav-tab')].find(t=>t.getAttribute('onclick')?.includes(\"'atividade'\"))?.click();return false" style="font-size:10px;color:var(--apex-blue);cursor:pointer;font-weight:700;text-decoration:none">Ver tudo →</a>
+      <a onclick="var _t=[...document.querySelectorAll('.nav-tab')].find(function(t){return t.textContent.indexOf('Atividade')>-1;});if(_t)_t.click();return false" style="font-size:10px;color:var(--apex-blue);cursor:pointer;font-weight:700;text-decoration:none">Ver tudo →</a>
     </div>
     <div id="atv-visao-content">
       <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:16px">Carregando...</div>
