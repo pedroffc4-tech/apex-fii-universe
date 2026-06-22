@@ -296,6 +296,7 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .bench-period-btn{padding:5px 13px;background:#f0f4fa;color:#5a6e8a;border:1.5px solid #d0dcea;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s}
 .bench-period-btn:hover{background:var(--apex-blue-lt);color:var(--apex-blue);border-color:var(--apex-blue)}
 .bench-period-btn.active{background:var(--apex-blue);color:#fff;border-color:var(--apex-blue)}
+.bench-toggle{padding:4px 12px;border-radius:12px;border:1.5px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s;white-space:nowrap}
 .bench-toggle.active{color:#fff}
 .bench-toggle:not(.active){opacity:.55}
 .bench-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
@@ -433,7 +434,8 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 
 /* Botões — ligeiramente menos arredondados */
 .btn-primary,.btn-secondary,.btn-csv,.btn-download,
-.seg-toggle,.bench-toggle{border-radius:5px!important;}
+.seg-toggle{border-radius:5px!important;}
+/* bench-toggle mantém border-radius original definido na classe (pill shape) */
 
 /* Inputs e selects — borda um pouco mais escura */
 input[type=text],input[type=number],input[type=month],
@@ -7371,10 +7373,18 @@ function toMMAAAA(ym){
  return `${mo}/${y}`;
 }
 function updatePeriodLabel(startYM,endYM){
- const el=document.getElementById('bench-period-label');if(!el)return;
- const[sy,sm]=startYM.split('-');const[ey,em]=endYM.split('-');
- const months=((parseInt(ey)-parseInt(sy))*12+(parseInt(em)-parseInt(sm)));
- el.textContent=`${toMMAAAA(startYM)} → ${toMMAAAA(endYM)} · ${months} meses`;
+  const el=document.getElementById('bench-period-label');if(!el) return;
+  const[sy,sm]=startYM.split('-');const[ey,em]=endYM.split('-');
+  const months=((parseInt(ey)-parseInt(sy))*12+(parseInt(em)-parseInt(sm)));
+  // Se a carteira tiver menos meses do que o período pedido, mostrar aviso
+  const actualMonths=_benchData?.carteira?.length||0;
+  if(actualMonths>0&&actualMonths<months){
+    el.textContent=`${toMMAAAA(startYM)} → ${toMMAAAA(endYM)} · ${months} meses solicitados · dados da carteira: ${actualMonths} meses (desde quando o BTG Guide foi processado)`;
+    el.style.color='var(--warning)';
+  } else {
+    el.textContent=`${toMMAAAA(startYM)} → ${toMMAAAA(endYM)} · ${months} meses`;
+    el.style.color='#6b7a9a';
+  }
 }
 function applyPeriodShortcut(period){
  const now=new Date();
@@ -7657,14 +7667,10 @@ async function loadAllBenchmarkData(startYM,endYM){
  // Renderizar imediatamente com o que temos
  renderAllBenchmarks();
 
- // 2. brapi.dev — IBOV e IFIX (best-effort, falha não bloqueia)
- if(info) info.textContent='Buscando IBOV e IFIX (brapi.dev, best-effort)...';
- const[ibov,ifix]=await Promise.allSettled([
- fetchBrapiMonthly(BRAPI_INDEX_MAP.ibov,startYM,endYM),
- fetchBrapiMonthly(BRAPI_INDEX_MAP.ifix,startYM,endYM),
- ]);
- _benchData.ibov=ok(ibov); _benchDataStatus.ibov=ok(ibov).length>0?'ok':'failed';
- _benchData.ifix=ok(ifix); _benchDataStatus.ifix=ok(ifix).length>0?'ok':'failed';
+ // 2. IBOV/IFIX: brapi.dev requer token (retorna 401 sem autenticação).
+ // Ficam como indisponíveis. CDI/IPCA/Carteira são suficientes para análise de FIIs.
+ _benchData.ibov=[]; _benchDataStatus.ibov='failed';
+ _benchData.ifix=[]; _benchDataStatus.ifix='failed';
 
  _benchLoaded=true;
  renderAllBenchmarks();
@@ -7701,20 +7707,20 @@ function renderAllBenchmarks(){
 
 /** Mostra resumo do que foi carregado vs o que falhou */
 function renderBenchDataStatus(){
- const el=document.getElementById('bench-data-status');
- if(!el) return;
+ const el=document.getElementById('bench-data-status');if(!el)return;
+ const ok=[],fail=[],unavail=[];
  const all=['carteira','cdi','ipca','selic','ifix','ibov',..._carteira.map(c=>c.ticker)];
- const ok=all.filter(k=>_benchDataStatus[k]==='ok');
- const fail=all.filter(k=>_benchDataStatus[k]==='failed');
- if(!ok.length&&!fail.length){ el.textContent=''; return; }
- const okLabels=ok.map(k=>BENCH_LABELS[k]||k).join(', ');
- const failLabels=fail.map(k=>BENCH_LABELS[k]||k).join(', ');
+ all.forEach(k=>{
+  const st=_benchDataStatus[k],lbl=BENCH_LABELS[k]||k;
+  if(st==='ok') ok.push(lbl);
+  else if(k==='ibov'||k==='ifix') unavail.push(lbl);
+  else if(st==='failed') fail.push(lbl);
+ });
  let html='';
- if(ok.length) html+=`<span style="color:var(--success)">✓ Carregados: ${okLabels}</span>`;
- if(ok.length&&fail.length) html+=' &nbsp;·&nbsp; ';
- if(fail.length) html+=`<span style="color:var(--danger)">✕ Falhou: ${failLabels}</span>`;
- if(fail.length) html+=` <span style="color:#6b7a9a">(IBOV usa BOVA11 · IFIX usa XFIX11 como proxy)</span>`;
- el.innerHTML=html;
+ if(ok.length) html+=`<span style="color:var(--success)">Carregados: ${ok.join(', ')}</span>`;
+ if(unavail.length) html+=`${ok.length?' · ':''}<span style="color:#b07a00">${unavail.join(', ')}: requer token brapi.dev</span>`;
+ if(fail.length) html+=` · <span style="color:var(--danger)">Falhou: ${fail.join(', ')}</span>`;
+ el.innerHTML=html||'';
 }
 
 function renderBenchToggles(){
