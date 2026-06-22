@@ -8098,11 +8098,25 @@ function hideSegTooltip(){
   if(tt)tt.style.display='none';
 }
 function segVerTodosFiltrado(segmento){
-  showTab('fundos',document.querySelector('.nav-tab[onclick*="fundos"]'));
+  // 1. Navegar para aba Fundos Elegíveis
+  const fundosBtn = document.querySelector('.nav-tab[onclick*="fundos"]');
+  showTab('fundos', fundosBtn);
+
+  // 2. Aplicar filtro de segmento e rolar para o topo
   setTimeout(()=>{
-    const sel=document.getElementById('filter-seg');
-    if(sel){sel.value=segmento;filterFunds();}
-  },200);
+    const sel = document.getElementById('seg-filter'); // ID correto na aba Fundos
+    if(sel){
+      sel.value = segmento;
+      filterFunds();
+    }
+    // Rolar para o topo da aba (seção de fundos elegíveis)
+    const tabEl = document.getElementById('tab-fundos');
+    if(tabEl){
+      tabEl.scrollIntoView({behavior:'smooth', block:'start'});
+    } else {
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+  }, 150);
 }
 function toggleSegHighlight(nome){
   _segHighlight=_segHighlight===nome?null:nome;
@@ -8343,7 +8357,7 @@ function renderSegDrilldown(){
 }
 function segDrillVerTodos(){
   const nome=document.getElementById('seg-drill-sel')?.value||_segDrillSeg;
-  if(nome)segVerTodosFiltrado(nome);
+  if(nome) segVerTodosFiltrado(nome);
 }
 
 // ── Carteira APX por Segmento ─────────────────────────────────
