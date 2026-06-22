@@ -293,7 +293,9 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
  --bench-carteira:#000123; --bench-cdi:#27ae60; --bench-ipca:#e67e22;
  --bench-selic:#8e44ad; --bench-ifix:#307AE0; --bench-ibov:#c0392b;
 }
-.bench-toggle{padding:4px 12px;border-radius:12px;border:1.5px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s;white-space:nowrap}
+.bench-period-btn{padding:5px 13px;background:#f0f4fa;color:#5a6e8a;border:1.5px solid #d0dcea;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s}
+.bench-period-btn:hover{background:var(--apex-blue-lt);color:var(--apex-blue);border-color:var(--apex-blue)}
+.bench-period-btn.active{background:var(--apex-blue);color:#fff;border-color:var(--apex-blue)}
 .bench-toggle.active{color:#fff}
 .bench-toggle:not(.active){opacity:.55}
 .bench-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
@@ -855,19 +857,38 @@ textarea,.form-select{
 
  <!-- Controles de período -->
  <div class="card" style="margin-bottom:16px">
- <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
- <div style="font-weight:700;color:var(--apex-navy);font-size:12px">Período:</div>
- <input type="month" id="bench-start" class="form-select" style="width:150px;font-family:'Manrope',sans-serif">
- <span style="color:#6b7a9a;font-size:12px">até</span>
- <input type="month" id="bench-end" class="form-select" style="width:150px;font-family:'Manrope',sans-serif">
- <button onclick="updateBenchmarkPeriod()"
- style="padding:8px 18px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
- Atualizar
- </button>
- <div id="bench-update-info" style="font-size:10px;color:#6b7a9a;flex:1;text-align:right"></div>
- </div>
- <!-- Toggles de séries -->
- <div id="bench-series-toggles" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--apex-mist)"></div>
+   <!-- Linha 1: atalhos rápidos -->
+   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+     <span style="font-size:11px;font-weight:700;color:#6b7a9a;margin-right:4px">Período:</span>
+     <button class="bench-period-btn" data-period="3M"     onclick="applyPeriodShortcut('3M')"    >3M</button>
+     <button class="bench-period-btn" data-period="6M"     onclick="applyPeriodShortcut('6M')"    >6M</button>
+     <button class="bench-period-btn" data-period="1A"     onclick="applyPeriodShortcut('1A')"    >1A</button>
+     <button class="bench-period-btn" data-period="YTD"    onclick="applyPeriodShortcut('YTD')"   >YTD</button>
+     <button class="bench-period-btn" data-period="inicio" onclick="applyPeriodShortcut('inicio')">Desde o início</button>
+     <div id="bench-update-info" style="font-size:10px;color:#6b7a9a;margin-left:auto"></div>
+   </div>
+   <!-- Linha 2: campos manuais -->
+   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+     <span style="font-size:11px;color:#6b7a9a">Ou digitar:</span>
+     <input type="text" id="bench-start" class="form-select"
+       placeholder="MM/AAAA" maxlength="7"
+       style="width:110px;font-family:'Manrope',sans-serif;letter-spacing:.5px"
+       oninput="maskMMAAAA(this)"
+       onkeydown="if(event.key==='Enter')applyManualPeriod()">
+     <span style="color:#6b7a9a;font-size:12px">até</span>
+     <input type="text" id="bench-end" class="form-select"
+       placeholder="MM/AAAA" maxlength="7"
+       style="width:110px;font-family:'Manrope',sans-serif;letter-spacing:.5px"
+       oninput="maskMMAAAA(this)"
+       onkeydown="if(event.key==='Enter')applyManualPeriod()">
+     <button onclick="applyManualPeriod()"
+       style="padding:7px 16px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+       Aplicar
+     </button>
+     <span id="bench-period-label" style="font-size:10px;color:#6b7a9a;font-style:italic"></span>
+   </div>
+   <!-- Toggles de séries -->
+   <div id="bench-series-toggles" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--apex-mist)"></div>
  <!-- Status de carregamento por série -->
  <div id="bench-data-status" style="margin-top:8px;font-size:10px;color:#6b7a9a;line-height:1.7"></div>
  </div>
@@ -7307,24 +7328,82 @@ async function initBenchmarks(){
  const now=new Date();
  _benchPeriodEnd=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
  }
+ // Preencher inputs texto MM/AAAA
  const s=document.getElementById('bench-start');
  const e=document.getElementById('bench-end');
- if(s&&!s.value) s.value=_benchPeriodStart;
- if(e&&!e.value) e.value=_benchPeriodEnd;
+ if(s&&!s.value){s.value=toMMAAAA(_benchPeriodStart);s.style.borderColor='var(--apex-blue)';}
+ if(e&&!e.value){e.value=toMMAAAA(_benchPeriodEnd);e.style.borderColor='var(--apex-blue)';}
+ // Marcar atalho ativo (Desde o início é o padrão)
+ const now=new Date();
+ const curYM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+ if(_benchPeriodStart==='2021-09'&&_benchPeriodEnd===curYM)
+   document.querySelector('.bench-period-btn[data-period="inicio"]')?.classList.add('active');
+ updatePeriodLabel(_benchPeriodStart,_benchPeriodEnd);
  renderBenchToggles();
  if(!_benchLoaded) await loadAllBenchmarkData(_benchPeriodStart,_benchPeriodEnd);
  else renderAllBenchmarks();
 }
 
-function updateBenchmarkPeriod(){
- const s=document.getElementById('bench-start')?.value;
- const e=document.getElementById('bench-end')?.value;
- if(!s||!e){toast('Selecione o período','warning');return;}
- if(s>e){toast('A data de início deve ser anterior ao fim','warning');return;}
- _benchPeriodStart=s;_benchPeriodEnd=e;
- _benchLoaded=false;_benchData={};_benchFundData={};_benchDataStatus={};
- loadAllBenchmarkData(s,e);
+// ── Seleção de período ────────────────────────────────────────
+function maskMMAAAA(input){
+ let v=input.value.replace(/\D/g,'');
+ if(v.length>6)v=v.slice(0,6);
+ if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);
+ input.value=v;
+ const ym=parseMMAAAA(input.value);
+ input.style.borderColor=ym?'var(--apex-blue)':'#e57373';
 }
+function parseMMAAAA(str){
+ const m=str.match(/^(\d{2})\/(\d{4})$/);
+ if(!m)return null;
+ const mm=parseInt(m[1]),yyyy=parseInt(m[2]);
+ if(mm<1||mm>12||yyyy<2010||yyyy>2040)return null;
+ return `${yyyy}-${String(mm).padStart(2,'0')}`;
+}
+function toMMAAAA(ym){
+ if(!ym)return'';
+ const[y,mo]=ym.split('-');
+ return `${mo}/${y}`;
+}
+function updatePeriodLabel(startYM,endYM){
+ const el=document.getElementById('bench-period-label');if(!el)return;
+ const[sy,sm]=startYM.split('-');const[ey,em]=endYM.split('-');
+ const months=((parseInt(ey)-parseInt(sy))*12+(parseInt(em)-parseInt(sm)));
+ el.textContent=`${toMMAAAA(startYM)} → ${toMMAAAA(endYM)} · ${months} meses`;
+}
+function applyPeriodShortcut(period){
+ const now=new Date();
+ const endYM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+ let startYM;
+ if(period==='3M'){const d=new Date(now.getFullYear(),now.getMonth()-3,1);startYM=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+ else if(period==='6M'){const d=new Date(now.getFullYear(),now.getMonth()-6,1);startYM=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+ else if(period==='1A'){const d=new Date(now.getFullYear()-1,now.getMonth(),1);startYM=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+ else if(period==='YTD'){startYM=`${now.getFullYear()}-01`;}
+ else{startYM='2021-09';}
+ const sEl=document.getElementById('bench-start');
+ const eEl=document.getElementById('bench-end');
+ if(sEl){sEl.value=toMMAAAA(startYM);sEl.style.borderColor='var(--apex-blue)';}
+ if(eEl){eEl.value=toMMAAAA(endYM);eEl.style.borderColor='var(--apex-blue)';}
+ document.querySelectorAll('.bench-period-btn').forEach(b=>b.classList.remove('active'));
+ document.querySelector(`.bench-period-btn[data-period="${period}"]`)?.classList.add('active');
+ updatePeriodLabel(startYM,endYM);
+ _benchPeriodStart=startYM;_benchPeriodEnd=endYM;
+ _benchLoaded=false;_benchData={};_benchFundData={};_benchDataStatus={};
+ loadAllBenchmarkData(startYM,endYM);
+}
+function applyManualPeriod(){
+ const startYM=parseMMAAAA(document.getElementById('bench-start')?.value||'');
+ const endYM=parseMMAAAA(document.getElementById('bench-end')?.value||'');
+ if(!startYM){toast('Data de início inválida. Use MM/AAAA (ex: 01/2023)','warning');return;}
+ if(!endYM){toast('Data de fim inválida. Use MM/AAAA (ex: 06/2026)','warning');return;}
+ if(startYM>=endYM){toast('A data de início deve ser anterior ao fim','warning');return;}
+ document.querySelectorAll('.bench-period-btn').forEach(b=>b.classList.remove('active'));
+ updatePeriodLabel(startYM,endYM);
+ _benchPeriodStart=startYM;_benchPeriodEnd=endYM;
+ _benchLoaded=false;_benchData={};_benchFundData={};_benchDataStatus={};
+ loadAllBenchmarkData(startYM,endYM);
+}
+function updateBenchmarkPeriod(){applyManualPeriod();}
 
 async function fetchBCBSeries(codigo,startYM,endYM){
  const[sy,sm]=startYM.split('-');
