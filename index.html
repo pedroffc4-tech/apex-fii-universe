@@ -8256,13 +8256,21 @@ function renderSegCompTable(){
 function renderSegDrilldown(){
   const sel=document.getElementById('seg-drill-sel');
   const btnVer=document.getElementById('seg-drill-ver-todos');
-  // Popular dropdown
+
+  // Popular dropdown (só na primeira vez)
   if(sel&&sel.options.length<=1){
-    const segs=Object.keys(_segData).sort();
-    segs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+    Object.keys(_segData).sort().forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s;o.textContent=s;
+      sel.appendChild(o);
+    });
   }
-  if(_segDrillSeg&&sel)sel.value=_segDrillSeg;
-  const nome=sel?.value||'';
+
+  // Ler a seleção atual do usuário PRIMEIRO — não sobrescrever com _segDrillSeg
+  // _segDrillSeg só é usado quando a função é chamada programaticamente (ex: do tooltip)
+  const nome=sel?.value||_segDrillSeg||'';
+  _segDrillSeg=nome; // sincronizar estado com o que o usuário escolheu
+  if(sel&&nome) sel.value=nome; // garantir que o select mostre o valor correto se chamado programaticamente
   if(!nome||!_segData[nome]){
     const tw=document.getElementById('seg-drill-table-wrap');
     if(tw)tw.innerHTML='<div style="padding:20px;text-align:center;color:#6b7a9a">Selecione um segmento acima.</div>';
