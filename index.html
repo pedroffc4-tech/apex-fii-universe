@@ -902,7 +902,12 @@ textarea,.form-select{
  <div class="card" style="margin-bottom:16px" id="bench-chart-card">
  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
  <div class="card-title" style="margin:0;padding:0;border:none">Rentabilidade Acumulada</div>
- <div style="font-size:10px;color:#6b7a9a">Todos os índices partem de 0% no início do período selecionado</div>
+ <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+   <span style="font-size:10px;color:#6b7a9a">Granularidade:</span>
+   <button id="btn-gran-mensal" class="bench-period-btn active" onclick="setBenchGranularity('mensal',this)">Mensal</button>
+   <button id="btn-gran-semanal" class="bench-period-btn" onclick="setBenchGranularity('semanal',this)">Semanal</button>
+   <span style="font-size:10px;color:#6b7a9a">· Base 0% no início do período</span>
+ </div>
  </div>
  <div id="bench-chart-wrap" style="overflow-x:auto">
  <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Clique em "Atualizar" para carregar os dados</div>
@@ -7420,109 +7425,210 @@ async function fetchBCBSeries(codigo,startYM,endYM){
  }).filter(d=>d.date>=startYM&&d.date<=endYM);
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// MOTOR DE RENTABILIDADE — (P_fim - P_ini + Div) / P_ini
+// Dividendos reinvestidos (TRI). Base 0% no início do período.
+// ══════════════════════════════════════════════════════════════
+let _benchGranularity='mensal'; // 'mensal' | 'semanal'
+let _returnEngine={}; // cache {monthly:{}, weekly:{}} por período
+
+/** Converte DD/MM/AAAA → ISO YYYY-MM-DD para ordenação correta */
+function sdToISO(str){
+  if(!str) return '';
+  const p=str.split('/');
+  return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:str;
+}
+
+/** Toggle de granularidade */
+function setBenchGranularity(g,btn){
+  _benchGranularity=g;
+  document.querySelectorAll('#btn-gran-mensal,#btn-gran-semanal').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // Re-renderizar sem recarregar dados
+  applyGranularityToBenchData();
+  renderAllBenchmarks();
+}
+
 /**
- * Calcula retorno mensal ponderado da Carteira APX direto do Supabase.
- * Usa fechamento semanal → retorno mês a mês por fundo → média ponderada.
- * Não depende de nenhuma API externa — 100% confiável.
+ * Aplica a granularidade selecionada nos dados do motor de retorno
+ * e atualiza _benchData.carteira e _benchFundData.
+ */
+function applyGranularityToBenchData(){
+  if(!_returnEngine.monthly&&!_returnEngine.weekly) return;
+  const src=_benchGranularity==='semanal'?_returnEngine.weekly:_returnEngine.monthly;
+  if(!src) return;
+  // Carteira consolidada
+  if(src.carteira) _benchData.carteira=src.carteira;
+  // Fundos individuais
+  _carteira.forEach(c=>{
+    if(src[c.ticker]) _benchFundData[c.ticker]=src[c.ticker];
+  });
+}
+
+/**
+ * Motor completo: busca fund_data, calcula retorno com dividendo,
+ * monta séries mensais e semanais para carteira + fundos individuais.
+ * Fórmula: (P_fim − P_ini + div_mes) / P_ini
  */
 async function calcPortfolioMonthlyReturns(startYM,endYM){
- if(!_carteira.length) return[];
- const db=getDB();
- if(!db) return[];
+  if(!_carteira.length) return[];
+  const db=getDB();
+  if(!db) return[];
 
- const tickers=_carteira.map(c=>c.ticker);
- const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
- const pesoMap={};
- _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
+  const tickers=_carteira.map(c=>c.ticker);
+  const totalPeso=_carteira.reduce((s,c)=>s+(c.peso||0),0)||100;
+  const pesoMap={};
+  _carteira.forEach(c=>{pesoMap[c.ticker]=(c.peso||0)/totalPeso;});
 
- const info=document.getElementById('bench-update-info');
- if(info) info.textContent='Buscando dados de preços no Supabase...';
+  // Pesos históricos: quando cada fundo entrou na carteira
+  const entryMap={};
+  _carteira.forEach(c=>{
+    const entry=c.created_at?new Date(c.created_at).toISOString().slice(0,7):startYM;
+    entryMap[c.ticker]=entry<startYM?startYM:entry;
+  });
 
- try{
- // Buscar todas as semanas ativas no período — converter DD/MM/AAAA → YYYY-MM
- const{data:semanas,error:eS}=await db.from('semanas')
- .select('semana_data')
- .is('deleted_at',null)
- .order('semana_data',{ascending:true});
- if(eS||!semanas?.length) throw new Error('Sem semanas no Supabase');
+  const info=document.getElementById('bench-update-info');
+  if(info) info.textContent='Buscando preços e dividendos no Supabase...';
 
- // Filtrar pelo período e mapear para YYYY-MM
- // semana_data está em DD/MM/AAAA
- const semanasMap={}; // {YYYY-MM: [semana_data...]}
- semanas.forEach(s=>{
- const parts=s.semana_data.split('/');
- if(parts.length!==3) return;
- const ym=`${parts[2]}-${parts[1]}`; // YYYY-MM
- if(ym<startYM||ym>endYM) return;
- if(!semanasMap[ym]) semanasMap[ym]=[];
- semanasMap[ym].push(s.semana_data);
- });
+  try{
+    // Buscar 1 mês extra ANTES do início para ter o preço base do primeiro mês
+    const[sy,sm]=startYM.split('-').map(Number);
+    const baseDate=new Date(sy,sm-2,1);
+    const baseYM=`${baseDate.getFullYear()}-${String(baseDate.getMonth()+1).padStart(2,'0')}`;
 
- const months=Object.keys(semanasMap).sort();
- if(!months.length){
- _benchDataStatus.carteira='empty';
- return[];
- }
+    // Buscar TODOS os dados do período (sem filtro de semanas — mais direto)
+    const{data:rows,error}=await db.from('fund_data')
+      .select('semana_data,ticker,fechamento,div_mes,ret_mes')
+      .in('ticker',tickers)
+      .order('semana_data',{ascending:true});
 
- // Para cada mês, pegar a ÚLTIMA semana disponível (mais recente do mês)
- const lastWeekPerMonth={};
- months.forEach(ym=>{
- const weeks=semanasMap[ym].sort();
- lastWeekPerMonth[ym]=weeks[weeks.length-1];
- });
+    if(error) throw new Error('Supabase fund_data: '+error.message);
+    if(!rows?.length) throw new Error('Nenhum dado encontrado em fund_data para esses tickers');
 
- // Buscar fechamento de cada fundo em cada semana relevante
- const semanaDatas=[...new Set(Object.values(lastWeekPerMonth))];
- const{data:fundData,error:eF}=await db.from('fund_data')
- .select('semana_data,ticker,fechamento,ret_mes')
- .in('semana_data',semanaDatas)
- .in('ticker',tickers);
+    // Diagnóstico: logar o que chegou
+    const sample=rows.filter(r=>r.ticker===tickers[0]).slice(0,3);
+    console.log('[Motor Rentabilidade] Total registros:',rows.length);
+    console.log('[Motor Rentabilidade] Sample',tickers[0],':',sample);
+    console.log('[Motor Rentabilidade] Campos disponíveis:',Object.keys(sample[0]||{}));
 
- if(eF||!fundData?.length) throw new Error('Sem dados de fundos no Supabase');
+    // Processar: converter datas, filtrar período, ordenar
+    const processed=rows.map(r=>({
+      ...r,
+      iso:sdToISO(r.semana_data),          // YYYY-MM-DD
+      ym:sdToISO(r.semana_data).slice(0,7), // YYYY-MM
+      fechamento:parseFloat(r.fechamento)||0,
+      div_mes:parseFloat(r.div_mes)||0,
+      ret_mes:parseFloat(r.ret_mes)||0,
+    })).filter(r=>r.ym>=baseYM&&r.ym<=endYM)
+      .sort((a,b)=>a.iso.localeCompare(b.iso));
 
- // Indexar por {semana_data: {ticker: {fechamento, ret_mes}}}
- const dataIdx={};
- fundData.forEach(f=>{
- if(!dataIdx[f.semana_data]) dataIdx[f.semana_data]={};
- dataIdx[f.semana_data][f.ticker]=f;
- });
+    // Agrupar por ticker
+    const byTicker={};
+    processed.forEach(r=>{
+      if(!byTicker[r.ticker])byTicker[r.ticker]=[];
+      byTicker[r.ticker].push(r);
+    });
 
- // Calcular retorno mensal ponderado usando RET_MES do BTG Guide.
- // ret_mes = retorno total do mês JÁ incluindo dividendos pagos.
- // Fórmula: [(Preço_fim - Preço_inicio) + Dividendos] / Preço_inicio
- // Usar só variação de preço (fechamento/fechamento_anterior - 1) é ERRADO
- // para FIIs — ignora os proventos que são a maior parte do retorno.
- const results=[];
+    // ── Calcular retornos MENSAIS ─────────────────────────────
+    const monthly={};
+    for(const[ticker,pts] of Object.entries(byTicker)){
+      // Último ponto de cada mês
+      const byMonth={};
+      pts.forEach(p=>{
+        if(!byMonth[p.ym]||p.iso>byMonth[p.ym].iso) byMonth[p.ym]=p;
+      });
+      const months=Object.keys(byMonth).sort();
+      const rets=[];
+      for(let i=1;i<months.length;i++){
+        const ym=months[i];
+        if(ym<startYM||ym>endYM) continue;
+        const prev=byMonth[months[i-1]];
+        const curr=byMonth[ym];
+        let ret;
+        if(prev.fechamento>0&&curr.fechamento>0){
+          // Fórmula correta: variação de preço + dividendo / preço base
+          ret=(curr.fechamento-prev.fechamento+curr.div_mes)/prev.fechamento;
+        } else if(curr.ret_mes){
+          // Fallback: ret_mes do BTG (já inclui dividendos)
+          ret=curr.ret_mes;
+          console.warn(`[Motor] ${ticker} ${ym}: sem fechamento, usando ret_mes=${ret}`);
+        } else {
+          console.warn(`[Motor] ${ticker} ${ym}: sem dados disponíveis`);
+          continue;
+        }
+        rets.push({date:ym,ret});
+      }
+      monthly[ticker]=rets;
+      console.log(`[Motor Mensal] ${ticker}: ${rets.length} meses, último=${rets[rets.length-1]?.ret?.toFixed(4)}`);
+    }
 
- months.forEach(ym=>{
- const semana=lastWeekPerMonth[ym];
- const weekData=dataIdx[semana]||{};
- let wRet=0,wTotal=0;
+    // ── Calcular retornos SEMANAIS ────────────────────────────
+    const weekly={};
+    for(const[ticker,pts] of Object.entries(byTicker)){
+      const rets=[];
+      let prevDiv=0;
+      for(let i=1;i<pts.length;i++){
+        const prev=pts[i-1],curr=pts[i];
+        if(curr.ym<startYM||curr.ym>endYM) continue;
+        if(!prev.fechamento||!curr.fechamento) continue;
+        // Dividendo: incluir apenas quando muda (evita dupla contagem)
+        const isNewDiv=curr.div_mes>0&&Math.abs(curr.div_mes-prevDiv)>0.001;
+        const div=isNewDiv?curr.div_mes:0;
+        if(curr.div_mes>0) prevDiv=curr.div_mes;
+        const ret=(curr.fechamento-prev.fechamento+div)/prev.fechamento;
+        rets.push({date:curr.ym,ret});
+      }
+      weekly[ticker]=rets;
+    }
 
- tickers.forEach(ticker=>{
- const f=weekData[ticker];
- // ret_mes do BTG Guide = retorno total incluindo dividendos
- const retMes=f?.ret_mes!=null?parseFloat(f.ret_mes):null;
- if(retMes===null||isNaN(retMes)) return;
- wRet+=retMes*pesoMap[ticker];
- wTotal+=pesoMap[ticker];
- });
+    // ── Retorno ponderado da Carteira APX ─────────────────────
+    const calcCarteira=(fundRets)=>{
+      const dateSet=new Set();
+      tickers.forEach(t=>(fundRets[t]||[]).forEach(r=>dateSet.add(r.date)));
+      const dates=[...dateSet].sort().filter(d=>d>=startYM&&d<=endYM);
+      return dates.map(date=>{
+        let wRet=0,wTotal=0;
+        tickers.forEach(t=>{
+          if(date<entryMap[t]) return; // fundo ainda não havia entrado
+          const pt=(fundRets[t]||[]).find(r=>r.date===date);
+          if(!pt) return;
+          wRet+=pt.ret*pesoMap[t];
+          wTotal+=pesoMap[t];
+        });
+        return{date,ret:wTotal>0?wRet/wTotal:0};
+      });
+    };
 
- if(wTotal>0) results.push({date:ym,ret:wRet/wTotal});
- });
+    monthly.carteira=calcCarteira(monthly);
+    weekly.carteira=calcCarteira(weekly);
 
- const n=results.length;
- console.log(`[benchmarks] Carteira: ${n} meses calculados do Supabase`);
- _benchDataStatus.carteira=n>0?'ok':'empty';
- if(info) info.textContent=n>0?`Carteira: ${n} meses de retornos calculados`:'Carteira: dados insuficientes';
- return results;
+    // Cache para troca de granularidade sem novo fetch
+    _returnEngine={monthly,weekly};
+    // Armazenar fundos individuais
+    tickers.forEach(t=>{
+      if(monthly[t]) _benchFundData[t]=monthly[t];
+    });
 
- }catch(e){
- console.warn('[calcPortfolioMonthlyReturns Supabase]',e.message);
- _benchDataStatus.carteira='failed';
- return[];
- }
+    const n=monthly.carteira.length;
+    const nFailed=tickers.filter(t=>!monthly[t]?.length).length;
+    console.log(`[Motor Rentabilidade] Carteira: ${n} meses. Fundos carregados: ${tickers.length-nFailed}/${tickers.length}`);
+    if(info) info.textContent=
+      n>0?`Carteira: ${n} meses calculados (${tickers.length-nFailed}/${tickers.length} fundos)`
+         :'Carteira: dados insuficientes — verifique os logs do console';
+
+    _benchDataStatus.carteira=n>0?'ok':'failed';
+    return monthly.carteira;
+
+  }catch(e){
+    console.error('[calcPortfolioMonthlyReturns]',e.message);
+    if(info) info.textContent='Erro: '+e.message;
+    _benchDataStatus.carteira='failed';
+    return[];
+  }
 }
+
+
 
 async function loadAllBenchmarkData(startYM,endYM){
  setBenchLoading(true);
