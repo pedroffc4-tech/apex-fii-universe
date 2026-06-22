@@ -342,6 +342,24 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 .seg-toggle{padding:5px 12px;background:#f0f4fa;color:#5a6e8a;border:1.5px solid var(--apex-mist);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s}
 .seg-toggle:hover{background:var(--apex-blue-lt);color:var(--apex-blue);border-color:var(--apex-blue)}
 .seg-toggle.active{background:var(--apex-blue);color:#fff;border-color:var(--apex-blue)}
+/* ── seg sub-tabs, heatmap, comparison, drill-down, carteira ── */
+.seg-stab{padding:8px 18px;background:transparent;color:#6b7a9a;border:none;border-bottom:3px solid transparent;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;letter-spacing:.3px;transition:all .15s;margin-bottom:-2px;text-transform:uppercase}
+.seg-stab:hover{color:var(--apex-navy);background:var(--apex-blue-lt)}
+.seg-stab.active{color:var(--apex-blue);border-bottom-color:var(--apex-blue);background:var(--apex-blue-lt)}
+.seg-hm-table{width:100%;border-collapse:collapse;font-size:11px}
+.seg-hm-table th{padding:8px 10px;background:var(--apex-navy);color:#fff;text-align:center;font-size:10px;font-weight:700;white-space:nowrap}
+.seg-hm-table th:first-child{text-align:left;position:sticky;left:0;z-index:1}
+.seg-hm-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.4);text-align:center;font-weight:600;font-size:11px;white-space:nowrap;cursor:pointer;transition:filter .15s}
+.seg-hm-table td:first-child{text-align:left;position:sticky;left:0;background:#fff;border-right:2px solid #f0f4fa}
+.seg-hm-table tr:hover td{filter:brightness(.93)}
+.seg-hm-table tr.seg-highlighted td:first-child{box-shadow:inset 3px 0 0 var(--apex-blue)}
+.seg-comp-chip{padding:5px 12px;border-radius:12px;border:2px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;transition:all .15s;white-space:nowrap}
+.seg-comp-chip.selected{color:#fff}
+#seg-tooltip{position:fixed;z-index:4000;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,32,96,.18);padding:14px 16px;max-width:360px;pointer-events:auto;display:none;border:1px solid var(--apex-mist)}
+.seg-tooltip-fund-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f4f8fd;font-size:11px}
+.seg-tooltip-fund-row:last-child{border:none}
+.seg-drill-kpi{background:#fff;border:1.5px solid var(--apex-mist);border-radius:10px;padding:12px 14px;text-align:center}
+.seg-vs-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px}
 .seg-bar-row{margin-bottom:8px;border-radius:8px;overflow:hidden;transition:all .2s}
 .seg-bar-header{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-radius:8px;transition:background .15s}
 .seg-bar-header:hover{background:var(--apex-blue-lt)}
@@ -965,97 +983,146 @@ tbody tr:hover td{background:var(--apex-blue-lt);cursor:default}
 </div>
 
 <!-- ══ SEGMENTOS ══ -->
+<div id="seg-tooltip" onmouseleave="hideSegTooltip()"></div>
+
 <div class="tab" id="tab-segmentos">
-  <div class="section-hdr">
-    <h2 id="seg-hdr-title">Análise por Segmento</h2>
-    <p id="seg-hdr-sub">Carregando dados...</p>
+  <div class="section-hdr" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2 id="seg-hdr-title">Análise por Segmento</h2>
+      <p id="seg-hdr-sub">Carregando dados...</p>
+    </div>
+    <div id="seg-last-update" style="font-size:10px;color:#6b7a9a;align-self:center"></div>
   </div>
 
-  <!-- ── SEÇÃO 1: Barras com toggle + expansão ─────────────────── -->
-  <div class="card" style="margin-bottom:18px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-      <div class="card-title" style="margin:0;padding:0;border:none">Fundos elegíveis por segmento</div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap" id="seg-bar-toggles">
-        <button class="seg-toggle active" onclick="setSegBarMetric('count',this)">Qtd fundos</button>
-        <button class="seg-toggle" onclick="setSegBarMetric('dy',this)">DY médio</button>
-        <button class="seg-toggle" onclick="setSegBarMetric('vol',this)">Vol médio</button>
-        <button class="seg-toggle" onclick="setSegBarMetric('pvp',this)">P/VP médio</button>
-        <button class="seg-toggle" onclick="setSegBarMetric('mkt',this)">MktCap médio</button>
+  <!-- Sub-tabs -->
+  <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:2px solid var(--apex-mist)">
+    <button class="seg-stab active" onclick="showSegSubTab('visaogeral',this)">📊 Visão Geral</button>
+    <button class="seg-stab" onclick="showSegSubTab('comparar',this)">⚖️ Comparar Segmentos</button>
+    <button class="seg-stab" onclick="showSegSubTab('drilldown',this)">🔍 Drill-down</button>
+    <button class="seg-stab" onclick="showSegSubTab('carteiraseg',this)">📋 Carteira APX</button>
+  </div>
+
+  <!-- ── SUB-TAB: VISÃO GERAL ── -->
+  <div id="seg-stab-visaogeral" class="seg-stab-content">
+    <!-- KPI strip -->
+    <div id="seg-kpi-strip" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px"></div>
+
+    <!-- Barras com toggle (mantidas) -->
+    <div class="card" style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div class="card-title" style="margin:0;padding:0;border:none">Fundos elegíveis por segmento</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="seg-bar-toggles">
+          <button class="seg-toggle active" onclick="setSegBarMetric('count',this)">Qtd fundos</button>
+          <button class="seg-toggle" onclick="setSegBarMetric('dy',this)">DY médio</button>
+          <button class="seg-toggle" onclick="setSegBarMetric('vol',this)">Vol médio</button>
+          <button class="seg-toggle" onclick="setSegBarMetric('pvp',this)">P/VP médio</button>
+          <button class="seg-toggle" onclick="setSegBarMetric('mkt',this)">MktCap médio</button>
+        </div>
+      </div>
+      <div id="seg-bars-container"><div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div></div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="card" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div class="card-title" style="margin:0;padding:0;border:none">🌡 Mapa de Calor — Segmentos × Indicadores</div>
+        <div style="font-size:10px;color:#6b7a9a">Cores relativas ao universo · Clique num segmento para detalhar</div>
+      </div>
+      <div id="seg-heatmap-wrap"><div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div></div>
+    </div>
+
+    <!-- Ranking + Tabela -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">🏆 Ranking por Critério</div>
+        <div id="seg-ranking-cruzado"><div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Indicadores médios</div>
+        <div class="tbl-wrap" style="border:none">
+          <table id="tbl-seg">
+            <thead><tr>
+              <th onclick="sortTable('tbl-seg',0)">Segmento<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',1)">Qtd<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',2)" data-val>DY Anual<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',3)" data-val>P/VP<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',4)" data-val>Vol<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',5)" data-val>Ret. Mês<span class="sort-arrow">⇅</span></th>
+              <th onclick="sortTable('tbl-seg',6)" data-val>Ret. Ano<span class="sort-arrow">⇅</span></th>
+            </tr></thead>
+            <tbody id="tbl-seg-body"><tr><td colspan="7" style="text-align:center;color:#6b7a9a;padding:20px">Carregando...</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div id="seg-bars-container">
-      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
-    </div>
   </div>
 
-  <!-- ── SEÇÃO 2: Ranking cruzado + Tabela de indicadores ─────── -->
-  <div class="two-col" style="margin-bottom:18px">
+  <!-- ── SUB-TAB: COMPARAR ── -->
+  <div id="seg-stab-comparar" class="seg-stab-content" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-weight:700;color:var(--apex-navy);font-size:12px;flex-shrink:0">Selecione até 3 segmentos:</div>
+        <div id="seg-comp-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <label style="font-size:11px;color:#6b7a9a;font-weight:600">Período:</label>
+          <select id="seg-comp-periodo" class="form-select" style="width:180px" onchange="renderSegComparar()">
+            <option value="atual">Semana atual</option>
+            <option value="delta">▲▼ vs semana anterior</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Gráfico de Barras Comparativo (métricas normalizadas 0–100%)</div>
+      <div style="font-size:10px;color:#6b7a9a;margin-bottom:12px">100% = melhor segmento nessa métrica · escala relativa dentro de cada indicador</div>
+      <div id="seg-comp-chart-wrap" style="overflow-x:auto"></div>
+    </div>
     <div class="card">
-      <div class="card-title">🏆 Ranking cruzado por métrica</div>
-      <div id="seg-ranking-cruzado">
-        <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
+      <div class="card-title">Tabela Comparativa</div>
+      <div id="seg-comp-table-wrap"></div>
+    </div>
+  </div>
+
+  <!-- ── SUB-TAB: DRILL-DOWN ── -->
+  <div id="seg-stab-drilldown" class="seg-stab-content" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-weight:700;color:var(--apex-navy);font-size:12px">Segmento:</div>
+        <select id="seg-drill-sel" class="form-select" style="width:240px" onchange="renderSegDrilldown()">
+          <option value="">— Selecione o segmento —</option>
+        </select>
+        <button id="seg-drill-ver-todos" onclick="segDrillVerTodos()" style="display:none;padding:7px 16px;background:var(--apex-blue);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Ver todos em Fundos Elegíveis →</button>
       </div>
     </div>
+    <div id="seg-drill-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px"></div>
     <div class="card">
-      <div class="card-title">Indicadores médios — tabela completa</div>
-      <div class="tbl-wrap" style="border:none">
-        <table id="tbl-seg">
-          <thead><tr>
-            <th onclick="sortTable('tbl-seg',0)">Segmento<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',1)">Qtd<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',2)" data-val>DY Anual<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',3)" data-val>P/VP<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',4)" data-val>Vol Médio<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',5)" data-val>Ret. Mês<span class="sort-arrow">⇅</span></th>
-            <th onclick="sortTable('tbl-seg',6)" data-val>Ret. Ano<span class="sort-arrow">⇅</span></th>
-          </tr></thead>
-          <tbody id="tbl-seg-body">
-            <tr><td colspan="7" style="text-align:center;color:#6b7a9a;padding:20px">Carregando...</td></tr>
-          </tbody>
-        </table>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" id="seg-drill-title" style="margin:0;padding:0;border:none">Fundos do Segmento</div>
       </div>
+      <div id="seg-drill-table-wrap"></div>
     </div>
   </div>
 
-  <!-- ── SEÇÃO 3: Scatter DY × P/VP ───────────────────────────── -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-title">📊 Dispersão por Segmento — DY Anual × P/VP</div>
-    <div style="font-size:11px;color:#6b7a9a;margin-bottom:14px">
-      Quadrante ideal: <strong>alto DY + baixo P/VP</strong> (canto superior esquerdo).
-      Cada ponto representa a média do segmento.
+  <!-- ── SUB-TAB: CARTEIRA APX ── -->
+  <div id="seg-stab-carteiraseg" class="seg-stab-content" style="display:none">
+    <div class="card" style="margin-bottom:16px;border:1.5px solid var(--apex-blue)">
+      <div class="card-title" style="color:var(--apex-blue)">📋 Carteira APX FIIs — Composição por Segmento</div>
+      <div style="font-size:11px;color:#6b7a9a;margin-bottom:14px">Atualizado automaticamente quando a composição da Carteira APX FIIs for editada.</div>
+      <div id="seg-cart-main"></div>
     </div>
-    <div id="seg-scatter-wrap" style="overflow-x:auto">
-      <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Carregando...</div>
-    </div>
-  </div>
-
-  <!-- ── SEÇÃO 4: Radar comparativo ───────────────────────────── -->
-  <div class="card">
-    <div class="card-title">🕸 Radar Comparativo entre Segmentos</div>
-    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
-      <!-- Controles -->
-      <div style="min-width:220px;flex-shrink:0">
-        <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Segmentos exibidos</div>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button onclick="selectAllRadarSegs(true)"  style="flex:1;padding:4px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Todos</button>
-          <button onclick="selectAllRadarSegs(false)" style="flex:1;padding:4px;background:#f0f0f0;color:#6b7a9a;border:1px solid var(--apex-mist);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Nenhum</button>
-        </div>
-        <div id="seg-radar-checkboxes" style="font-size:11px;line-height:2;max-height:320px;overflow-y:auto"></div>
-        <div style="margin-top:16px">
-          <div style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Eixos do radar</div>
-          <div id="seg-radar-axes-controls"></div>
-        </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Carteira vs Universo</div>
+        <div id="seg-cart-vs-wrap"></div>
       </div>
-      <!-- Gráfico -->
-      <div style="flex:1;min-width:280px;display:flex;justify-content:center">
-        <div id="seg-radar-wrap">
-          <div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Carregando...</div>
-        </div>
+      <div class="card">
+        <div class="card-title">KPIs da Carteira por Segmento</div>
+        <div id="seg-cart-kpis-wrap"></div>
       </div>
     </div>
   </div>
-
 </div>
+<!-- ══ FIM SEGMENTOS ══ -->
 
 
 <!-- ══ RANKING ══ -->
@@ -7706,20 +7773,8 @@ const SEG_BG={
   'Agência Bancária':'#f5f5dc','Hotel':'#f5ebe1','Educacional':'#e1e8f5','Outros':'#f0f0f0'
 };
 
-let _segBarMetric='count';
 let _segData={};
-let _radarSelectedSegs=new Set();
-let _radarAxes=['dy_anual','pvp_atual','vol3m','mktcap','ret_ano'];
-const RADAR_AXIS_OPTIONS=[
-  {key:'dy_anual',  label:'DY Anual',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
-  {key:'pvp_atual', label:'P/VP',        fmt:v=>v.toFixed(2)+'x',       higher:false},
-  {key:'vol3m',     label:'Vol Médio',   fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', higher:true},
-  {key:'mktcap',    label:'MktCap',      fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', higher:true},
-  {key:'ret_mes',   label:'Ret. Mês',    fmt:v=>(v*100).toFixed(2)+'%', higher:true},
-  {key:'ret_ano',   label:'Ret. Ano',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
-  {key:'ret_ltm',   label:'Ret. LTM',    fmt:v=>(v*100).toFixed(1)+'%', higher:true},
-  {key:'dy_ltm',    label:'DY LTM',      fmt:v=>(v*100).toFixed(1)+'%', higher:true},
-];
+let _radarSelectedSegs=new Set(); // kept for backward compat
 
 /** Constrói o mapa de dados por segmento a partir dos fundos da semana atual. */
 function buildSegData(fundos, semana){
@@ -7751,28 +7806,96 @@ function buildSegData(fundos, semana){
 }
 
 /** Entry point: reconstrói tudo a partir dos dados globais. */
+
+// ══════════════════════════════════════════════════════════════
+// POR SEGMENTO — Redesign completo (4 sub-abas)
+// ══════════════════════════════════════════════════════════════
+let _segBarMetric='count';
+let _segCompSegs=[];         // até 3 segmentos selecionados na aba Comparar
+let _segHighlight=null;      // segmento destacado pelo analista
+let _segTooltipTimer=null;
+let _segDrillSeg='';
+
+const SEG_HEATMAP_METRICS=[
+  {key:'dy_anual', label:'DY Anual',  fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+  {key:'dy_ltm',   label:'DY LTM',   fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+  {key:'pvp_atual',label:'P/VP',      fmt:v=>v.toFixed(2)+'x',       higher:false},
+  {key:'vol3m',    label:'Vol 3M',    fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', higher:true},
+  {key:'ret_mes',  label:'Ret.Mês',   fmt:v=>(v>=0?'+':'')+(v*100).toFixed(2)+'%', higher:true},
+  {key:'ret_ano',  label:'Ret.Ano',   fmt:v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%', higher:true},
+  {key:'ret_ltm',  label:'Ret.LTM',   fmt:v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%', higher:true},
+  {key:'mktcap',   label:'MktCap',    fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', higher:true},
+];
+
+// ── Sub-tab switcher ─────────────────────────────────────────
+function showSegSubTab(id, btn){
+  document.querySelectorAll('.seg-stab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.seg-stab-content').forEach(el=>el.style.display='none');
+  if(btn) btn.classList.add('active');
+  const el=document.getElementById('seg-stab-'+id);
+  if(el) el.style.display='block';
+  if(id==='comparar')    { initSegCompChips(); renderSegComparar(); }
+  if(id==='drilldown')   renderSegDrilldown();
+  if(id==='carteiraseg') renderSegCarteiraSeg();
+}
+
+// ── Main orchestrator ────────────────────────────────────────
 function renderSegmentos(){
   if(!_currentFundos.length) return;
   _segData=buildSegData(_currentFundos,_currentSemana);
 
-  // Header
   const el=_currentFundos.filter(f=>f.elegivel).length;
   const d=_currentSemana?.semana_data||'—';
   const h=document.getElementById('seg-hdr-title');
   const p=document.getElementById('seg-hdr-sub');
   if(h) h.textContent='Análise por Segmento';
-  if(p) p.textContent=`Médias calculadas sobre ${el} fundos elegíveis · Referência: ${d}`;
+  if(p) p.textContent=`${Object.keys(_segData).length} segmentos · ${el} fundos elegíveis · Referência: ${d}`;
 
+  renderSegKpiStrip();
   renderSegBars();
+  renderSegHeatmap();
   renderSegRankingCruzado();
   renderSegTable();
-  renderSegScatter();
-  initRadarControls();
-  renderSegRadar();
+  // Atualizar sub-abas ativas
+  const active=document.querySelector('.seg-stab.active');
+  if(active){
+    const id=active.onclick?.toString().match(/'(\w+)'/)?.[1];
+    if(id==='comparar')    renderSegComparar();
+    if(id==='carteiraseg') renderSegCarteiraSeg();
+  }
 }
 
-// ── Feature 3 + 4 + 5: Barras com toggle, tendências, expansão ──
+// ── KPI Strip ────────────────────────────────────────────────
+function renderSegKpiStrip(){
+  const el=document.getElementById('seg-kpi-strip');
+  if(!el) return;
+  const segs=Object.entries(_segData);
+  if(!segs.length) return;
+  const wavg=(key)=>{
+    const tot=segs.reduce((s,[,d])=>s+d[key]*d.count,0);
+    const w=segs.reduce((s,[,d])=>s+d.count,0)||1;
+    return tot/w;
+  };
+  const bestDY=segs.reduce((b,c)=>c[1].dy_anual>b[1].dy_anual?c:b);
+  const bestRet=segs.reduce((b,c)=>c[1].ret_mes>b[1].ret_mes?c:b);
+  const totalFundos=segs.reduce((s,[,d])=>s+d.count,0);
 
+  const kpis=[
+    {lbl:'Total Elegíveis', val:totalFundos, sub:'Todos os segmentos', cor:'var(--apex-blue)'},
+    {lbl:'DY Médio Pond.',  val:(wavg('dy_anual')*100).toFixed(1)+'%', sub:'Ponderado por fundos', cor:'var(--success)'},
+    {lbl:'P/VP Médio',      val:wavg('pvp_atual').toFixed(2)+'x', sub:'Média ponderada', cor:'var(--apex-navy)'},
+    {lbl:'Melhor DY',       val:(bestDY[1].dy_anual*100).toFixed(1)+'%', sub:bestDY[0], cor:'var(--success)'},
+    {lbl:'Ret. Mês Pond.',  val:(wavg('ret_mes')*100).toFixed(2)+'%', sub:'Média ponderada', cor:wavg('ret_mes')>=0?'var(--success)':'var(--danger)'},
+    {lbl:'Melhor Ret.Mês',  val:(bestRet[1].ret_mes*100).toFixed(2)+'%', sub:bestRet[0], cor:'var(--apex-blue)'},
+  ];
+  el.innerHTML=kpis.map(k=>`<div style="background:#fff;border:1.5px solid var(--apex-mist);border-radius:10px;padding:12px 14px">
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:4px">${k.lbl}</div>
+    <div style="font-size:20px;font-weight:800;color:${k.cor};line-height:1.1">${k.val}</div>
+    <div style="font-size:10px;color:#6b7a9a;margin-top:3px">${k.sub}</div>
+  </div>`).join('');
+}
+
+// ── Barras (mantidas) ────────────────────────────────────────
 function setSegBarMetric(metric, btn){
   _segBarMetric=metric;
   document.querySelectorAll('.seg-toggle').forEach(b=>b.classList.remove('active'));
@@ -7785,132 +7908,128 @@ function renderSegBars(){
   if(!cont) return;
   const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
   if(!segs.length){cont.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
-
-  // Valor para a métrica selecionada
-  const getVal=s=>{
-    switch(_segBarMetric){
-      case 'dy':  return s.dy_anual;
-      case 'pvp': return s.pvp_atual;
-      case 'vol': return s.vol3m;
-      case 'mkt': return s.mktcap;
-      default:    return s.count;
-    }
-  };
-  const fmtVal=(s,v)=>{
-    switch(_segBarMetric){
-      case 'dy':  return (v*100).toFixed(1)+'%';
-      case 'pvp': return v.toFixed(2)+'x';
-      case 'vol': return 'R$'+(v/1e6).toFixed(1)+'M';
-      case 'mkt': return 'R$'+(v/1e9).toFixed(1)+'B';
-      default:    return v+' fundos';
-    }
-  };
-
+  const getVal=s=>{switch(_segBarMetric){case'dy':return s.dy_anual;case'pvp':return s.pvp_atual;case'vol':return s.vol3m;case'mkt':return s.mktcap;default:return s.count;}};
+  const fmtVal=(v)=>{switch(_segBarMetric){case'dy':return(v*100).toFixed(1)+'%';case'pvp':return v.toFixed(2)+'x';case'vol':return'R$'+(v/1e6).toFixed(1)+'M';case'mkt':return'R$'+(v/1e9).toFixed(1)+'B';default:return v+' fundos';}};
   const maxVal=Math.max(...segs.map(([,s])=>getVal(s)))||1;
-
   cont.innerHTML=segs.map(([nome,s])=>{
-    const val=getVal(s);
-    const pct=Math.max(3,Math.round(val/maxVal*100));
-    const cor=SEG_COLORS[nome]||'#555';
-    const bg=SEG_BG[nome]||'#eee';
-    const trendHtml=()=>{
-      if(s.entraram>0&&s.sairam>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram} ▼${s.sairam}</span>`;
-      if(s.entraram>0) return `<span class="seg-bar-trend trend-up">▲${s.entraram}</span>`;
-      if(s.sairam>0)   return `<span class="seg-bar-trend trend-dn">▼${s.sairam}</span>`;
-      return `<span class="seg-bar-trend trend-neu">—</span>`;
-    };
-    const rowId='seg-row-'+nome.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
-    const expandId='seg-exp-'+nome.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
-    // Tickers expandíveis
-    const tickersHtml=s.fundos.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>{
-      const dy=f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—';
-      const pvp=f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—';
-      return`<span class="seg-ticker-pill" onclick="openAnalise('${f.ticker}')" title="DY: ${dy} · P/VP: ${pvp}">${f.ticker}</span>`;
-    }).join('');
-
-    return`<div class="seg-bar-row">
-      <div class="seg-bar-header" onclick="toggleSegExpand('${expandId}',this)" id="${rowId}">
-        <span class="seg-bar-chip" style="background:${bg};color:${cor}">${nome}</span>
-        <div class="seg-bar-track">
-          <div class="seg-bar-fill" style="width:${pct}%;background:${cor}"></div>
-        </div>
-        <span class="seg-bar-val">${fmtVal(s,val)}</span>
-        ${trendHtml()}
-        <span style="font-size:10px;color:#aaa;margin-left:4px;transition:transform .2s" class="seg-arrow">▼</span>
-      </div>
-      <div class="seg-expand-body" id="${expandId}">
-        <div style="font-size:10px;color:#6b7a9a;margin-bottom:6px">
-          ${s.count} fundos · DY médio: <strong>${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP médio: <strong>${s.pvp_atual.toFixed(2)}x</strong> · Vol médio: <strong>R$${(s.vol3m/1e6).toFixed(1)}M</strong>
-        </div>
-        <div class="seg-ticker-grid">${tickersHtml}</div>
-      </div>
-    </div>`;
+    const val=getVal(s),pct=Math.max(3,Math.round(val/maxVal*100));
+    const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+    const trendHtml=s.entraram>0&&s.sairam>0?`<span class="seg-bar-trend trend-up">▲${s.entraram} ▼${s.sairam}</span>`:
+      s.entraram>0?`<span class="seg-bar-trend trend-up">▲${s.entraram}</span>`:
+      s.sairam>0?`<span class="seg-bar-trend trend-dn">▼${s.sairam}</span>`:`<span class="seg-bar-trend trend-neu">—</span>`;
+    const rowId='seg-row-'+nome.replace(/\W/g,'-');
+    const expandId='seg-exp-'+nome.replace(/\W/g,'-');
+    const tickersHtml=s.fundos.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>`<span class="seg-ticker-pill" onclick="openAnalise('${f.ticker}')" title="DY: ${f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—'} · P/VP: ${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}">${f.ticker}</span>`).join('');
+    return`<div class="seg-bar-row"><div class="seg-bar-header" onclick="toggleSegExpand('${expandId}',this)" id="${rowId}">
+      <span class="seg-bar-chip" style="background:${bg};color:${cor}">${nome}</span>
+      <div class="seg-bar-track"><div class="seg-bar-fill" style="width:${pct}%;background:${cor}"></div></div>
+      <span class="seg-bar-val">${fmtVal(val)}</span>${trendHtml}
+      <span style="font-size:10px;color:#aaa;margin-left:4px;transition:transform .2s" class="seg-arrow">▼</span>
+    </div>
+    <div class="seg-expand-body" id="${expandId}">
+      <div style="font-size:10px;color:#6b7a9a;margin-bottom:6px">${s.count} fundos · DY: <strong>${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP: <strong>${s.pvp_atual.toFixed(2)}x</strong> · Vol: <strong>R$${(s.vol3m/1e6).toFixed(1)}M</strong></div>
+      <div class="seg-ticker-grid">${tickersHtml}</div>
+    </div></div>`;
   }).join('');
 }
-
-function toggleSegExpand(expandId, headerEl){
-  const body=document.getElementById(expandId);
-  if(!body) return;
+function toggleSegExpand(expandId,headerEl){
+  const body=document.getElementById(expandId);if(!body)return;
   const arrow=headerEl.querySelector('.seg-arrow');
   const open=body.classList.toggle('open');
-  if(arrow) arrow.style.transform=open?'rotate(180deg)':'';
+  if(arrow)arrow.style.transform=open?'rotate(180deg)':'';
 }
 
-// ── Feature 6: Ranking cruzado ───────────────────────────────
+// ── Heatmap (substitui scatter) ──────────────────────────────
+function renderSegHeatmap(){
+  const wrap=document.getElementById('seg-heatmap-wrap');
+  if(!wrap)return;
+  const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
+  if(!segs.length)return;
 
+  // Normalizar cada coluna: 0=pior, 1=melhor
+  const ranges={};
+  SEG_HEATMAP_METRICS.forEach(m=>{
+    const vals=segs.map(([,s])=>s[m.key]??null).filter(v=>v!==null);
+    ranges[m.key]={min:Math.min(...vals),max:Math.max(...vals)};
+  });
+  const cellColor=(val,key,higher)=>{
+    const r=ranges[key];if(!r||r.max===r.min||val===null)return'#f8f9fa';
+    const n=(val-r.min)/(r.max-r.min);
+    const score=higher?n:1-n; // 1=best
+    if(score>0.75)return`rgba(27,138,82,${0.12+score*0.38})`;
+    if(score>0.45)return`rgba(255,193,7,${0.08+score*0.18})`;
+    return`rgba(192,57,43,${0.08+(1-score)*0.32})`;
+  };
+
+  let html=`<div style="overflow-x:auto"><table class="seg-hm-table">
+  <thead><tr>
+    <th style="min-width:150px">Segmento</th>
+    <th>Fundos</th>
+    <th title="Movimento vs semana anterior">▲▼</th>
+    ${SEG_HEATMAP_METRICS.map(m=>`<th>${m.label}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  segs.forEach(([nome,s])=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    const hl=_segHighlight===nome;
+    const mvHtml=s.entraram>0||s.sairam>0
+      ?`<span style="color:var(--success);font-size:10px">${s.entraram>0?'▲'+s.entraram:''}</span>${s.sairam>0?`<span style="color:var(--danger);font-size:10px"> ▼${s.sairam}</span>`:''}`
+      :`<span style="color:#bbb">—</span>`;
+    const nomeSafe=nome.replace(/'/g,"\\'");
+    html+=`<tr class="${hl?'seg-highlighted':''}" onclick="toggleSegHighlight('${nomeSafe}')" onmouseenter="scheduleSegTooltip('${nomeSafe}',event)" onmouseleave="maybeHideTooltip()">
+      <td style="background:${hl?SEG_BG[nome]||'#eef':'#fff'}">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:8px;height:8px;border-radius:2px;background:${cor};flex-shrink:0"></div>
+          <span style="font-weight:700;color:var(--apex-navy)">${nome}</span>
+        </div>
+      </td>
+      <td style="font-weight:700;color:var(--apex-blue)">${s.count}</td>
+      <td>${mvHtml}</td>
+      ${SEG_HEATMAP_METRICS.map(m=>{
+        const v=s[m.key]??null;
+        return`<td style="background:${cellColor(v,m.key,m.higher)}">${v!==null?m.fmt(v):'—'}</td>`;
+      }).join('')}
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+// ── Ranking cruzado (mantido) ─────────────────────────────────
 function renderSegRankingCruzado(){
-  const cont=document.getElementById('seg-ranking-cruzado');
-  if(!cont) return;
-  const segs=Object.entries(_segData);
-  if(!segs.length) return;
-
+  const cont=document.getElementById('seg-ranking-cruzado');if(!cont)return;
+  const segs=Object.entries(_segData);if(!segs.length)return;
   const criterios=[
-    {label:'Maior DY Anual',  key:'dy_anual',  fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
-    {label:'Menor P/VP',      key:'pvp_atual', fmt:v=>v.toFixed(2)+'x',       best:'min'},
-    {label:'Maior Vol. Médio',key:'vol3m',      fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', best:'max'},
-    {label:'Maior Ret. Ano',  key:'ret_ano',   fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
-    {label:'Maior MktCap',    key:'mktcap',    fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', best:'max'},
-    {label:'Mais fundos',     key:'count',     fmt:v=>v+' fundos',             best:'max'},
+    {label:'Maior DY Anual', key:'dy_anual', fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+    {label:'Menor P/VP',     key:'pvp_atual',fmt:v=>v.toFixed(2)+'x',       best:'min'},
+    {label:'Maior Vol. Médio',key:'vol3m',   fmt:v=>'R$'+(v/1e6).toFixed(1)+'M',best:'max'},
+    {label:'Maior Ret. Ano', key:'ret_ano',  fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+    {label:'Maior MktCap',   key:'mktcap',  fmt:v=>'R$'+(v/1e9).toFixed(1)+'B',best:'max'},
+    {label:'Mais fundos',    key:'count',   fmt:v=>v+' fundos',              best:'max'},
   ];
-
+  const medals=['🥇','🥈','🥉'];
   cont.innerHTML=criterios.map(c=>{
     const sorted=[...segs].sort((a,b)=>c.best==='max'?b[1][c.key]-a[1][c.key]:a[1][c.key]-b[1][c.key]);
-    const [nome,s]=sorted[0];
-    const cor=SEG_COLORS[nome]||'#555';
-    const bg=SEG_BG[nome]||'#eee';
-    const val=c.fmt(s[c.key]);
-    // Medalhas para os top 3
-    const medals=['🥇','🥈','🥉'];
-    const top3=sorted.slice(0,3).map(([n,sv],i)=>`
-      <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f4fa">
-        <span style="font-size:13px;width:20px">${medals[i]}</span>
-        <span style="font-size:10px;padding:1px 7px;border-radius:6px;background:${SEG_BG[n]||'#eee'};color:${SEG_COLORS[n]||'#555'};font-weight:700">${n}</span>
-        <span style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-left:auto">${c.fmt(sv[c.key])}</span>
-      </div>`).join('');
-    return`<div style="margin-bottom:16px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:6px">${c.label}</div>
-      ${top3}
-    </div>`;
+    const top3=sorted.slice(0,3).map(([n,sv],i)=>`<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f4fa">
+      <span style="font-size:13px;width:20px">${medals[i]}</span>
+      <span style="font-size:10px;padding:1px 7px;border-radius:6px;background:${SEG_BG[n]||'#eee'};color:${SEG_COLORS[n]||'#555'};font-weight:700">${n}</span>
+      <span style="font-size:11px;font-weight:700;color:var(--apex-navy);margin-left:auto">${c.fmt(sv[c.key])}</span>
+    </div>`).join('');
+    return`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:6px">${c.label}</div>${top3}</div>`;
   }).join('');
 }
 
-// ── Tabela de indicadores com semáforo ───────────────────────
-
+// ── Tabela com semáforo (mantida) ─────────────────────────────
 function renderSegTable(){
-  const tbody=document.getElementById('tbl-seg-body');
-  if(!tbody) return;
+  const tbody=document.getElementById('tbl-seg-body');if(!tbody)return;
   const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
-
   const clrDY=v=>v>=0.12?'var(--success)':v>=0.09?'var(--warning)':'var(--danger)';
   const clrPVP=v=>v<0.90?'var(--success)':v<1.05?'var(--warning)':'var(--danger)';
   const clrRet=v=>v>0.005?'var(--success)':v>-0.005?'#6b7a9a':'var(--danger)';
   const pct=v=>(v*100).toFixed(2)+'%';
-
   tbody.innerHTML=segs.map(([nome,s])=>{
-    const cor=SEG_COLORS[nome]||'#555';
-    const bg=SEG_BG[nome]||'#eee';
-    return`<tr>
-      <td><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap">${nome}</span></td>
+    const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+    return`<tr><td><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap">${nome}</span></td>
       <td style="text-align:center;font-weight:700;color:var(--apex-blue)">${s.count}</td>
       <td data-val="${s.dy_anual}" style="color:${clrDY(s.dy_anual)};font-weight:700">${pct(s.dy_anual)}</td>
       <td data-val="${s.pvp_atual}" style="color:${clrPVP(s.pvp_atual)};font-weight:700">${s.pvp_atual.toFixed(2)}x</td>
@@ -7921,247 +8040,429 @@ function renderSegTable(){
   }).join('');
 }
 
-// ── Feature 7: Scatter DY × P/VP ─────────────────────────────
+// ── Tooltip flutuante ─────────────────────────────────────────
+function scheduleSegTooltip(nome,event){
+  clearTimeout(_segTooltipTimer);
+  _segTooltipTimer=setTimeout(()=>showSegTooltip(nome,event),300);
+}
+function maybeHideTooltip(){
+  clearTimeout(_segTooltipTimer);
+  _segTooltipTimer=setTimeout(()=>{
+    const tt=document.getElementById('seg-tooltip');
+    if(tt&&!tt.matches(':hover'))hideSegTooltip();
+  },200);
+}
+function showSegTooltip(nome,event){
+  const tt=document.getElementById('seg-tooltip');if(!tt)return;
+  const s=_segData[nome];if(!s)return;
+  const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+  const topFunds=s.fundos.sort((a,b)=>(b.dy_anual||0)-(a.dy_anual||0)).slice(0,5);
+  const nomeSafe=nome.replace(/'/g,"\\'");
+  tt.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700">${nome}</span>
+      <span style="font-size:10px;color:#6b7a9a">${s.count} fundos</span>
+    </div>
+    <div style="font-size:10px;color:#6b7a9a;margin-bottom:8px">DY médio: <strong style="color:var(--success)">${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP médio: <strong>${s.pvp_atual.toFixed(2)}x</strong></div>
+    <table style="width:100%;font-size:11px;border-collapse:collapse">
+      <thead><tr style="background:var(--apex-navy)">
+        <th style="padding:5px 8px;color:#fff;text-align:left;border-radius:4px 0 0 0">Ticker</th>
+        <th style="padding:5px 8px;color:#fff;text-align:center">DY</th>
+        <th style="padding:5px 8px;color:#fff;text-align:center;border-radius:0 4px 0 0">P/VP</th>
+      </tr></thead>
+      <tbody>
+      ${topFunds.map(f=>`<tr style="border-bottom:1px solid #f0f4fa">
+        <td style="padding:5px 8px;font-weight:700;color:var(--apex-blue)">${f.ticker}</td>
+        <td style="padding:5px 8px;text-align:center;color:var(--success);font-weight:600">${f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—'}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:600">${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button onclick="showSegSubTab('drilldown',document.querySelector('.seg-stab:nth-child(3)'));_segDrillSeg='${nomeSafe}';renderSegDrilldown();hideSegTooltip();"
+        style="flex:1;padding:6px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1px solid var(--apex-blue);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+        🔍 Drill-down
+      </button>
+      <button onclick="segVerTodosFiltrado('${nomeSafe}');hideSegTooltip();"
+        style="flex:1;padding:6px;background:var(--apex-navy);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">
+        Ver todos →
+      </button>
+    </div>`;
+  tt.style.display='block';
+  const x=Math.min(event.clientX+12,window.innerWidth-380);
+  const y=Math.min(event.clientY+12,window.innerHeight-320);
+  tt.style.left=x+'px';tt.style.top=y+'px';
+}
+function hideSegTooltip(){
+  const tt=document.getElementById('seg-tooltip');
+  if(tt)tt.style.display='none';
+}
+function segVerTodosFiltrado(segmento){
+  showTab('fundos',document.querySelector('.nav-tab[onclick*="fundos"]'));
+  setTimeout(()=>{
+    const sel=document.getElementById('filter-seg');
+    if(sel){sel.value=segmento;filterFunds();}
+  },200);
+}
+function toggleSegHighlight(nome){
+  _segHighlight=_segHighlight===nome?null:nome;
+  document.querySelectorAll('.seg-hm-table tr').forEach(row=>{
+    const cell=row.querySelector('td:first-child span');
+    if(!cell)return;
+    const n=cell.textContent.trim();
+    row.classList.toggle('seg-highlighted',n===_segHighlight);
+    if(n===_segHighlight)row.querySelector('td:first-child').style.background=SEG_BG[n]||'#eef';
+    else row.querySelector('td:first-child').style.background='#fff';
+  });
+}
 
-function renderSegScatter(){
-  const wrap=document.getElementById('seg-scatter-wrap');
-  if(!wrap) return;
-  const segs=Object.entries(_segData);
-  if(!segs.length) return;
+// ── Comparar Segmentos ────────────────────────────────────────
+function initSegCompChips(){
+  const wrap=document.getElementById('seg-comp-chips');if(!wrap)return;
+  const segs=Object.keys(_segData).sort();
+  // Default: primeiros 3 mais populares
+  if(_segCompSegs.length===0){
+    const top3=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count).slice(0,3).map(([n])=>n);
+    _segCompSegs=[...top3];
+  }
+  wrap.innerHTML=segs.map(nome=>{
+    const cor=SEG_COLORS[nome]||'#555';
+    const sel=_segCompSegs.includes(nome);
+    return`<button class="seg-comp-chip${sel?' selected':''}" onclick="toggleSegCompChip('${nome.replace(/'/g,"\\'")}',this)"
+      style="border-color:${cor};background:${sel?cor:'transparent'};color:${sel?'#fff':cor}">${nome}</button>`;
+  }).join('');
+}
+function toggleSegCompChip(nome,btn){
+  if(_segCompSegs.includes(nome)){
+    _segCompSegs=_segCompSegs.filter(s=>s!==nome);
+    btn.classList.remove('selected');
+    const cor=SEG_COLORS[nome]||'#555';
+    btn.style.background='transparent';btn.style.color=cor;
+  } else {
+    if(_segCompSegs.length>=3){toast('Máximo 3 segmentos para comparação','warning');return;}
+    _segCompSegs.push(nome);
+    btn.classList.add('selected');
+    const cor=SEG_COLORS[nome]||'#555';
+    btn.style.background=cor;btn.style.color='#fff';
+  }
+  renderSegComparar();
+}
+function renderSegComparar(){
+  if(!_segCompSegs.length){
+    const cw=document.getElementById('seg-comp-chart-wrap');
+    if(cw)cw.innerHTML='<div style="padding:30px;text-align:center;color:#6b7a9a">Selecione ao menos 1 segmento acima.</div>';
+    return;
+  }
+  renderSegCompChart();
+  renderSegCompTable();
+}
+function renderSegCompChart(){
+  const wrap=document.getElementById('seg-comp-chart-wrap');if(!wrap)return;
+  const periodo=document.getElementById('seg-comp-periodo')?.value||'atual';
+  const segs=_segCompSegs.filter(s=>_segData[s]);
+  if(!segs.length)return;
 
-  const W=580,H=340,PAD={t:20,r:20,b:50,l:60};
-  const pw=W-PAD.l-PAD.r, ph=H-PAD.t-PAD.b;
+  const metrics=SEG_HEATMAP_METRICS.slice(0,6); // DY, DY LTM, P/VP, Vol, Ret Mês, Ret Ano
+  // Normalizar 0-100% dentro de cada metric (entre os segmentos do universo)
+  const allSegs=Object.entries(_segData);
+  const norm=(val,key,higher)=>{
+    const vals=allSegs.map(([,s])=>s[key]??0);
+    const mn=Math.min(...vals),mx=Math.max(...vals);
+    if(mx===mn)return 50;
+    const n=(val-mn)/(mx-mn)*100;
+    return higher?n:100-n;
+  };
 
-  // Ranges: PVP x-axis, DY y-axis
-  const pvps=segs.map(([,s])=>s.pvp_atual);
-  const dys =segs.map(([,s])=>s.dy_anual);
-  const xMin=Math.max(0.5, Math.min(...pvps)-0.05);
-  const xMax=Math.min(1.2, Math.max(...pvps)+0.05);
-  const yMin=Math.max(0.06,Math.min(...dys)-0.01);
-  const yMax=Math.min(0.22,Math.max(...dys)+0.01);
-
-  const sx=v=>PAD.l+(v-xMin)/(xMax-xMin)*pw;
-  const sy=v=>PAD.t+(1-(v-yMin)/(yMax-yMin))*ph;
-
-  // Grid lines
-  const gridX=[0.7,0.8,0.9,1.0,1.1,1.15].filter(v=>v>=xMin&&v<=xMax);
-  const gridY=[0.08,0.10,0.12,0.14,0.16,0.18,0.20].filter(v=>v>=yMin&&v<=yMax);
+  const W=Math.max(500,metrics.length*80+80),H=260;
+  const PAD={t:20,r:20,b:70,l:45};
+  const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b;
+  const nG=metrics.length;
+  const groupW=pw/nG;
+  const barW=Math.min(22,groupW/segs.length-4);
 
   let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px;font-family:Manrope,sans-serif">`;
+  svg+=`<rect x="${PAD.l}" y="${PAD.t}" width="${pw}" height="${ph}" fill="#fafcff" rx="3"/>`;
 
-  // Background
-  svg+=`<rect x="${PAD.l}" y="${PAD.t}" width="${pw}" height="${ph}" fill="#fafcff" rx="4"/>`;
-
-  // Ideal quadrant (low P/VP + high DY) highlight
-  const qx1=PAD.l, qx2=sx(1.0), qy1=sy(yMax), qy2=sy(0.10);
-  if(qx2>qx1&&qy2>qy1) svg+=`<rect x="${qx1}" y="${qy1}" width="${Math.max(0,qx2-qx1)}" height="${Math.max(0,qy2-qy1)}" fill="rgba(27,138,82,.06)" rx="2"/>`;
-
-  // Grid
-  gridX.forEach(v=>{
-    const x=sx(v);
-    svg+=`<line x1="${x}" y1="${PAD.t}" x2="${x}" y2="${PAD.t+ph}" stroke="#e0e8f4" stroke-width="1"/>`;
-    svg+=`<text x="${x}" y="${PAD.t+ph+14}" text-anchor="middle" font-size="9" fill="#9aa7bd">${v.toFixed(2)}x</text>`;
-  });
-  gridY.forEach(v=>{
-    const y=sy(v);
-    svg+=`<line x1="${PAD.l}" y1="${y}" x2="${PAD.l+pw}" y2="${y}" stroke="#e0e8f4" stroke-width="1"/>`;
-    svg+=`<text x="${PAD.l-6}" y="${y+3}" text-anchor="end" font-size="9" fill="#9aa7bd">${(v*100).toFixed(0)}%</text>`;
+  // Grid lines
+  [0,25,50,75,100].forEach(v=>{
+    const y=PAD.t+ph-(v/100*ph);
+    svg+=`<line x1="${PAD.l}" y1="${y}" x2="${PAD.l+pw}" y2="${y}" stroke="#e4ecf7" stroke-width="1"/>`;
+    svg+=`<text x="${PAD.l-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#9aa7bd">${v}%</text>`;
   });
 
-  // Reference lines P/VP=1.0 and DY=10%
-  if(1.0>=xMin&&1.0<=xMax){
-    const xr=sx(1.0);
-    svg+=`<line x1="${xr}" y1="${PAD.t}" x2="${xr}" y2="${PAD.t+ph}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-    svg+=`<text x="${xr+4}" y="${PAD.t+10}" font-size="9" fill="#002060" font-weight="700">P/VP=1,0</text>`;
-  }
-  if(0.10>=yMin&&0.10<=yMax){
-    const yr=sy(0.10);
-    svg+=`<line x1="${PAD.l}" y1="${yr}" x2="${PAD.l+pw}" y2="${yr}" stroke="#002060" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-    svg+=`<text x="${PAD.l+4}" y="${yr-4}" font-size="9" fill="#002060" font-weight="700">DY=10%</text>`;
-  }
-
-  // Quadrant labels
-  svg+=`<text x="${PAD.l+6}" y="${PAD.t+14}" font-size="9" fill="rgba(27,138,82,.6)" font-weight="700">✦ Zona ideal</text>`;
-
-  // Axes labels
-  svg+=`<text x="${PAD.l+pw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#5a6e8a" font-weight="700">P/VP médio →</text>`;
-  svg+=`<text x="12" y="${PAD.t+ph/2}" text-anchor="middle" font-size="10" fill="#5a6e8a" font-weight="700" transform="rotate(-90,12,${PAD.t+ph/2})">DY Anual →</text>`;
-
-  // Dots + labels (render dots first, then labels to avoid overlap)
-  const dots=segs.map(([nome,s])=>{
-    const x=sx(s.pvp_atual), y=sy(s.dy_anual);
-    const cor=SEG_COLORS[nome]||'#555';
-    const r=6+Math.sqrt(s.count)*1.5; // size ~ sqrt(count)
-    return{nome,x,y,cor,r,s};
+  // Bars
+  metrics.forEach((m,gi)=>{
+    const gx=PAD.l+gi*groupW+groupW/2;
+    segs.forEach((segNome,si)=>{
+      const s=_segData[segNome];
+      const val=s[m.key]??0;
+      const pctNorm=norm(val,m.key,m.higher);
+      const bh=Math.max(2,pctNorm/100*ph);
+      const bx=gx-(segs.length*barW+(segs.length-1)*3)/2+si*(barW+3);
+      const by=PAD.t+ph-bh;
+      const cor=SEG_COLORS[segNome]||'#999';
+      svg+=`<rect x="${bx}" y="${by}" width="${barW}" height="${bh}" fill="${cor}" rx="2" fill-opacity=".85">
+        <title>${segNome} — ${m.label}: ${m.fmt(val)} (${pctNorm.toFixed(0)}% relativo)</title></rect>`;
+      if(pctNorm>12) svg+=`<text x="${bx+barW/2}" y="${by-3}" text-anchor="middle" font-size="8" fill="${cor}" font-weight="700">${pctNorm.toFixed(0)}</text>`;
+    });
+    // Label eixo X
+    svg+=`<text x="${gx}" y="${H-10}" text-anchor="middle" font-size="9" fill="#5a6e8a" font-weight="700">${m.label}</text>`;
+    svg+=`<line x1="${gx}" y1="${PAD.t}" x2="${gx}" y2="${PAD.t+ph}" stroke="#e4ecf7" stroke-width="1" stroke-dasharray="3,3"/>`;
   });
 
-  dots.forEach(({nome,x,y,cor,r})=>{
-    svg+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${cor}" fill-opacity=".85" stroke="#fff" stroke-width="1.5">
-      <title>${nome}\nDY: ${(dots.find(d=>d.nome===nome)?.s.dy_anual*100||0).toFixed(1)}% · P/VP: ${(dots.find(d=>d.nome===nome)?.s.pvp_atual||0).toFixed(2)}x</title>
-    </circle>`;
+  // Legend
+  const legY=H-35;
+  segs.forEach((segNome,i)=>{
+    const lx=PAD.l+i*110;
+    const cor=SEG_COLORS[segNome]||'#999';
+    svg+=`<rect x="${lx}" y="${legY}" width="10" height="10" fill="${cor}" rx="2"/>`;
+    svg+=`<text x="${lx+14}" y="${legY+9}" font-size="9" font-weight="700" fill="${cor}">${segNome.length>14?segNome.slice(0,13)+'…':segNome}</text>`;
   });
-  dots.forEach(({nome,x,y,r})=>{
-    // Place label above/below to reduce overlap
-    const ly=y-r-4;
-    svg+=`<text x="${x}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="#002060" style="pointer-events:none">${nome.length>12?nome.slice(0,11)+'…':nome}</text>`;
-  });
-
   svg+='</svg>';
   wrap.innerHTML=svg;
 }
-
-// ── Feature 8: Radar comparativo ─────────────────────────────
-
-function initRadarControls(){
-  const cbWrap=document.getElementById('seg-radar-checkboxes');
-  const axWrap=document.getElementById('seg-radar-axes-controls');
-  if(!cbWrap||!axWrap) return;
-
-  const segs=Object.keys(_segData).sort();
-
-  // Inicializar seleção com todos os segmentos
-  if(_radarSelectedSegs.size===0) segs.forEach(s=>_radarSelectedSegs.add(s));
-
-  // Checkboxes de segmentos
-  cbWrap.innerHTML=segs.map(nome=>{
-    const cor=SEG_COLORS[nome]||'#555';
-    const bg=SEG_BG[nome]||'#eee';
-    const checked=_radarSelectedSegs.has(nome)?'checked':'';
-    return`<label class="radar-cb-row">
-      <input type="checkbox" ${checked} onchange="toggleRadarSeg('${nome.replace(/'/g,"\\'")}',this.checked)"
-        style="accent-color:${cor};width:13px;height:13px;cursor:pointer">
-      <span class="radar-cb-swatch" style="background:${cor}"></span>
-      <span style="font-size:11px;color:var(--apex-navy)">${nome}</span>
-    </label>`;
-  }).join('');
-
-  // Dropdowns para os 5 eixos
-  const optionsHtml=RADAR_AXIS_OPTIONS.map(o=>`<option value="${o.key}">${o.label}</option>`).join('');
-  axWrap.innerHTML=_radarAxes.map((axKey,i)=>`
-    <div class="radar-axis-row">
-      <span style="font-size:10px;font-weight:700;color:#6b7a9a;min-width:16px">A${i+1}</span>
-      <select class="radar-axis-select" onchange="setRadarAxis(${i},this.value)">
-        ${RADAR_AXIS_OPTIONS.map(o=>`<option value="${o.key}"${o.key===axKey?' selected':''}>${o.label}</option>`).join('')}
-      </select>
-    </div>`).join('');
-}
-
-function toggleRadarSeg(nome, checked){
-  if(checked) _radarSelectedSegs.add(nome);
-  else        _radarSelectedSegs.delete(nome);
-  renderSegRadar();
-}
-
-function selectAllRadarSegs(all){
-  const segs=Object.keys(_segData);
-  _radarSelectedSegs=all?new Set(segs):new Set();
-  // Refresh checkboxes
-  document.querySelectorAll('#seg-radar-checkboxes input[type=checkbox]').forEach(cb=>{
-    cb.checked=all;
+function renderSegCompTable(){
+  const wrap=document.getElementById('seg-comp-table-wrap');if(!wrap)return;
+  const segs=_segCompSegs.filter(s=>_segData[s]);
+  if(!segs.length)return;
+  const metrics=SEG_HEATMAP_METRICS;
+  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr>
+    <th style="padding:8px 12px;background:var(--apex-navy);color:#fff;text-align:left">Indicador</th>
+    ${segs.map(n=>`<th style="padding:8px 12px;background:${SEG_COLORS[n]||'#333'};color:#fff;text-align:center">${n}</th>`).join('')}
+  </tr></thead><tbody>`;
+  metrics.forEach((m,i)=>{
+    const vals=segs.map(n=>_segData[n][m.key]??null);
+    const best=m.higher?Math.max(...vals.filter(v=>v!==null)):Math.min(...vals.filter(v=>v!==null));
+    html+=`<tr style="background:${i%2?'#f8faff':'#fff'}">
+      <td style="padding:7px 12px;font-weight:700;color:var(--apex-navy)">${m.label}</td>
+      ${segs.map((n,si)=>{
+        const v=vals[si];
+        const isBest=v!==null&&v===best;
+        return`<td style="padding:7px 12px;text-align:center;font-weight:${isBest?700:500};color:${isBest?'var(--success)':'var(--apex-navy)'}${isBest?';background:var(--success-bg)':''}">${v!==null?m.fmt(v):'—'}${isBest?' ✓':''}</td>`;
+      }).join('')}
+    </tr>`;
   });
-  renderSegRadar();
+  // Linha de totais/fundos
+  html+=`<tr style="background:var(--apex-navy)">
+    <td style="padding:8px 12px;color:#fff;font-weight:700">Nº de fundos</td>
+    ${segs.map(n=>`<td style="padding:8px 12px;text-align:center;color:#fff;font-weight:700">${_segData[n].count}</td>`).join('')}
+  </tr>`;
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
 }
 
-function setRadarAxis(idx, key){
-  _radarAxes[idx]=key;
-  renderSegRadar();
-}
-
-function renderSegRadar(){
-  const wrap=document.getElementById('seg-radar-wrap');
-  if(!wrap) return;
-  const selectedSegs=[..._radarSelectedSegs].filter(s=>_segData[s]);
-  if(!selectedSegs.length){
-    wrap.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:40px">Selecione ao menos um segmento.</div>';
+// ── Drill-down ────────────────────────────────────────────────
+function renderSegDrilldown(){
+  const sel=document.getElementById('seg-drill-sel');
+  const btnVer=document.getElementById('seg-drill-ver-todos');
+  // Popular dropdown
+  if(sel&&sel.options.length<=1){
+    const segs=Object.keys(_segData).sort();
+    segs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  }
+  if(_segDrillSeg&&sel)sel.value=_segDrillSeg;
+  const nome=sel?.value||'';
+  if(!nome||!_segData[nome]){
+    const tw=document.getElementById('seg-drill-table-wrap');
+    if(tw)tw.innerHTML='<div style="padding:20px;text-align:center;color:#6b7a9a">Selecione um segmento acima.</div>';
+    if(btnVer)btnVer.style.display='none';
     return;
   }
-
-  const axes=_radarAxes.map(k=>RADAR_AXIS_OPTIONS.find(o=>o.key===k)||RADAR_AXIS_OPTIONS[0]);
-  const N=axes.length;
-  const SIZE=320, CX=SIZE/2, CY=SIZE/2, R=120, LEVELS=4;
-
-  // Normalizar: para cada eixo, pegar min/max entre TODOS os segmentos (não só os selecionados)
-  const allSegs=Object.values(_segData);
-  const norm=axes.map(ax=>{
-    const vals=allSegs.map(s=>s[ax.key]||0);
-    const mn=Math.min(...vals), mx=Math.max(...vals);
-    return{mn,mx,range:mx-mn||1};
-  });
-
-  const angle=(i)=>( i/N*2*Math.PI - Math.PI/2 );
-  const pt=(i,r)=>[CX+r*Math.cos(angle(i)), CY+r*Math.sin(angle(i))];
-
-  let svg=`<svg viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${SIZE}px;font-family:Manrope,sans-serif">`;
-
-  // Concentric level rings
-  for(let l=1;l<=LEVELS;l++){
-    const lr=R*l/LEVELS;
-    const pts=Array.from({length:N},(_, i)=>pt(i,lr).join(',')).join(' ');
-    svg+=`<polygon points="${pts}" fill="none" stroke="#e0e8f4" stroke-width="1"/>`;
-    // Level label (inner ring only)
-    if(l===LEVELS){
-      const [lx,ly]=pt(0,lr);
-      svg+=`<text x="${lx+4}" y="${ly-3}" font-size="8" fill="#b0b8cc">100%</text>`;
-    }
+  _segDrillSeg=nome;
+  if(btnVer)btnVer.style.display='inline-block';
+  // Título
+  const title=document.getElementById('seg-drill-title');
+  const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+  if(title)title.innerHTML=`Fundos de <span style="background:${bg};color:${cor};padding:2px 10px;border-radius:8px;font-weight:700">${nome}</span>`;
+  // KPIs
+  const s=_segData[nome];
+  const kpiEl=document.getElementById('seg-drill-kpis');
+  if(kpiEl){
+    const kpis=[
+      {lbl:'Fundos',val:s.count,cor:'var(--apex-blue)'},
+      {lbl:'DY Médio',val:(s.dy_anual*100).toFixed(1)+'%',cor:'var(--success)'},
+      {lbl:'P/VP Médio',val:s.pvp_atual.toFixed(2)+'x',cor:'var(--apex-navy)'},
+      {lbl:'Vol. Médio',val:'R$'+(s.vol3m/1e6).toFixed(1)+'M',cor:'var(--apex-navy)'},
+      {lbl:'Ret. Mês',val:(s.ret_mes>=0?'+':'')+(s.ret_mes*100).toFixed(2)+'%',cor:s.ret_mes>=0?'var(--success)':'var(--danger)'},
+      {lbl:'Entraram ▲',val:s.entraram,cor:'var(--success)'},
+      {lbl:'Saíram ▼',val:s.sairam,cor:'var(--danger)'},
+    ];
+    kpiEl.innerHTML=kpis.map(k=>`<div class="seg-drill-kpi">
+      <div class="lbl">${k.lbl}</div>
+      <div class="val" style="color:${k.cor}">${k.val}</div>
+    </div>`).join('');
   }
-
-  // Axis lines + labels
-  axes.forEach((ax,i)=>{
-    const[x2,y2]=pt(i,R+16);
-    const[xa,ya]=pt(i,R);
-    svg+=`<line x1="${CX}" y1="${CY}" x2="${xa}" y2="${ya}" stroke="#d0d8ea" stroke-width="1.5"/>`;
-    const anchor=x2<CX-4?'end':x2>CX+4?'start':'middle';
-    svg+=`<text x="${x2}" y="${y2+3}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="#5a6e8a">${ax.label}</text>`;
+  // Tabela de fundos
+  const tw=document.getElementById('seg-drill-table-wrap');
+  if(!tw)return;
+  const fundos=s.fundos.sort((a,b)=>(b.dy_anual||0)-(a.dy_anual||0));
+  const analyses_local=typeof analyses!=='undefined'?analyses:{};
+  const pct=v=>v!=null?(v*100).toFixed(2)+'%':'—';
+  const perf=v=>v!=null?`<span style="color:${v>0?'var(--success)':v<0?'var(--danger)':'#6b7a9a'};font-weight:600">${v>0?'+':''}${pct(v)}</span>`:'—';
+  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr style="background:var(--apex-navy)">
+    <th style="padding:8px 12px;color:#fff;text-align:left">Ticker</th>
+    <th style="padding:8px 12px;color:#fff;text-align:left">Nome</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">Preço</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">DY Anual</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">P/VP</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">Vol 3M</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">Ret. Mês</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">Ret. Ano</th>
+    <th style="padding:8px 12px;color:#fff;text-align:center">Análise</th>
+  </tr></thead><tbody>`;
+  fundos.forEach((f,i)=>{
+    const a=analyses_local[f.ticker];
+    const statusBadge=a?.finalizado
+      ?`<span style="background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700">${a.scoreTotal?.toFixed(1)||'—'}</span>`
+      :`<span style="background:#f0f4fa;color:#6b7a9a;padding:2px 8px;border-radius:6px;font-size:9px">Pendente</span>`;
+    const nome_fund=(ELIGIBLE_FUNDS.find(ef=>ef.ticker===f.ticker)?.nome||f.ticker).replace(/ FII$/i,'');
+    html+=`<tr style="background:${i%2?'#f8faff':'#fff'};cursor:pointer" onclick="openAnalise('${f.ticker}')">
+      <td style="padding:7px 12px;font-weight:700;color:var(--apex-blue)">${f.ticker}</td>
+      <td style="padding:7px 12px;color:var(--apex-navy)">${nome_fund.length>25?nome_fund.slice(0,24)+'…':nome_fund}</td>
+      <td style="padding:7px 12px;text-align:center">${f.fechamento?'R$ '+parseFloat(f.fechamento).toFixed(2):'—'}</td>
+      <td style="padding:7px 12px;text-align:center;color:var(--success);font-weight:600">${pct(f.dy_anual)}</td>
+      <td style="padding:7px 12px;text-align:center;font-weight:600">${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}</td>
+      <td style="padding:7px 12px;text-align:center">${f.vol3m?'R$'+(f.vol3m/1e6).toFixed(1)+'M':'—'}</td>
+      <td style="padding:7px 12px;text-align:center">${perf(f.ret_mes)}</td>
+      <td style="padding:7px 12px;text-align:center">${perf(f.ret_ano)}</td>
+      <td style="padding:7px 12px;text-align:center">${statusBadge}</td>
+    </tr>`;
   });
+  html+='</tbody></table></div>';
+  tw.innerHTML=html;
+}
+function segDrillVerTodos(){
+  const nome=document.getElementById('seg-drill-sel')?.value||_segDrillSeg;
+  if(nome)segVerTodosFiltrado(nome);
+}
 
-  // Segment polygons
-  selectedSegs.forEach((nome,si)=>{
-    const s=_segData[nome];
-    const cor=SEG_COLORS[nome]||'#555';
-    const pts=axes.map((ax,i)=>{
-      const raw=s[ax.key]||0;
-      const nr=(raw-norm[i].mn)/norm[i].range;
-      const r2=Math.max(0.04,nr)*R;
-      return pt(i,r2).join(',');
-    }).join(' ');
-    svg+=`<polygon points="${pts}" fill="${cor}" fill-opacity=".15" stroke="${cor}" stroke-width="2" stroke-linejoin="round">
-      <title>${nome}</title></polygon>`;
-    // Dots on vertices
-    axes.forEach((ax,i)=>{
-      const raw=s[ax.key]||0;
-      const nr=(raw-norm[i].mn)/norm[i].range;
-      const r2=Math.max(0.04,nr)*R;
-      const[dx,dy]=pt(i,r2);
-      svg+=`<circle cx="${dx}" cy="${dy}" r="3" fill="${cor}" stroke="#fff" stroke-width="1"><title>${nome}: ${ax.fmt(raw)}</title></circle>`;
-    });
+// ── Carteira APX por Segmento ─────────────────────────────────
+function renderSegCarteiraSeg(){
+  renderSegCartMain();
+  renderSegCartVsUniverse();
+  renderSegCartKPIs();
+}
+function renderSegCartMain(){
+  const el=document.getElementById('seg-cart-main');if(!el)return;
+  if(!_carteira?.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#6b7a9a">Nenhum fundo na Carteira APX. <a href="#" onclick="showTab(\'carteira\',null);return false" style="color:var(--apex-blue)">Adicionar fundos →</a></div>';
+    return;
+  }
+  // Agrupar carteira por segmento
+  const segMap={};
+  _carteira.forEach(c=>{
+    const s=(_carteiraPrecos[c.ticker]?.seg)||ELIGIBLE_FUNDS.find(f=>f.ticker===c.ticker)?.seg||'Outros';
+    if(!segMap[s]){segMap[s]={peso:0,fundos:[],dy:0,dyN:0};}
+    segMap[s].peso+=c.peso||0;
+    segMap[s].fundos.push(c.ticker);
+    const p=_carteiraPrecos[c.ticker];
+    if(p?.dyAnual){segMap[s].dy+=p.dyAnual*(c.peso||0);segMap[s].dyN+=c.peso||0;}
   });
-
-  // Center dot
-  svg+=`<circle cx="${CX}" cy="${CY}" r="3" fill="#002060"/>`;
-  svg+='</svg>';
-
-  // Legend
-  const legend=selectedSegs.map(nome=>{
-    const cor=SEG_COLORS[nome]||'#555';
-    return`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-      <div style="width:12px;height:3px;background:${cor};border-radius:2px;flex-shrink:0"></div>
-      <span style="font-size:10px;color:var(--apex-navy)">${nome}</span>
+  const segs=Object.entries(segMap).sort((a,b)=>b[1].peso-a[1].peso);
+  const totalW=segs.reduce((s,[,d])=>s+d.peso,0)||100;
+  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">`;
+  segs.forEach(([nome,d])=>{
+    const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+    const pctW=(d.peso/totalW*100).toFixed(1);
+    const dyMed=d.dyN>0?(d.dy/d.dyN*100).toFixed(1)+'%':'—';
+    html+=`<div style="border:1.5px solid ${cor};border-radius:10px;padding:12px;background:${bg}22">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="background:${bg};color:${cor};padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">${nome}</span>
+        <span style="font-size:18px;font-weight:800;color:${cor}">${pctW}%</span>
+      </div>
+      <div style="background:#fff;border-radius:6px;height:6px;margin-bottom:8px">
+        <div style="background:${cor};height:6px;border-radius:6px;width:${pctW}%"></div>
+      </div>
+      <div style="font-size:10px;color:#5a6e8a">${d.fundos.length} fundo${d.fundos.length>1?'s':''} · DY médio: <strong style="color:var(--success)">${dyMed}</strong></div>
+      <div style="font-size:10px;color:#6b7a9a;margin-top:4px">${d.fundos.slice(0,4).join(', ')}${d.fundos.length>4?' +'+( d.fundos.length-4):''}</div>
     </div>`;
-  }).join('');
-
-  wrap.innerHTML=`<div>${svg}</div>
-    <div style="margin-top:10px;max-height:120px;overflow-y:auto">${legend}</div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+function renderSegCartVsUniverse(){
+  const el=document.getElementById('seg-cart-vs-wrap');if(!el)return;
+  if(!_carteira?.length){el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
+  // Segmentos na carteira vs universo
+  const cartMap={},univMap={};
+  _carteira.forEach(c=>{
+    const s=(_carteiraPrecos[c.ticker]?.seg)||ELIGIBLE_FUNDS.find(f=>f.ticker===c.ticker)?.seg||'Outros';
+    cartMap[s]=(cartMap[s]||0)+(c.peso||0);
+  });
+  const univTotal=Object.values(_segData).reduce((s,d)=>s+d.count,0)||1;
+  Object.entries(_segData).forEach(([s,d])=>{univMap[s]=d.count/univTotal*100;});
+  const cartTotal=Object.values(cartMap).reduce((s,v)=>s+v,0)||100;
+  const allSegs=[...new Set([...Object.keys(cartMap),...Object.keys(univMap)])].sort();
+  let html='';
+  allSegs.forEach(nome=>{
+    const cPct=(cartMap[nome]||0)/cartTotal*100;
+    const uPct=univMap[nome]||0;
+    const cor=SEG_COLORS[nome]||'#555';
+    const diff=cPct-uPct;
+    const diffLabel=diff>0.5?`<span style="color:var(--success);font-size:10px">+${diff.toFixed(1)}%</span>`:
+                     diff<-0.5?`<span style="color:var(--danger);font-size:10px">${diff.toFixed(1)}%</span>`:
+                     `<span style="color:#aaa;font-size:10px">≈</span>`;
+    html+=`<div class="seg-vs-row">
+      <span style="font-size:10px;font-weight:700;color:${cor};min-width:110px;white-space:nowrap">${nome.length>14?nome.slice(0,13)+'…':nome}</span>
+      <div style="flex:1;position:relative;height:12px">
+        <div style="height:12px;background:#f0f4fa;border-radius:6px;overflow:hidden">
+          <div style="height:12px;background:${cor};opacity:.85;border-radius:6px;width:${cPct.toFixed(1)}%;min-width:2px"></div>
+        </div>
+        <div style="position:absolute;top:4px;left:0;height:4px;background:#aaa;opacity:.4;border-radius:2px;width:${uPct.toFixed(1)}%;min-width:2px;pointer-events:none"></div>
+      </div>
+      <span style="min-width:40px;text-align:right;font-size:10px;font-weight:700;color:var(--apex-navy)">${cPct.toFixed(1)}%</span>
+      ${diffLabel}
+    </div>`;
+  });
+  html+=`<div style="margin-top:10px;font-size:10px;color:#6b7a9a">
+    <span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><div style="width:12px;height:6px;background:var(--apex-blue);border-radius:3px;opacity:.85"></div> Carteira</span>
+    <span style="display:inline-flex;align-items:center;gap:5px"><div style="width:12px;height:4px;background:#aaa;border-radius:2px;opacity:.5"></div> Universo elegível</span>
+  </div>`;
+  el.innerHTML=html;
+}
+function renderSegCartKPIs(){
+  const el=document.getElementById('seg-cart-kpis-wrap');if(!el)return;
+  if(!_carteira?.length){el.innerHTML='';return;}
+  const segMap={};
+  _carteira.forEach(c=>{
+    const s=(_carteiraPrecos[c.ticker]?.seg)||ELIGIBLE_FUNDS.find(f=>f.ticker===c.ticker)?.seg||'Outros';
+    if(!segMap[s]){segMap[s]={peso:0,dy:0,dyN:0,pvp:0,pvpN:0};}
+    segMap[s].peso+=c.peso||0;
+    const p=_carteiraPrecos[c.ticker];
+    if(p?.dyAnual){segMap[s].dy+=p.dyAnual*(c.peso||0);segMap[s].dyN+=c.peso||0;}
+    if(p?.pvp){segMap[s].pvp+=p.pvp*(c.peso||0);segMap[s].pvpN+=c.peso||0;}
+  });
+  const segs=Object.entries(segMap).sort((a,b)=>b[1].peso-a[1].peso);
+  const pct=v=>(v*100).toFixed(1)+'%';
+  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr style="background:var(--apex-navy)">
+    <th style="padding:7px 10px;color:#fff;text-align:left">Segmento</th>
+    <th style="padding:7px 10px;color:#fff;text-align:center">Peso Cart.</th>
+    <th style="padding:7px 10px;color:#fff;text-align:center">DY Médio</th>
+    <th style="padding:7px 10px;color:#fff;text-align:center">P/VP Médio</th>
+    <th style="padding:7px 10px;color:#fff;text-align:center">Fundos</th>
+  </tr></thead><tbody>`;
+  segs.forEach(([nome,d],i)=>{
+    const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
+    const dyMed=d.dyN>0?pct(d.dy/d.dyN):'—';
+    const pvpMed=d.pvpN>0?(d.pvp/d.pvpN).toFixed(2)+'x':'—';
+    const nFundos=_carteira.filter(c=>{const s=(_carteiraPrecos[c.ticker]?.seg)||ELIGIBLE_FUNDS.find(f=>f.ticker===c.ticker)?.seg||'Outros';return s===nome;}).length;
+    html+=`<tr style="background:${i%2?'#f8faff':'#fff'}">
+      <td style="padding:6px 10px"><span style="background:${bg};color:${cor};padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700">${nome}</span></td>
+      <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--apex-blue)">${d.peso.toFixed(1)}%</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600;color:var(--success)">${dyMed}</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600">${pvpMed}</td>
+      <td style="padding:6px 10px;text-align:center;color:#6b7a9a">${nFundos}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
 }
 
 
-/**
- * Renderiza o chip colorido de um segmento de FII.
- * Unifica as antigas segChipInline() e segChipMini() (A2) numa só função,
- * corrigindo de quebra o mapa incompleto da versão "mini".
- * @param {string} seg Nome do segmento (ex.: 'Recebível').
- * @param {'normal'|'mini'} [size='normal'] 'normal' usa a classe .seg-chip; 'mini' usa estilo compacto inline.
- * @returns {string} HTML do chip.
- */
+
 function segChip(seg, size='normal'){
   const MAP={
     'Recebível':'var(--seg-rec-bg),var(--seg-rec-c)','Galpão Logístico':'var(--seg-gal-bg),var(--seg-gal-c)',
