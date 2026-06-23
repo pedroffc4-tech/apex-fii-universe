@@ -6616,11 +6616,10 @@ const BRAPI_BASE = 'https://brapi.dev/api';
 /** Retorna o token brapi.dev salvo (Admin → Config) ou string vazia. */
 function getBrapiToken(){ return localStorage.getItem('apex_brapi_token')||'8udPpCC4ssnPtFovQfopmW'; }
 
-/** URL brapi.dev com token se disponível */
+/** URL brapi.dev com token — range=1y (plano gratuito não suporta 5y) */
 function brapiUrl(ticker){
   const token=getBrapiToken();
-  const base=`${BRAPI_BASE}/quote/${ticker}?interval=1mo&range=5y&fundamental=false`;
-  return token?base+`&token=${token}`:base;
+  return `${BRAPI_BASE}/quote/${ticker}?interval=1mo&range=1y&token=${token}`;
 }
 
 /**
@@ -7545,7 +7544,7 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
 
     // Buscar TODOS os dados do período (sem filtro de semanas — mais direto)
     const{data:rows,error}=await db.from('fund_data')
-      .select('semana_data,ticker,fechamento,div_mes,ret_mes')
+      .select('semana_data,ticker,fechamento,ret_mes')
       .in('ticker',tickers)
       .order('semana_data',{ascending:true});
 
@@ -7564,7 +7563,7 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
       iso:sdToISO(r.semana_data),          // YYYY-MM-DD
       ym:sdToISO(r.semana_data).slice(0,7), // YYYY-MM
       fechamento:parseFloat(r.fechamento)||0,
-      div_mes:parseFloat(r.div_mes)||0,
+      // div_mes não existe na tabela — ret_mes já inclui dividendos (total return BTG)
       ret_mes:parseFloat(r.ret_mes)||0,
     })).filter(r=>r.ym>=baseYM&&r.ym<=endYM)
       .sort((a,b)=>a.iso.localeCompare(b.iso));
@@ -7593,8 +7592,13 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
         const curr=byMonth[ym];
         let ret;
         if(prev.fechamento>0&&curr.fechamento>0){
-          // Fórmula correta: variação de preço + dividendo / preço base
-          ret=(curr.fechamento-prev.fechamento+curr.div_mes)/prev.fechamento;
+          // Usar ret_mes (total return BTG = preço + dividendos). 
+          // Se ret_mes disponível, usa direto; senão calcula só pela variação de preço.
+          if(curr.ret_mes){
+            ret=curr.ret_mes;
+          } else {
+            ret=(curr.fechamento-prev.fechamento)/prev.fechamento;
+          }
         } else if(curr.ret_mes){
           // Fallback: ret_mes do BTG (já inclui dividendos)
           ret=curr.ret_mes;
@@ -7619,10 +7623,8 @@ async function calcPortfolioMonthlyReturns(startYM,endYM){
         if(curr.ym<startYM||curr.ym>endYM) continue;
         if(!prev.fechamento||!curr.fechamento) continue;
         // Dividendo: incluir apenas quando muda (evita dupla contagem)
-        const isNewDiv=curr.div_mes>0&&Math.abs(curr.div_mes-prevDiv)>0.001;
-        const div=isNewDiv?curr.div_mes:0;
-        if(curr.div_mes>0) prevDiv=curr.div_mes;
-        const ret=(curr.fechamento-prev.fechamento+div)/prev.fechamento;
+        // Modo semanal: usa ret_mes (inclui dividendos) quando disponível
+        const ret=curr.ret_mes||(curr.fechamento-prev.fechamento)/prev.fechamento;
         rets.push({date:curr.ym,ret});
       }
       weekly[ticker]=rets;
@@ -7768,7 +7770,7 @@ async function testarBrapiToken(){
   const st=document.getElementById('brapi-token-status');
   if(st){st.textContent='Testando...';st.style.color='#6b7a9a';}
   try{
-    const url=`${BRAPI_BASE}/quote/BOVA11?interval=1mo&range=1y&fundamental=false&token=${token}`;
+    const url=`${BRAPI_BASE}/quote/BOVA11?interval=1mo&range=1y&token=${token}`;
     const res=await fetch(url,{signal:AbortSignal.timeout(10000)});
     const data=await res.json();
     const pts=data?.results?.[0]?.historicalDataPrice?.length||0;
