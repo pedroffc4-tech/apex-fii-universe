@@ -7360,42 +7360,6 @@ function _renderRankingRows({ranking, totalSems}){
 
 /** Invalida cache quando nova semana é processada */
 function invalidateRankingCache(){ _rankingCache=null; }
- const el=document.getElementById('seg-cart-main');if(!el)return;
- if(!_carteira?.length){
- el.innerHTML='<div style="text-align:center;padding:20px;color:#6b7a9a">Nenhum fundo na Carteira APX. <a href="#" onclick="showTab(\'carteira\',null);return false" style="color:var(--apex-blue)">Adicionar fundos →</a></div>';
- return;
- }
- // Agrupar carteira por segmento
- const segMap={};
- _carteira.forEach(c=>{
- const s=(_carteiraPrecos[c.ticker]?.seg)||ELIGIBLE_FUNDS.find(f=>f.ticker===c.ticker)?.seg||'Outros';
- if(!segMap[s]){segMap[s]={peso:0,fundos:[],dy:0,dyN:0};}
- segMap[s].peso+=c.peso||0;
- segMap[s].fundos.push(c.ticker);
- const p=_carteiraPrecos[c.ticker];
- if(p?.dyAnual){segMap[s].dy+=p.dyAnual*(c.peso||0);segMap[s].dyN+=c.peso||0;}
- });
- const segs=Object.entries(segMap).sort((a,b)=>b[1].peso-a[1].peso);
- const totalW=segs.reduce((s,[,d])=>s+d.peso,0)||100;
- let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">`;
- segs.forEach(([nome,d])=>{
- const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
- const pctW=(d.peso/totalW*100).toFixed(1);
- const dyMed=d.dyN>0?(d.dy/d.dyN*100).toFixed(1)+'%':'—';
- html+=`<div style="border:1.5px solid ${cor};border-radius:10px;padding:12px;background:${bg}22">
- <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
- <span style="background:${bg};color:${cor};padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">${nome}</span>
- <span style="font-size:18px;font-weight:800;color:${cor}">${pctW}%</span>
- </div>
- <div style="background:#fff;border-radius:6px;height:6px;margin-bottom:8px">
- <div style="background:${cor};height:6px;border-radius:6px;width:${pctW}%"></div>
- </div>
- <div style="font-size:10px;color:#5a6e8a">${d.fundos.length} fundo${d.fundos.length>1?'s':''} · DY médio: <strong style="color:var(--success)">${dyMed}</strong></div>
- <div style="font-size:10px;color:#6b7a9a;margin-top:4px">${d.fundos.slice(0,4).join(', ')}${d.fundos.length>4?' +'+( d.fundos.length-4):''}</div>
- </div>`;
- });
- html+='</div>';
- el.innerHTML=html;
 function renderSegCartVsUniverse(){
  const el=document.getElementById('seg-cart-vs-wrap');if(!el)return;
  if(!_carteira?.length){el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
