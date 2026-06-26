@@ -3748,6 +3748,33 @@ function exportCSV(){
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download='FII_Elegiveis_02062026.csv';a.click();URL.revokeObjectURL(url);
 }
+/**
+ * Sanitiza texto para uso no jsPDF.
+ * O jsPDF usa encoding WinAnsi (Latin-1). Caracteres fora desse range
+ * (aspas tipográficas, travessão, reticências, etc.) produzem o efeito
+ * "S oma d o s" — cada byte UTF-8 renderizado como caractere separado.
+ * Esta função substitui todos esses caracteres por equivalentes Latin-1 legíveis.
+ */
+function sanitizePDFText(str){
+  if(!str) return '';
+  return String(str)
+    // Aspas tipográficas → aspas simples/duplas padrão
+    .replace(/[\u201C\u201D\u201E\u201F]/g,'"') // " " „ ‟ → "
+    .replace(/[\u2018\u2019\u201A\u201B]/g,"'")  // ' ' ‚ ‛ → '
+    // Travessões e hífens especiais → hífen simples
+    .replace(/[\u2013\u2014\u2015]/g,'-')         // – — ― → -
+    // Reticências → ...
+    .replace(/\u2026/g,'...')                     // … → ...
+    // Espaços especiais → espaço normal
+    .replace(/[\u00A0\u202F\u2009\u2008]/g,' ')  // nbsp, narrow space, etc.
+    // Bullets e símbolos decorativos
+    .replace(/[\u2022\u2023\u25AA\u25CF]/g,'*')  // • ‣ ▪ ● → *
+    // Remover zero-width characters
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g,'')
+    // Qualquer outro char fora de Latin-1 (> U+00FF) → ? 
+    .replace(/[^\u0000-\u00FF]/g,'?');
+}
+
 function exportarPDF(tickerParam){
  // Verificar se jsPDF foi carregado
  if(typeof window.jspdf==='undefined'){
@@ -3816,12 +3843,13 @@ function exportarPDF(tickerParam){
  doc.setTextColor(...WHITE);
  doc.text(a.ticker,10,50);
 
- // Nome e meta (direita)
+ // Nome e meta (direita) — sanitizar texto do usuário
  doc.setFontSize(9);doc.setFont('helvetica','normal');
  doc.setTextColor(...LIGHT);
- const nomeT=(a.nome||'').length>50?(a.nome||'').slice(0,49)+'…':(a.nome||'');
+ const nomeRaw=(a.nome||'');
+ const nomeT=sanitizePDFText(nomeRaw.length>50?nomeRaw.slice(0,49)+'...':nomeRaw);
  doc.text(nomeT,W-10,40,{align:'right'});
- doc.text('Analista: '+a.analista,W-10,47,{align:'right'});
+ doc.text('Analista: '+sanitizePDFText(a.analista),W-10,47,{align:'right'});
  doc.text('Data: '+a.data,W-10,54,{align:'right'});
 
  // ── SCORE STRIP ───────────────────────────────────────────────
@@ -3921,9 +3949,9 @@ function exportarPDF(tickerParam){
  head:[['Critério','Nota','Justificativa / Observações']],
  body:QUALI_CRITERIA.map(c=>{
  const sc=a.qualiScores?.[c.id];
- const jt=a.qualiJust?.[c.id]||'';
+ const jt=sanitizePDFText(a.qualiJust?.[c.id]||'');
  const notaBadge=sc!=null?String(sc):'N/A';
- return[c.nome,notaBadge,jt];
+ return[sanitizePDFText(c.nome),notaBadge,jt];
  }),
  columnStyles:{0:{cellWidth:52,fontStyle:'bold'},1:{cellWidth:14,halign:'center'},2:{cellWidth:124}},
  headStyles:{fillColor:NAVY,fontSize:8,fontStyle:'bold',textColor:WHITE},
@@ -3954,8 +3982,8 @@ function exportarPDF(tickerParam){
  head:[['Indicador','Peso','Nota','Observações']],
  body:QUANTI_CRITERIA.map(c=>{
  const sc=a.quantiScores?.[c.id];
- const jt=a.quantiJust?.[c.id]||'';
- return[c.nome,c.peso.toFixed(1)+'%',sc!=null?String(sc):'N/A',jt];
+ const jt=sanitizePDFText(a.quantiJust?.[c.id]||'');
+ return[sanitizePDFText(c.nome),c.peso.toFixed(1)+'%',sc!=null?String(sc):'N/A',jt];
  }),
  columnStyles:{0:{cellWidth:50,fontStyle:'bold'},1:{cellWidth:14,halign:'center'},2:{cellWidth:14,halign:'center'},3:{cellWidth:112}},
  headStyles:{fillColor:NAVY,fontSize:8,fontStyle:'bold',textColor:WHITE},
@@ -5775,7 +5803,7 @@ function renderAlertasLista(){
  ${a.parametro?`<span style="color:#6b7a9a"> · ${a.parametro}</span>`:''}
  <span style="color:var(--warning)"> › ${a.limite}</span>
  </div>
- <button onclick="removerAlerta(${a.id})" style="font-size:10px;padding:2px 8px;background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c6;border-radius:5px;cursor:pointer;font-family:'Manrope',sans-serif">Remover</button>
+ <button onclick="removerAlerta(${a.id})" style="font-size:10px;padding:5px 10px;background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c6;border-radius:5px;cursor:pointer;font-family:'Manrope',sans-serif">Remover</button>
  </div>`).join('');
 }
 
@@ -7658,7 +7686,7 @@ function renderAtvItem(item){
 
  // Botão PDF se for análise finalizada
  const pdfBtn=isAnalise?`<button onclick="exportarPDF('${item.ticker}')"
- style="padding:2px 9px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;margin-left:auto">⬇ PDF</button>`:'';
+ style="padding:5px 11px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;margin-left:auto">PDF</button>`:'';
 
  return`<div class="atv-timeline-item">
  <div class="atv-icon ${iconClass[item.tipo]||'analise'}">${iconMap[item.tipo]||'◉'}</div>
@@ -7724,7 +7752,7 @@ function renderAtvVisaoGeral(){
  ${item.analista} · ${item.data}
  </div>
  </div>
- ${isAnalise?`<button onclick="exportarPDF('${item.ticker}')" style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">⬇ PDF</button>`:''}
+ ${isAnalise?`<button onclick="exportarPDF('${item.ticker}')" style="padding:5px 11px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">PDF</button>`:''}
  </div>`;
  }).join('');
 }
@@ -7851,7 +7879,7 @@ function itemScoreFn(col,bg){
  ${segChip(item.seg,'mini')}
  <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:800;background:${bg};color:${col};white-space:nowrap">${item.score?.toFixed(1)||'—'}/10</span>
  <span style="font-size:10px;color:#6b7a9a;white-space:nowrap">${item.analista||''}</span>
- ${item.score!=null?`<button onclick="event.stopPropagation();exportarPDF('${item.ticker}')" style="padding:2px 8px;background:var(--apex-navy);color:#fff;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">⬇</button>`:''}
+ ${item.score!=null?`<button onclick="event.stopPropagation();exportarPDF('${item.ticker}')" style="padding:5px 11px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;flex-shrink:0">PDF</button>`:''}
  </div>`;
 }
 
