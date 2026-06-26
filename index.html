@@ -3732,9 +3732,9 @@ function renderScoreRanking(){
  <td style="font-size:11px;color:#6b7a9a">${a.data}</td>
  <td><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
  <button onclick="exportarPDF('${a.ticker}')"
- style="padding:4px 10px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">⬇ PDF</button>
- <button class="btn-forum" data-forum-ticker="${a.ticker}" onclick="openForum('${a.ticker}')"></button>
- <button class="btn-excluir" onclick="confirmarExcluirAnalise('${a.ticker}')" title="Excluir análise"></button>
+ style="padding:5px 11px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap">PDF</button>
+ <button class="btn-forum" data-forum-ticker="${a.ticker}" onclick="openForum('${a.ticker}')" style="padding:5px 10px;line-height:1.4">Fórum</button>
+ <button class="btn-excluir" onclick="confirmarExcluirAnalise('${a.ticker}')" title="Excluir análise" style="padding:5px 10px;line-height:1.4">Excluir</button>
  </div></td>
  </tr>`;
  }).join('');
