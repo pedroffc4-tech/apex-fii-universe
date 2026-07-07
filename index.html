@@ -2918,32 +2918,6 @@ textarea,.form-select{
  <p>Processar novo BTG FII Guide e atualizar os dados do dashboard</p>
  </div>
 
- <!-- Config: brapi.dev token -->
- <div class="card" style="margin-bottom:18px;border:1.5px solid var(--apex-mist)">
-  <div class="card-title">Configuração — Token brapi.dev (IBOV / IFIX)</div>
-  <div style="font-size:11px;color:#6b7a9a;margin-bottom:12px">
-   Token gratuito obtido em <a href="https://brapi.dev" target="_blank" style="color:var(--apex-blue)">brapi.dev</a> após criar conta.
-   Necessário para carregar IBOV e IFIX na aba Benchmarks. Salvo localmente no browser.
-  </div>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-   <div class="form-group" style="flex:1;min-width:260px">
-    <label class="form-label">Token brapi.dev</label>
-    <input type="text" id="brapi-token-input" class="form-select"
-     placeholder="Cole aqui o token da sua conta brapi.dev"
-     value="8udPpCC4ssnPtFovQfopmW">
-   </div>
-   <button onclick="salvarBrapiToken()"
-    style="padding:10px 20px;background:var(--apex-navy);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;align-self:flex-end">
-    Salvar Token
-   </button>
-   <button onclick="testarBrapiToken()"
-    style="padding:10px 20px;background:var(--apex-blue-lt);color:var(--apex-blue);border:1.5px solid var(--apex-blue);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;align-self:flex-end">
-    Testar
-   </button>
-  </div>
-  <div id="brapi-token-status" style="margin-top:8px;font-size:11px"></div>
- </div>
-
  <!-- Nova Semana -->
  <div class="card">
  <div class="card-title">Nova Semana — Upload BTG FII Guide</div>
@@ -5183,54 +5157,43 @@ let _carteiraObjetivo = 'Entregar renda mensal com gestão ativa, alinhando expo
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url='; // usado pela carteira (atualizarPrecosCarteira)
 
-// ── API de preços: brapi.dev (API brasileira, CORS nativo, sem proxy) ────
-// https://brapi.dev — gratuita, browser-friendly, sem proxy necessário.
-// Tickers brasileiros SEM sufixo .SA (ex: KNCR11, %5EBVSP para IBOV).
-const BRAPI_BASE = 'https://brapi.dev/api';
-
-/** Retorna o token brapi.dev salvo (Admin → Config) ou string vazia. */
-function getBrapiToken(){ return localStorage.getItem('apex_brapi_token')||'8udPpCC4ssnPtFovQfopmW'; }
-
-/** URL brapi.dev com token — range=1y (plano gratuito não suporta 5y) */
-function brapiUrl(ticker){
-  const token=getBrapiToken();
-  return `${BRAPI_BASE}/quote/${ticker}?interval=1mo&range=1y&token=${token}`;
-}
+const YF_QUOTE_URL = 'https://query2.finance.yahoo.com/v7/finance/quote';
+const YF_CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart';
 
 /**
- * Busca preços mensais históricos via brapi.dev (sem proxy, CORS nativo).
- * Usa adjustedClose para retorno total incluindo dividendos (correto para FIIs).
- * @param {string} ticker Ticker B3 sem .SA (ex: 'KNCR11') ou índice ('%5EBVSP')
+ * Busca preços mensais históricos via Yahoo Finance (mesmo proxy CORS usado em
+ * atualizarPrecosCarteira). Usa adjclose para retorno total incluindo dividendos.
+ * @param {string} ticker Ticker Yahoo (ex: '%5EBVSP' para IBOV, 'XFIX11.SA' para IFIX)
  * @param {string} startYM Início 'YYYY-MM'
  * @param {string} endYM Fim 'YYYY-MM'
  * @returns {Promise<{date:string,ret:number}[]>}
  */
-async function fetchBrapiMonthly(ticker,startYM,endYM){
+async function fetchYahooMonthly(ticker,startYM,endYM){
  const ctrl=new AbortController();
  const tid=setTimeout(()=>ctrl.abort(),15000);
  try{
- const url=brapiUrl(ticker); // inclui token se disponível
- const res=await fetch(url,{signal:ctrl.signal});
+ const chartUrl=`${YF_CHART_URL}/${ticker}?interval=1mo&range=max`;
+ const res=await fetch(CORS_PROXY+encodeURIComponent(chartUrl),{signal:ctrl.signal});
  clearTimeout(tid);
- if(!res.ok) throw new Error(`brapi ${ticker}: HTTP ${res.status}`);
+ if(!res.ok) throw new Error(`Yahoo ${ticker}: HTTP ${res.status}`);
  const json=await res.json();
- const hist=json?.results?.[0]?.historicalDataPrice;
- if(!hist?.length) throw new Error(`brapi ${ticker}: sem histórico`);
+ const result=json?.chart?.result?.[0];
+ const ts=result?.timestamp;
+ if(!ts?.length) throw new Error(`Yahoo ${ticker}: sem histórico`);
+ const closes=result.indicators?.quote?.[0]?.close;
+ const adj=result.indicators?.adjclose?.[0]?.adjclose;
  const points=[];
- for(let i=1;i<hist.length;i++){
- const c0=hist[i-1].adjustedClose||hist[i-1].close;
- const c1=hist[i].adjustedClose||hist[i].close;
+ for(let i=1;i<ts.length;i++){
+ const c0=adj?.[i-1]??closes?.[i-1];
+ const c1=adj?.[i]??closes?.[i];
  if(!c0||!c1) continue;
- const d=new Date(hist[i].date*1000);
+ const d=new Date(ts[i]*1000);
  const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
  if(ds>=startYM&&ds<=endYM) points.push({date:ds,ret:c1/c0-1});
  }
  return points;
  }finally{clearTimeout(tid);}
 }
-
-const YF_QUOTE_URL = 'https://query2.finance.yahoo.com/v7/finance/quote';
-const YF_CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart';
 
 // ── Init ─────────────────────────────────────────────────────
 async function initCarteira(){
@@ -5924,12 +5887,10 @@ const BENCH_LABELS={carteira:'Carteira APX',cdi:'CDI',ipca:'IPCA',selic:'SELIC',
 const BCB_SERIES_IDS={cdi:4391,ipca:433,selic:4390};
 
 
-const YF_BENCH_TICKERS={ifix:'%5EIFIX',ibov:'%5EBVSP'};
-
-// Tickers brapi.dev para índices — brapi usa tickers B3 nativos
-// IBOV: BOVA11 é o ETF que rastreia o Ibovespa (1:1 com ^BVSP)
-// IFIX: não há ETF perfeito; usamos XFIX11 como proxy. Se falhar: manual.
-const BRAPI_INDEX_MAP={ibov:'BOVA11',ifix:'XFIX11'};
+// Tickers Yahoo Finance para os índices de referência (via CORS_PROXY, mesmo usado na Carteira)
+// IBOV: %5EBVSP é o índice oficial direto no Yahoo.
+// IFIX: não existe índice direto no Yahoo; usamos XFIX11.SA (ETF que replica o IFIX) como proxy.
+const YF_INDEX_MAP={ibov:'%5EBVSP',ifix:'XFIX11.SA'};
 
 let _benchData={};
 let _benchFundData={};
@@ -6280,22 +6241,17 @@ async function loadAllBenchmarkData(startYM,endYM){
  // Renderizar imediatamente com o que temos
  renderAllBenchmarks();
 
- // 2. IBOV/IFIX via brapi.dev (usa token salvo no Admin)
- const brapiToken=getBrapiToken();
- if(brapiToken){
-  if(info) info.textContent='Buscando IBOV e IFIX via brapi.dev...';
-  const[ibov,ifix]=await Promise.allSettled([
-   fetchBrapiMonthly(BRAPI_INDEX_MAP.ibov,startYM,endYM),
-   fetchBrapiMonthly(BRAPI_INDEX_MAP.ifix,startYM,endYM),
-  ]);
-  const ok2=r=>r.status==='fulfilled'?r.value:[];
-  _benchData.ibov=ok2(ibov); _benchDataStatus.ibov=ok2(ibov).length>0?'ok':'failed';
-  _benchData.ifix=ok2(ifix); _benchDataStatus.ifix=ok2(ifix).length>0?'ok':'failed';
- } else {
-  _benchData.ibov=[]; _benchDataStatus.ibov='failed';
-  _benchData.ifix=[]; _benchDataStatus.ifix='failed';
-  console.info('[benchmarks] IBOV/IFIX: configure token brapi.dev no Admin');
- }
+ // 2. IBOV/IFIX via Yahoo Finance (mesmo proxy CORS usado na Carteira)
+ if(info) info.textContent='Buscando IBOV e IFIX via Yahoo Finance...';
+ const[ibov,ifix]=await Promise.allSettled([
+  fetchYahooMonthly(YF_INDEX_MAP.ibov,startYM,endYM),
+  fetchYahooMonthly(YF_INDEX_MAP.ifix,startYM,endYM),
+ ]);
+ const ok2=r=>r.status==='fulfilled'?r.value:[];
+ _benchData.ibov=ok2(ibov); _benchDataStatus.ibov=ok2(ibov).length>0?'ok':'failed';
+ _benchData.ifix=ok2(ifix); _benchDataStatus.ifix=ok2(ifix).length>0?'ok':'failed';
+ if(_benchDataStatus.ibov==='failed') console.warn('[benchmarks] IBOV: falha ao buscar via Yahoo Finance',ibov.reason?.message);
+ if(_benchDataStatus.ifix==='failed') console.warn('[benchmarks] IFIX: falha ao buscar via Yahoo Finance',ifix.reason?.message);
 
  _benchLoaded=true;
  renderAllBenchmarks();
@@ -6331,49 +6287,18 @@ function renderAllBenchmarks(){
 }
 
 /** Mostra resumo do que foi carregado vs o que falhou */
-// ── brapi.dev token management ───────────────────────────────
-function salvarBrapiToken(){
-  const val=document.getElementById('brapi-token-input')?.value?.trim();
-  if(!val){toast('Cole o token antes de salvar','warning');return;}
-  localStorage.setItem('apex_brapi_token',val);
-  const st=document.getElementById('brapi-token-status');
-  if(st){st.textContent='Token salvo com sucesso.';st.style.color='var(--success)';}
-  toast('Token brapi.dev salvo','success');
-}
-async function testarBrapiToken(){
-  const token=document.getElementById('brapi-token-input')?.value?.trim()||getBrapiToken();
-  const st=document.getElementById('brapi-token-status');
-  if(st){st.textContent='Testando...';st.style.color='#6b7a9a';}
-  try{
-    const url=`${BRAPI_BASE}/quote/BOVA11?interval=1mo&range=1y&token=${token}`;
-    const res=await fetch(url,{signal:AbortSignal.timeout(10000)});
-    const data=await res.json();
-    const pts=data?.results?.[0]?.historicalDataPrice?.length||0;
-    if(res.ok&&pts>0){
-      if(st){st.textContent=`Token válido — BOVA11: ${pts} meses de dados OK`;st.style.color='var(--success)';}
-      toast('Token brapi.dev válido','success');
-    } else {
-      if(st){st.textContent=`Resposta inesperada (HTTP ${res.status}): ${JSON.stringify(data).slice(0,80)}`;st.style.color='var(--danger)';}
-    }
-  }catch(e){
-    if(st){st.textContent='Erro: '+e.message;st.style.color='var(--danger)';}
-  }
-}
-
 function renderBenchDataStatus(){
  const el=document.getElementById('bench-data-status');if(!el)return;
- const ok=[],fail=[],unavail=[];
+ const ok=[],fail=[];
  const all=['carteira','cdi','ipca','selic','ifix','ibov',..._carteira.map(c=>c.ticker)];
  all.forEach(k=>{
   const st=_benchDataStatus[k],lbl=BENCH_LABELS[k]||k;
   if(st==='ok') ok.push(lbl);
-  else if(k==='ibov'||k==='ifix') unavail.push(lbl);
   else if(st==='failed') fail.push(lbl);
  });
  let html='';
  if(ok.length) html+=`<span style="color:var(--success)">Carregados: ${ok.join(', ')}</span>`;
- if(unavail.length) html+=`${ok.length?' · ':''}<span style="color:#b07a00">${unavail.join(', ')}: requer token brapi.dev</span>`;
- if(fail.length) html+=` · <span style="color:var(--danger)">Falhou: ${fail.join(', ')}</span>`;
+ if(fail.length) html+=`${ok.length?' · ':''}<span style="color:var(--danger)">Falhou: ${fail.join(', ')}</span>`;
  el.innerHTML=html||'';
 }
 

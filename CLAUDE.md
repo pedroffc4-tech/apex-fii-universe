@@ -17,6 +17,7 @@
   - Perguntar antes de decisões que não estão claras.
   - Mudanças devem ser **cirúrgicas** — não tocar em lógica de critérios ou visual sem pedido explícito.
 - Ao final da sessão ("fecha a sessão"), atualizar o `HANDOVER.md`.
+- **Sempre que editar o `index.html`** (ou qualquer arquivo do repositório), ao final da tarefa **oferecer proativamente** subir a mudança pro GitHub (`git add`, `git commit` com mensagem descritiva, `git push`) — mas **nunca fazer o `push` sem confirmação explícita do usuário**. Perguntar algo como: "quer que eu suba essa mudança pro GitHub agora?"
 
 ---
 

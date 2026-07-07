@@ -13,15 +13,17 @@ Os números abaixo vieram de textos e comentários encontrados no próprio `inde
 
 ---
 
-## Situação de referência encontrada no código
+## Situação de referência — confirmada ao vivo com o Pedro em 07/07/2026
 
-- **Data referenciada no cabeçalho:** 02/06/2026
-- **Trackrecord:** 21 semanas
-- **Ranking (Estabilidade):** "146 fundos elegíveis ao menos 1x" · período referenciado: 05/01/2026 a 02/06/2026
-- Exemplo de topo do ranking encontrado no código: **AFHI11** — 21/21 semanas, 100% de consistência (isso é só um exemplo capturado no template; não assumir que é o ranking completo atual)
+- **Semana mais recente processada:** nº 26, data 06/07/2026
+- **Total de fundos no FII Guide:** 267
+- **Elegíveis:** 123
+- **Não elegíveis:** 144
+- **Movimentação vs. semana anterior:** 1 entrou, 2 saíram
 
-### ⚠️ Pontos que precisam de confirmação com o Pedro / com o Supabase ao vivo
-- Quantos fundos elegíveis e não elegíveis existem **na semana mais recente de fato processada** (pode já ser mais recente que 02/06/2026 — depende de quando alguém rodou o upload pela última vez na aba Administração).
+(Números confirmados diretamente pelo Pedro olhando o app — substituem a estimativa anterior, que vinha só de texto/template encontrado no código e estava desatualizada, referenciando 02/06/2026 e 21 semanas de trackrecord.)
+
+### ⚠️ Pontos que ainda precisam de confirmação com o Pedro / com o Supabase ao vivo
 - Se a migração `ALTER TABLE semanas ADD COLUMN IF NOT EXISTS deleted_at ...` já foi aplicada no Supabase (o próprio Admin do app avisa que ela é pré-requisito pra exclusão de semanas funcionar).
 - Se os índices de performance documentados no `CLAUDE.md` (seção 9) já foram criados ou ainda são só documentação.
 - Se há semanas ocultas (soft-deleted) atualmente.
