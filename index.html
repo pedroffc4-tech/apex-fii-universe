@@ -3146,6 +3146,8 @@ textarea,.form-select{
 <script type="module" src="./js/formatters.js"></script>
 <script type="module" src="./js/data/pre-analise-data.js"></script>
 <script type="module" src="./js/data/eligible-funds-data.js"></script>
+<script type="module" src="./js/data-store.js"></script>
+<script type="module" src="./js/supabase-client.js"></script>
 
 <script>
 'use strict';
@@ -3176,93 +3178,8 @@ function toast(msg, type='info', ms=4000){
  if(ms>0)setTimeout(close,ms);
 }
 
-// ── SUPABASE ─────────────────────────────────────────────────
-const SUPA_URL='https://ystjnkvodohjcruixiqv.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzdGpua3ZvZG9oamNydWl4aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMjUsImV4cCI6MjA5NTk4NDAyNX0.pqtJybMMp_i9p05oakWjYp1IHajhaZBd07QIfPzHdpU';
-
-// ── Cliente Supabase (SDK oficial via CDN) ───────────────────
-// Singleton: o cliente é criado uma única vez e reaproveitado em todas
-// as chamadas. _db guarda a instância; chamadas subsequentes retornam a
-// mesma referência, evitando múltiplos clientes/conexões em re-renders (B3).
-let _db=null;
-/**
- * Retorna a instância única (singleton) do cliente Supabase.
- * Cria o cliente na primeira chamada e o reaproveita depois.
- * @returns {Object|null} Cliente Supabase, ou null se o SDK não carregou.
- */
-function getDB(){
- if(_db)return _db;
- if(typeof supabase==='undefined'){console.warn('[getDB] SDK Supabase não carregou');return null;}
- _db=supabase.createClient(SUPA_URL,SUPA_KEY);
- return _db;
-}
-
-/**
- * Carrega todas as análises do Supabase para o objeto global `analyses`
- * e atualiza a UI dependente (tags, ranking, KPIs, atividade, fórum).
- * Usa localStorage como cache de performance; o Supabase é a fonte da verdade.
- * @returns {Promise<void>}
- */
-async function supaLoad(){
- const db=getDB();
- const ss=document.getElementById('sync-status');
- if(!db){if(ss)ss.innerHTML='⚠️ SDK não carregado';return;}
- try{
- if(ss)ss.innerHTML='⟳ Sincronizando...';
- const {data:rows,error}=await db.from('analyses').select('*');
- if(error)throw new Error(error.message);
- // Limpar SEMPRE — antes de verificar se há linhas
- Object.keys(analyses).forEach(k=>delete analyses[k]);
- localStorage.setItem('apex_fii_analyses','{}');
- if(!rows||rows.length===0){
- if(ss)ss.innerHTML='✓ Banco vazio — pronto para uso';
- injectAnalyseTags();
- renderScoreRanking();
- updateKpiRow();
- return;
- }
- rows.forEach(row=>{
- analyses[row.ticker]={
- ticker:row.ticker,nome:row.nome,seg:row.segmento,
- analista:row.analista,data:row.data,tipo:row.tipo,
- qualiScores:row.quali_scores||{},qualiJust:row.quali_just||{},
- quantiScores:row.quanti_scores||{},quantiJust:row.quanti_just||{},
- scoreTotal:row.score_total,scoreQuali:row.score_quali,
- scoreQuanti:row.score_quanti,finalizado:row.finalizado
- };
- });
- localStorage.setItem('apex_fii_analyses',JSON.stringify(analyses));
- if(ss)ss.innerHTML='✓ Sincronizado · '+rows.length+' análises';
- console.log('✓ Supabase: '+rows.length+' análises carregadas');
- injectAnalyseTags();renderScoreRanking();
- if(document.getElementById('tab-atividade')?.classList.contains('active'))renderAtividade();
- renderAtvVisaoGeral();
- updateKpiRow();
- carregarForumGlobal();
- atualizarHeaderSemana();
- }catch(e){
- console.warn('Supabase load falhou:',e.message);
- if(ss)ss.innerHTML='⚠️ Offline — '+e.message.substring(0,50);
- }
-}
-
-// Salvar/atualizar análise no Supabase
-async function supaSave(a){
- const db=getDB();
- if(!db)throw new Error('SDK Supabase não disponível');
- const payload={
- ticker:a.ticker,nome:a.nome,segmento:a.seg,
- analista:a.analista,data:a.data,tipo:a.tipo,
- quali_scores:a.qualiScores,quali_just:a.qualiJust,
- quanti_scores:a.quantiScores,quanti_just:a.quantiJust,
- score_total:a.scoreTotal,score_quali:a.scoreQuali,
- score_quanti:a.scoreQuanti,finalizado:a.finalizado,
- updated_at:new Date().toISOString()
- };
- const {error}=await db.from('analyses').upsert(payload,{onConflict:'ticker'});
- if(error)throw new Error(error.message);
- console.log('✓ Supabase: análise de '+a.ticker+' salva');
-}
+// SUPA_URL, SUPA_KEY, getDB, supaLoad e supaSave movidos para
+// js/supabase-client.js (Fase 3 da modularização).
 
 // PRE_ANALISE e PRE_ANALISE_MAP movidos para js/data/pre-analise-data.js (Fase 1 da modularização).
 
@@ -3291,10 +3208,8 @@ const QUANTI_CRITERIA=[
  {id:'n12',peso:5.0,nome:'LTV',desc:'Razão de garantias (fundos de tijolo)',ranges:[{label:'0–3',txt:'> 40%'},{label:'4–6',txt:'20-40%'},{label:'7–10',txt:'< 20%'}],applicavel:false,checkAplic:true}
 ];
 let currentTicker='';
-// Dados da semana atual — compartilhados entre abas
-let _currentFundos=[];
-let _currentSemana=null;
-let analyses=JSON.parse(localStorage.getItem('apex_fii_analyses')||'{}');
+// _currentFundos, _currentSemana, analyses e fundDataMap movidos para
+// js/data-store.js (Fase 3 da modularização).
 const tableSortState={};
 function showTab(id,el){
  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -4001,7 +3916,7 @@ function exportarPDF(tickerParam){
  toast('✓ PDF gerado: '+filename,'success');
 }
 // ── MAPA DE DADOS BTG POR FUNDO ───────────────────────────────
-const fundDataMap = {};
+// fundDataMap agora vive em js/data-store.js (Fase 3 da modularização).
 /**
  * Monta o mapa global `fundDataMap` (ticker → métricas) lendo as linhas já
  * renderizadas da tabela de fundos elegíveis (#fund-body).
@@ -5139,7 +5054,7 @@ function renderizarSemana(semana, fundos){
 
  // Limpar cache do ranking — garante que a aba Ranking busque dados
  // frescos do Supabase na próxima abertura (não a semana antiga em cache)
- _rankingCache = null;
+ invalidateRankingCache();
 
  // Armazenar dados globalmente para uso na aba Por Segmento
  _currentFundos = fundos;
@@ -7187,7 +7102,8 @@ function renderSegCartMain(){
 }
 
 // ── Ranking de Estabilidade — calculado dinamicamente do Supabase ──
-let _rankingCache = null; // cache para evitar múltiplos fetches
+// _rankingCache e invalidateRankingCache() agora vivem em js/data-store.js
+// (Fase 3 da modularização) — window._rankingCache é a única fonte da verdade.
 
 async function renderRankingEstabilidade(){
   const tbody = document.getElementById('tbl-rank-body');
@@ -7303,8 +7219,6 @@ function _renderRankingRows({ranking, totalSems}){
   tbody.innerHTML = tbody2||'<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7a9a">Nenhum dado disponível</td></tr>';
 }
 
-/** Invalida cache quando nova semana é processada */
-function invalidateRankingCache(){ _rankingCache=null; }
 function renderSegCartVsUniverse(){
  const el=document.getElementById('seg-cart-vs-wrap');if(!el)return;
  if(!_carteira?.length){el.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
