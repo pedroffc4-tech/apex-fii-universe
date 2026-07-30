@@ -3870,7 +3870,7 @@ function exportarPDF(tickerParam){
  ['Analista',a.analista],
  ['Data da Análise',a.data],
  ['Preço',fd.preco?'R$ '+parseFloat(fd.preco).toFixed(2):'—'],
- ['DY Anualizado',fd.yield?(fd.yield*100).toFixed(2)+'%':'—'],
+ ['DY Anualizado',fd.yield?fmtPercent(fd.yield):'—'],
  ['P/VP',fd.pvp?parseFloat(fd.pvp).toFixed(2)+'x':'—'],
  ['MktCap',fd.mkt?'R$ '+((fd.mkt/1e6).toFixed(0))+'M':'—'],
  ];
@@ -5084,9 +5084,9 @@ function renderizarSemana(semana, fundos){
  <td>${segChipHtml}</td>
  <td>R$ ${f.fechamento?.toFixed(2)||'—'}</td>
  <td data-val="${f.vol3m||0}">R$ ${fmtCurrency(f.vol3m||0)}</td>
- <td style="color:${dyC};font-weight:700" data-val="${f.dy_anual||0}">${f.dy_anual?(f.dy_anual*100).toFixed(2)+'%':'—'}</td>
+ <td style="color:${dyC};font-weight:700" data-val="${f.dy_anual||0}">${f.dy_anual?fmtPercent(f.dy_anual):'—'}</td>
  <td style="color:${pvpC};font-weight:700">${f.pvp_atual?f.pvp_atual.toFixed(4)+'x':'—'}</td>
- <td data-val="${f.mktcap||0}">R$ ${((f.mktcap||0)/1e6).toFixed(1)}M</td>
+ <td data-val="${f.mktcap||0}">R$ ${fmtMillions(f.mktcap||0)}</td>
  <td class="analise-cell"></td>
  <td><a href="https://statusinvest.com.br/fundos-imobiliarios/${f.ticker.toLowerCase()}" target="_blank"
  style="font-size:10px;padding:3px 9px;background:var(--apex-blue);color:#fff;border-radius:5px;text-decoration:none;font-weight:600;white-space:nowrap">Status Invest ↗</a></td>
@@ -6514,7 +6514,7 @@ function renderBenchHeatmap(){
  [1,2,3,4,5,6,7,8,9,10,11,12].forEach(mo=>{
  const d=`${year}-${String(mo).padStart(2,'0')}`;
  const v=byDate[d];if(v!==undefined) yc*=(1+v);
- html+=`<td class="hm-cell" style="background:${hc(v)};color:${tc(v)}">${v!=null?(v*100).toFixed(2)+'%':'—'}</td>`;
+ html+=`<td class="hm-cell" style="background:${hc(v)};color:${tc(v)}">${bPctAbs(v,2)}</td>`;
  });
  const yr=yc-1;
  html+=`<td class="hm-cell" style="background:${hc(yr)};color:${tc(yr)};font-weight:700">${bPct(yr,2)}</td></tr>`;
@@ -6599,13 +6599,13 @@ let _segTooltipTimer=null;
 let _segDrillSeg='';
 
 const SEG_HEATMAP_METRICS=[
- {key:'dy_anual', label:'DY Anual', fmt:v=>(v*100).toFixed(1)+'%', higher:true},
- {key:'dy_ltm', label:'DY LTM', fmt:v=>(v*100).toFixed(1)+'%', higher:true},
+ {key:'dy_anual', label:'DY Anual', fmt:v=>fmtPercent(v,1), higher:true},
+ {key:'dy_ltm', label:'DY LTM', fmt:v=>fmtPercent(v,1), higher:true},
  {key:'pvp_atual',label:'P/VP', fmt:v=>v.toFixed(2)+'x', higher:false},
- {key:'vol3m', label:'Vol 3M', fmt:v=>'R$'+(v/1e6).toFixed(1)+'M', higher:true},
- {key:'ret_mes', label:'Ret.Mês', fmt:v=>(v>=0?'+':'')+(v*100).toFixed(2)+'%', higher:true},
- {key:'ret_ano', label:'Ret.Ano', fmt:v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%', higher:true},
- {key:'ret_ltm', label:'Ret.LTM', fmt:v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%', higher:true},
+ {key:'vol3m', label:'Vol 3M', fmt:v=>'R$'+fmtMillions(v), higher:true},
+ {key:'ret_mes', label:'Ret.Mês', fmt:v=>(v>=0?'+':'')+fmtPercent(v,2), higher:true},
+ {key:'ret_ano', label:'Ret.Ano', fmt:v=>(v>=0?'+':'')+fmtPercent(v,1), higher:true},
+ {key:'ret_ltm', label:'Ret.LTM', fmt:v=>(v>=0?'+':'')+fmtPercent(v,1), higher:true},
  {key:'mktcap', label:'MktCap', fmt:v=>'R$'+(v/1e9).toFixed(1)+'B', higher:true},
 ];
 
@@ -6664,11 +6664,11 @@ function renderSegKpiStrip(){
 
  const kpis=[
  {lbl:'Total Elegíveis', val:totalFundos, sub:'Todos os segmentos', cor:'var(--apex-blue)'},
- {lbl:'DY Médio Pond.', val:(wavg('dy_anual')*100).toFixed(1)+'%', sub:'Ponderado por fundos', cor:'var(--success)'},
+ {lbl:'DY Médio Pond.', val:fmtPercent(wavg('dy_anual'),1), sub:'Ponderado por fundos', cor:'var(--success)'},
  {lbl:'P/VP Médio', val:wavg('pvp_atual').toFixed(2)+'x', sub:'Média ponderada', cor:'var(--apex-navy)'},
- {lbl:'Melhor DY', val:(bestDY[1].dy_anual*100).toFixed(1)+'%', sub:bestDY[0], cor:'var(--success)'},
- {lbl:'Ret. Mês Pond.', val:(wavg('ret_mes')*100).toFixed(2)+'%', sub:'Média ponderada', cor:wavg('ret_mes')>=0?'var(--success)':'var(--danger)'},
- {lbl:'Melhor Ret.Mês', val:(bestRet[1].ret_mes*100).toFixed(2)+'%', sub:bestRet[0], cor:'var(--apex-blue)'},
+ {lbl:'Melhor DY', val:fmtPercent(bestDY[1].dy_anual,1), sub:bestDY[0], cor:'var(--success)'},
+ {lbl:'Ret. Mês Pond.', val:fmtPercent(wavg('ret_mes'),2), sub:'Média ponderada', cor:wavg('ret_mes')>=0?'var(--success)':'var(--danger)'},
+ {lbl:'Melhor Ret.Mês', val:fmtPercent(bestRet[1].ret_mes,2), sub:bestRet[0], cor:'var(--apex-blue)'},
  ];
  el.innerHTML=kpis.map(k=>`<div style="background:#fff;border:1.5px solid var(--apex-mist);border-radius:10px;padding:12px 14px">
  <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7a9a;margin-bottom:4px">${k.lbl}</div>
@@ -6691,7 +6691,7 @@ function renderSegBars(){
  const segs=Object.entries(_segData).sort((a,b)=>b[1].count-a[1].count);
  if(!segs.length){cont.innerHTML='<div style="color:#6b7a9a;font-size:12px;text-align:center;padding:20px">Sem dados</div>';return;}
  const getVal=s=>{switch(_segBarMetric){case'dy':return s.dy_anual;case'pvp':return s.pvp_atual;case'vol':return s.vol3m;case'mkt':return s.mktcap;default:return s.count;}};
- const fmtVal=(v)=>{switch(_segBarMetric){case'dy':return(v*100).toFixed(1)+'%';case'pvp':return v.toFixed(2)+'x';case'vol':return'R$'+(v/1e6).toFixed(1)+'M';case'mkt':return'R$'+(v/1e9).toFixed(1)+'B';default:return v+' fundos';}};
+ const fmtVal=(v)=>{switch(_segBarMetric){case'dy':return fmtPercent(v,1);case'pvp':return v.toFixed(2)+'x';case'vol':return'R$'+fmtMillions(v);case'mkt':return'R$'+(v/1e9).toFixed(1)+'B';default:return v+' fundos';}};
  const maxVal=Math.max(...segs.map(([,s])=>getVal(s)))||1;
  cont.innerHTML=segs.map(([nome,s])=>{
  const val=getVal(s),pct=Math.max(3,Math.round(val/maxVal*100));
@@ -6701,7 +6701,7 @@ function renderSegBars(){
  s.sairam>0?`<span class="seg-bar-trend trend-dn">▼${s.sairam}</span>`:`<span class="seg-bar-trend trend-neu">—</span>`;
  const rowId='seg-row-'+nome.replace(/\W/g,'-');
  const expandId='seg-exp-'+nome.replace(/\W/g,'-');
- const tickersHtml=s.fundos.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>`<span class="seg-ticker-pill" onclick="openAnalise('${f.ticker}')" title="DY: ${f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—'} · P/VP: ${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}">${f.ticker}</span>`).join('');
+ const tickersHtml=s.fundos.sort((a,b)=>a.ticker.localeCompare(b.ticker)).map(f=>`<span class="seg-ticker-pill" onclick="openAnalise('${f.ticker}')" title="DY: ${f.dy_anual?fmtPercent(f.dy_anual,1):'—'} · P/VP: ${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}">${f.ticker}</span>`).join('');
  return`<div class="seg-bar-row"><div class="seg-bar-header" onclick="toggleSegExpand('${expandId}',this)" id="${rowId}">
  <span class="seg-bar-chip" style="background:${bg};color:${cor}">${nome}</span>
  <div class="seg-bar-track"><div class="seg-bar-fill" style="width:${pct}%;background:${cor}"></div></div>
@@ -6709,7 +6709,7 @@ function renderSegBars(){
  <span style="font-size:10px;color:#aaa;margin-left:4px;transition:transform .2s" class="seg-arrow">▼</span>
  </div>
  <div class="seg-expand-body" id="${expandId}">
- <div style="font-size:10px;color:#6b7a9a;margin-bottom:6px">${s.count} fundos · DY: <strong>${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP: <strong>${s.pvp_atual.toFixed(2)}x</strong> · Vol: <strong>R$${(s.vol3m/1e6).toFixed(1)}M</strong></div>
+ <div style="font-size:10px;color:#6b7a9a;margin-bottom:6px">${s.count} fundos · DY: <strong>${fmtPercent(s.dy_anual,1)}</strong> · P/VP: <strong>${s.pvp_atual.toFixed(2)}x</strong> · Vol: <strong>R$${fmtMillions(s.vol3m)}</strong></div>
  <div class="seg-ticker-grid">${tickersHtml}</div>
  </div></div>`;
  }).join('');
@@ -6782,10 +6782,10 @@ function renderSegRankingCruzado(){
  const cont=document.getElementById('seg-ranking-cruzado');if(!cont)return;
  const segs=Object.entries(_segData);if(!segs.length)return;
  const criterios=[
- {label:'Maior DY Anual', key:'dy_anual', fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+ {label:'Maior DY Anual', key:'dy_anual', fmt:v=>fmtPercent(v,1), best:'max'},
  {label:'Menor P/VP', key:'pvp_atual',fmt:v=>v.toFixed(2)+'x', best:'min'},
- {label:'Maior Vol. Médio',key:'vol3m', fmt:v=>'R$'+(v/1e6).toFixed(1)+'M',best:'max'},
- {label:'Maior Ret. Ano', key:'ret_ano', fmt:v=>(v*100).toFixed(1)+'%', best:'max'},
+ {label:'Maior Vol. Médio',key:'vol3m', fmt:v=>'R$'+fmtMillions(v),best:'max'},
+ {label:'Maior Ret. Ano', key:'ret_ano', fmt:v=>fmtPercent(v,1), best:'max'},
  {label:'Maior MktCap', key:'mktcap', fmt:v=>'R$'+(v/1e9).toFixed(1)+'B',best:'max'},
  {label:'Mais fundos', key:'count', fmt:v=>v+' fundos', best:'max'},
  ];
@@ -6815,7 +6815,7 @@ function renderSegTable(){
  <td style="text-align:center;font-weight:700;color:var(--apex-blue)">${s.count}</td>
  <td data-val="${s.dy_anual}" style="color:${clrDY(s.dy_anual)};font-weight:700">${pct(s.dy_anual)}</td>
  <td data-val="${s.pvp_atual}" style="color:${clrPVP(s.pvp_atual)};font-weight:700">${s.pvp_atual.toFixed(2)}x</td>
- <td data-val="${s.vol3m}">R$${(s.vol3m/1e6).toFixed(1)}M</td>
+ <td data-val="${s.vol3m}">R$${fmtMillions(s.vol3m)}</td>
  <td data-val="${s.ret_mes}" style="color:${clrRet(s.ret_mes)};font-weight:600">${pct(s.ret_mes)}</td>
  <td data-val="${s.ret_ano}" style="color:${clrRet(s.ret_ano)};font-weight:600">${pct(s.ret_ano)}</td>
  </tr>`;
@@ -6845,7 +6845,7 @@ function showSegTooltip(nome,event){
  <span style="background:${bg};color:${cor};padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700">${nome}</span>
  <span style="font-size:10px;color:#6b7a9a">${s.count} fundos</span>
  </div>
- <div style="font-size:10px;color:#6b7a9a;margin-bottom:8px">DY médio: <strong style="color:var(--success)">${(s.dy_anual*100).toFixed(1)}%</strong> · P/VP médio: <strong>${s.pvp_atual.toFixed(2)}x</strong></div>
+ <div style="font-size:10px;color:#6b7a9a;margin-bottom:8px">DY médio: <strong style="color:var(--success)">${fmtPercent(s.dy_anual,1)}</strong> · P/VP médio: <strong>${s.pvp_atual.toFixed(2)}x</strong></div>
  <table style="width:100%;font-size:11px;border-collapse:collapse">
  <thead><tr style="background:var(--apex-navy)">
  <th style="padding:5px 8px;color:#fff;text-align:left;border-radius:4px 0 0 0">Ticker</th>
@@ -6855,7 +6855,7 @@ function showSegTooltip(nome,event){
  <tbody>
  ${topFunds.map(f=>`<tr style="border-bottom:1px solid #f0f4fa">
  <td style="padding:5px 8px;font-weight:700;color:var(--apex-blue)">${f.ticker}</td>
- <td style="padding:5px 8px;text-align:center;color:var(--success);font-weight:600">${f.dy_anual?(f.dy_anual*100).toFixed(1)+'%':'—'}</td>
+ <td style="padding:5px 8px;text-align:center;color:var(--success);font-weight:600">${f.dy_anual?fmtPercent(f.dy_anual,1):'—'}</td>
  <td style="padding:5px 8px;text-align:center;font-weight:600">${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}</td>
  </tr>`).join('')}
  </tbody>
@@ -7085,10 +7085,10 @@ function renderSegDrilldown(){
  if(kpiEl){
  const kpis=[
  {lbl:'Fundos',val:s.count,cor:'var(--apex-blue)'},
- {lbl:'DY Médio',val:(s.dy_anual*100).toFixed(1)+'%',cor:'var(--success)'},
+ {lbl:'DY Médio',val:fmtPercent(s.dy_anual,1),cor:'var(--success)'},
  {lbl:'P/VP Médio',val:s.pvp_atual.toFixed(2)+'x',cor:'var(--apex-navy)'},
- {lbl:'Vol. Médio',val:'R$'+(s.vol3m/1e6).toFixed(1)+'M',cor:'var(--apex-navy)'},
- {lbl:'Ret. Mês',val:(s.ret_mes>=0?'+':'')+(s.ret_mes*100).toFixed(2)+'%',cor:s.ret_mes>=0?'var(--success)':'var(--danger)'},
+ {lbl:'Vol. Médio',val:'R$'+fmtMillions(s.vol3m),cor:'var(--apex-navy)'},
+ {lbl:'Ret. Mês',val:(s.ret_mes>=0?'+':'')+fmtPercent(s.ret_mes,2),cor:s.ret_mes>=0?'var(--success)':'var(--danger)'},
  {lbl:'Entraram ▲',val:s.entraram,cor:'var(--success)'},
  {lbl:'Saíram ▼',val:s.sairam,cor:'var(--danger)'},
  ];
@@ -7128,7 +7128,7 @@ function renderSegDrilldown(){
  <td style="padding:7px 12px;text-align:center">${f.fechamento?'R$ '+parseFloat(f.fechamento).toFixed(2):'—'}</td>
  <td style="padding:7px 12px;text-align:center;color:var(--success);font-weight:600">${pct(f.dy_anual)}</td>
  <td style="padding:7px 12px;text-align:center;font-weight:600">${f.pvp_atual?f.pvp_atual.toFixed(2)+'x':'—'}</td>
- <td style="padding:7px 12px;text-align:center">${f.vol3m?'R$'+(f.vol3m/1e6).toFixed(1)+'M':'—'}</td>
+ <td style="padding:7px 12px;text-align:center">${f.vol3m?'R$'+fmtMillions(f.vol3m):'—'}</td>
  <td style="padding:7px 12px;text-align:center">${perf(f.ret_mes)}</td>
  <td style="padding:7px 12px;text-align:center">${perf(f.ret_ano)}</td>
  <td style="padding:7px 12px;text-align:center">${statusBadge}</td>
@@ -7169,7 +7169,7 @@ function renderSegCartMain(){
   segs.forEach(([nome,d])=>{
     const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
     const pctW=(d.peso/totalW*100).toFixed(1);
-    const dyMed=d.dyN>0?(d.dy/d.dyN*100).toFixed(1)+'%':'—';
+    const dyMed=d.dyN>0?fmtPercent(d.dy/d.dyN,1):'—';
     html+=`<div style="border:1.5px solid ${cor};border-radius:10px;padding:12px;background:${bg}22">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="background:${bg};color:${cor};padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">${nome}</span>
@@ -7282,7 +7282,7 @@ function _renderRankingRows({ranking, totalSems}){
     const cor = f.consistencia>=100?'var(--success)':f.consistencia>=80?'var(--warning)':'var(--danger)';
     const corBar = f.consistencia>=100?'var(--success)':f.consistencia>=80?'var(--warning)':'var(--danger)';
     const segBg = SEG_BG[f.seg]||'#eee', segC = SEG_COLORS[f.seg]||'#555';
-    const dyStr = f.dyAtual!=null?(f.dyAtual*100).toFixed(2)+'%':'—';
+    const dyStr = fmtPercentOrDash(f.dyAtual,2);
     const dyCor = f.dyAtual!=null&&f.dyAtual>=0.10?'var(--success)':'var(--apex-navy)';
     return`<tr>
       <td>${badge}</td>
