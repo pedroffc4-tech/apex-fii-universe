@@ -3143,6 +3143,7 @@ textarea,.form-select{
 
 <!-- Fase 1 da modularização: constantes e dados extraídos para js/ (ver CLAUDE.md / plano de refatoração). -->
 <script type="module" src="./js/constants.js"></script>
+<script type="module" src="./js/formatters.js"></script>
 <script type="module" src="./js/data/pre-analise-data.js"></script>
 <script type="module" src="./js/data/eligible-funds-data.js"></script>
 
@@ -4032,10 +4033,10 @@ function buildFundDataMap(){
  yield:yieldRaw,
  pvp:pvpVal,
  mkt:mktRaw,
- yieldPct:(yieldRaw*100).toFixed(2)+'%',
+ yieldPct:fmtPercent(yieldRaw),
  pvpTxt:pvpTxt,
- volFmt:'R$ '+volRaw.toLocaleString('pt-BR',{maximumFractionDigits:0}),
- mktFmt:'R$ '+(mktRaw/1e6).toFixed(1)+'M',
+ volFmt:'R$ '+fmtCurrency(volRaw),
+ mktFmt:'R$ '+fmtMillions(mktRaw),
  preco:cells[3]?.textContent?.trim()||'—',
  };
  });
@@ -4116,7 +4117,7 @@ function renderPreAnalise(){
  <td style="max-width:200px;white-space:normal">${r.nome}</td>
  <td style="font-size:11px">${r.gestora||'—'}</td>
  <td>${segChip}</td>
- <td style="text-align:right;font-weight:600">${r.mktcap?'R$ '+r.mktcap.toLocaleString('pt-BR',{minimumFractionDigits:0})+'M':'—'}</td>
+ <td style="text-align:right;font-weight:600">${r.mktcap?'R$ '+fmtCurrency(r.mktcap,{minimumFractionDigits:0})+'M':'—'}</td>
  <td>${badge}</td>
  <td style="font-size:10px;font-weight:600;color:#5a6e8a;max-width:150px;white-space:normal">${r.obs||'—'}</td>
  <td>${det}</td>
@@ -4354,16 +4355,16 @@ async function onBTGUpload(input){
  const curEl=new Set(fundos.filter(f=>f.elegivel).map(f=>f.ticker));
  entraram=[...curEl].filter(t=>!antEl.has(t)).map(t=>{
  const f=fundos.find(x=>x.ticker===t);
- return {ticker:t,segmento:f?.segmento||'—',motivo:`DY ${(f.dy_anual*100).toFixed(2)}% · P/VP ${f.pvp_atual.toFixed(4)}x · Vol R$${f.vol3m.toLocaleString('pt-BR',{maximumFractionDigits:0})}`};
+ return {ticker:t,segmento:f?.segmento||'—',motivo:`DY ${fmtPercent(f.dy_anual)} · P/VP ${f.pvp_atual.toFixed(4)}x · Vol R$${fmtCurrency(f.vol3m)}`};
  });
  sairam=[...antEl].filter(t=>!curEl.has(t)).map(t=>{
  const f=fundos.find(x=>x.ticker===t);
  if(!f)return{ticker:t,segmento:'—',criterio:'Sem dado',motivo:'Removido do BTG Guide'};
  const crit=f.fail_vol?'Volume':f.fail_yield?'Yield':f.fail_pvp?'P/VP':'MktCap';
- const motivo=f.fail_vol?`Vol caiu para R$${f.vol3m.toLocaleString('pt-BR',{maximumFractionDigits:0})} (min R$400k)`:
- f.fail_yield?`DY caiu para ${(f.dy_anual*100).toFixed(2)}% (min 8%)`:
+ const motivo=f.fail_vol?`Vol caiu para R$${fmtCurrency(f.vol3m)} (min R$400k)`:
+ f.fail_yield?`DY caiu para ${fmtPercent(f.dy_anual)} (min 8%)`:
  f.fail_pvp?`P/VP subiu para ${f.pvp_atual.toFixed(4)}x (max 1,15x)`:
- `MktCap caiu para R$${(f.mktcap/1e6).toFixed(1)}M (min R$200M)`;
+ `MktCap caiu para R$${fmtMillions(f.mktcap)} (min R$200M)`;
  return{ticker:t,segmento:f.segmento||'—',criterio:crit,motivo};
  });
  }
@@ -5082,7 +5083,7 @@ function renderizarSemana(semana, fundos){
  <td style="max-width:220px;white-space:normal">${f.nome||''}</td>
  <td>${segChipHtml}</td>
  <td>R$ ${f.fechamento?.toFixed(2)||'—'}</td>
- <td data-val="${f.vol3m||0}">R$ ${(f.vol3m||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</td>
+ <td data-val="${f.vol3m||0}">R$ ${fmtCurrency(f.vol3m||0)}</td>
  <td style="color:${dyC};font-weight:700" data-val="${f.dy_anual||0}">${f.dy_anual?(f.dy_anual*100).toFixed(2)+'%':'—'}</td>
  <td style="color:${pvpC};font-weight:700">${f.pvp_atual?f.pvp_atual.toFixed(4)+'x':'—'}</td>
  <td data-val="${f.mktcap||0}">R$ ${((f.mktcap||0)/1e6).toFixed(1)}M</td>
@@ -5408,7 +5409,7 @@ function renderCarteiraPosicoes(){
  if(!_carteira.length){ renderCarteiraVazia(); return; }
 
  const sorted=[..._carteira].sort((a,b)=>b.peso-a.peso);
- const pct=v=>(v*100).toFixed(2)+'%';
+ const pct=fmtPercent;
  const perfCls=v=>v>0?'cart-perf-pos':v<0?'cart-perf-neg':'cart-perf-neu';
  const perfFmt=v=>v===0?'—':(v>0?'+':'')+pct(v);
  const analysisData=analyses||{};
@@ -5469,7 +5470,7 @@ function renderCarteiraPosicoes(){
 function renderCarteiraFooter(){
  const foot=document.getElementById('tbl-carteira-foot');
  if(!foot||!_carteira.length) return;
- const pct=v=>(v*100).toFixed(2)+'%';
+ const pct=fmtPercent;
  const wavg=(key)=>{
  const tot=_carteira.reduce((s,c)=>{const p=_carteiraPrecos[c.ticker];return s+(p&&p[key]?p[key]*c.peso:0);},0);
  const w=_carteira.reduce((s,c)=>{const p=_carteiraPrecos[c.ticker];return s+(p&&p[key]?c.peso:0);},0);
@@ -5571,7 +5572,7 @@ function renderCarteiraComposicao(){
  const aBody=document.getElementById('tbl-cart-ativo-body');
  if(aBody){
  const sorted=[..._carteira].sort((a,b)=>b.peso-a.peso);
- const pct=v=>(v*100).toFixed(1)+'%';
+ const pct=v=>fmtPercent(v,1);
  aBody.innerHTML=sorted.map(c=>{
  const p=_carteiraPrecos[c.ticker]||{};
  const nome=(p.nome||c.ticker).replace(/ FII$/i,'');
@@ -5600,7 +5601,7 @@ function renderCarteiraComposicao(){
  });
  const total=Object.values(segMap).reduce((a,v)=>a+v.peso,0)||1;
  const segs=Object.entries(segMap).sort((a,b)=>b[1].peso-a[1].peso);
- const pct=v=>(v*100).toFixed(1)+'%';
+ const pct=v=>fmtPercent(v,1);
  sBody.innerHTML=segs.map(([nome,s])=>{
  const cor=SEG_COLORS[nome]||'#555', bg=SEG_BG[nome]||'#eee';
  const dyMed=s.peso?s.dy/s.peso:0;
@@ -5615,7 +5616,7 @@ function renderCarteiraComposicao(){
 }
 
 function renderCarteiraKPIs(){
- const pct=v=>(v*100).toFixed(2)+'%';
+ const pct=fmtPercent;
  const wavg=key=>{
  const tot=_carteira.reduce((s,c)=>{const p=_carteiraPrecos[c.ticker];return s+(p&&p[key]?p[key]*c.peso:0);},0);
  const w=_carteira.reduce((s,c)=>{const p=_carteiraPrecos[c.ticker];return s+(p&&p[key]?c.peso:0);},0);
@@ -5669,7 +5670,7 @@ function renderCarteiraRetornos(){
  if(!head||!body) return;
 
  const anos=[..._carteiraRetornos].map(r=>r.ano).sort((a,b)=>b-a);
- const pct=v=>v!=null?(v>0?'+':'')+v.toFixed(2)+'%':'-';
+ const pct=fmtPercentSigned;
  const cls=v=>v==null?'ret-neu':v>0?'ret-pos':'ret-neg';
 
  head.innerHTML=`<tr><th>Rentabilidade</th>${anos.map(a=>`<th>${a}</th>`).join('')}</tr>`;
@@ -6807,7 +6808,7 @@ function renderSegTable(){
  const clrDY=v=>v>=0.12?'var(--success)':v>=0.09?'var(--warning)':'var(--danger)';
  const clrPVP=v=>v<0.90?'var(--success)':v<1.05?'var(--warning)':'var(--danger)';
  const clrRet=v=>v>0.005?'var(--success)':v>-0.005?'#6b7a9a':'var(--danger)';
- const pct=v=>(v*100).toFixed(2)+'%';
+ const pct=fmtPercent;
  tbody.innerHTML=segs.map(([nome,s])=>{
  const cor=SEG_COLORS[nome]||'#555',bg=SEG_BG[nome]||'#eee';
  return`<tr><td><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap">${nome}</span></td>
@@ -7101,7 +7102,7 @@ function renderSegDrilldown(){
  if(!tw)return;
  const fundos=s.fundos.sort((a,b)=>(b.dy_anual||0)-(a.dy_anual||0));
  const analyses_local=typeof analyses!=='undefined'?analyses:{};
- const pct=v=>v!=null?(v*100).toFixed(2)+'%':'—';
+ const pct=fmtPercentOrDash;
  const perf=v=>v!=null?`<span style="color:${v>0?'var(--success)':v<0?'var(--danger)':'#6b7a9a'};font-weight:600">${v>0?'+':''}${pct(v)}</span>`:'—';
  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
  <thead><tr style="background:var(--apex-navy)">
@@ -7357,7 +7358,7 @@ function renderSegCartKPIs(){
  if(p?.pvp){segMap[s].pvp+=p.pvp*(c.peso||0);segMap[s].pvpN+=c.peso||0;}
  });
  const segs=Object.entries(segMap).sort((a,b)=>b[1].peso-a[1].peso);
- const pct=v=>(v*100).toFixed(1)+'%';
+ const pct=v=>fmtPercent(v,1);
  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
  <thead><tr style="background:var(--apex-navy)">
  <th style="padding:7px 10px;color:#fff;text-align:left">Segmento</th>
