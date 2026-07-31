@@ -3,12 +3,11 @@
 // ══════════════════════════════════════════════════════════════
 // ANÁLISE — Formulário de avaliação por fundo (Fase 4 da modularização)
 // ══════════════════════════════════════════════════════════════
-// Depende de globais ainda no script legado (analyses, QUALI_CRITERIA/
-// QUANTI_CRITERIA, ELIGIBLE_FUNDS, getDB, supaLoad, toast, openForum,
-// invalidateRankingCache, renderScoreRanking, injectAnalyseTags,
-// updateKpiRow, renderAtvVisaoGeral, openConfirmModal, coletarEstadoAnalise/
-// verificarRascunho/setDraftStatus de js/modals/analise-draft-autosave.js)
-// — acessíveis via window.
+// Depende de globais ainda no script legado (analyses, ELIGIBLE_FUNDS,
+// getDB, supaLoad, toast, openForum, invalidateRankingCache,
+// renderScoreRanking, injectAnalyseTags, updateKpiRow, renderAtvVisaoGeral,
+// openConfirmModal, coletarEstadoAnalise/verificarRascunho/setDraftStatus
+// de js/tabs/analise-draft-autosave.js) — acessíveis via window.
 //
 // `currentTicker` é REATRIBUÍDO aqui (onFundoSelect/resetAnaliseFundo) e
 // LIDO por js/tabs/analise-draft-autosave.js — por isso, assim como
@@ -17,6 +16,34 @@
 
 export let currentTicker = '';
 window.currentTicker = currentTicker;
+
+// QUALI_CRITERIA/QUANTI_CRITERIA — critérios de avaliação (Fase 5:
+// movidos do script legado para junto do único módulo que os usa).
+export const QUALI_CRITERIA=[
+ {id:'q1',peso:5.7,nome:'Track Record dos Gestores',desc:'Histórico dos gestores, tempo de trabalho em conjunto, movimentações dentro do time',ranges:['Troca recente do time, <1 ano juntos. Compra/merge com nova gestora','1-3 anos juntos, histórico limitado mas com expertise','> 3 anos de atuação, estratégia relevante na gestora']},
+ {id:'q2',peso:5.7,nome:'Governança',desc:'Processo de investimentos, transparência na tomada e comunicação de decisões',ranges:['Ausência de relatórios gerenciais, sem informações claras','Relatórios desatualizados/omissos, falta de transparência com alguma justificativa','Relatórios atualizados com detalhamento de operações']},
+ {id:'q3',peso:5.7,nome:'Grau de Concentração de Carteira',desc:'Exposição total da carteira a um emissor/inquilino específico',ranges:['1-5 emissores com 10-15% do PL','1-5 emissores com 5-9,9% do PL','1-5 emissores com até 5% do PL']},
+ {id:'q4',peso:5.7,nome:'Histórico de Waiver/Default',desc:'Histórico de eventos da carteira (Waiver, vencimento antecipado, RJ)',ranges:['Histórico frequente ou casos sem resolução definida','Problemas nos últimos 2 anos com desfecho positivo, sem impacto nos dividendos','Sem problemas nos últimos 2 anos, ou resolvidos sem reincidência']},
+ {id:'q5',peso:5.7,nome:'Localização / Qualidade dos Imóveis',desc:'Qualidade e localização do portfolio vs. média de mercado e fundos pares',ranges:['Áreas periféricas, imóveis problemáticos','Próximo a grandes centros, vacância > 6 meses','Localização premium, grandes metrópoles, ativos de qualidade']},
+ {id:'q6',peso:5.7,nome:'Dividendos / FFO',desc:'Relação entre juros recebidos, distribuição e reservas de resultado',ranges:['—','Dividendos estáveis, FFO volátil ou próximo dos dividendos distribuídos','Dividendos consistentes/crescentes, FFO recorrente, reserva de lucro saudável']},
+ {id:'q7',peso:5.7,nome:'Dividendos × Média de Mercado',desc:'Comparar DY (12M, YTD, último mês) com a média dos pares',ranges:['DY abaixo da média do mercado','DY competitivo vs CDI e pares, porém inconsistente','DY constante acima da média, sem agredir o financeiro']}
+];
+export const QUANTI_CRITERIA=[
+ {id:'n1',peso:5.0,nome:'DY 12m',desc:'Avaliar histórico de dividendos e crescimento',getRange:(t)=>{if(t==='papel-cdi')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-14%'},{label:'7–10',txt:'> 14%'}];if(t==='tijolo'||t==='hibrido')return[{label:'0–3',txt:'< 8%'},{label:'4–6',txt:'8-10%'},{label:'7–10',txt:'> 10%'}];if(t==='fi-infra'||t==='hedge')return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-14%'},{label:'7–10',txt:'> 14%'}];if(t==='fiagro')return[{label:'0–3',txt:'< 12%'},{label:'4–6',txt:'12-15%'},{label:'7–10',txt:'> 15%'}];return[{label:'0–3',txt:'< 10%'},{label:'4–6',txt:'10-12%'},{label:'7–10',txt:'> 12%'}];},applicavel:true},
+ {id:'n2',peso:5.0,nome:'Performance 12m',desc:'Performance vs IFIX',ranges:[{label:'0–3',txt:'< IFIX−0,5dp'},{label:'4–6',txt:'IFIX ± 0,5dp'},{label:'7–10',txt:'>IFIX+0,5dp'}],applicavel:true},
+ {id:'n3',peso:5.0,nome:'Alavancagem',desc:'Grau de alavancagem vs média de mercado',ranges:[{label:'0–3',txt:'> 15%'},{label:'4–6',txt:'10-15%'},{label:'7–10',txt:'< 10%'}],applicavel:true},
+ {id:'n4',peso:5.0,nome:'Spread Over / Prazo',desc:'Spread do DY vs média de mercado',ranges:[{label:'N/A',txt:'—'},{label:'N/A',txt:'—'},{label:'N/A',txt:'—'}],applicavel:false,checkAplic:true},
+ {id:'n5',peso:5.0,nome:'ADTV 3m',desc:'Volume médio diário de negociação',ranges:[{label:'0–3',txt:'< R$300k/dia'},{label:'4–6',txt:'R$300k–R$3M/dia'},{label:'7–10',txt:'>R$3M/dia'}],applicavel:true},
+ {id:'n6',peso:5.0,nome:'PL do Fundo',desc:'Tamanho do fundo',ranges:[{label:'0–3',txt:'< R$300M'},{label:'4–6',txt:'R$300M–R$1B'},{label:'7–10',txt:'>R$1B'}],applicavel:true},
+ {id:'n7',peso:5.0,nome:'Qtd. de Cotistas',desc:'Concentração do passivo',ranges:[{label:'0–3',txt:'< 10 mil'},{label:'4–6',txt:'10-50 mil'},{label:'7–10',txt:'> 50 mil'}],applicavel:true},
+ {id:'n8',peso:5.0,nome:'P/VP',desc:'Histórico de P/VP',ranges:[{label:'0–3',txt:'> 1,10x'},{label:'4–6',txt:'0,95–1,10x'},{label:'7–10',txt:'< 0,95x'}],applicavel:true},
+ {id:'n9',peso:5.0,nome:'Tempo de Constituição',desc:'Tempo de constituição do fundo',ranges:[{label:'0–3',txt:'1-3 anos'},{label:'4–6',txt:'3-5 anos'},{label:'7–10',txt:'> 5 anos'}],applicavel:true},
+ {id:'n10',peso:5.0,nome:'Vacância Física',desc:'Vacância física e financeira do ativo',ranges:[{label:'0–3',txt:'> 10%'},{label:'4–6',txt:'5-10%'},{label:'7–10',txt:'< 5%'}],applicavel:true},
+ {id:'n11',peso:5.0,nome:'Volatilidade 12m',desc:'Volatilidade do ativo vs IFIX',ranges:[{label:'0–3',txt:'>IFIX+1dp'},{label:'4–6',txt:'IFIX ± 1dp'},{label:'7–10',txt:'< IFIX−1dp'}],applicavel:true},
+ {id:'n12',peso:5.0,nome:'LTV',desc:'Razão de garantias (fundos de tijolo)',ranges:[{label:'0–3',txt:'> 40%'},{label:'4–6',txt:'20-40%'},{label:'7–10',txt:'< 20%'}],applicavel:false,checkAplic:true}
+];
+window.QUALI_CRITERIA = QUALI_CRITERIA;
+window.QUANTI_CRITERIA = QUANTI_CRITERIA;
 
 export function openAnalise(ticker){
  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
